@@ -1,0 +1,89 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { Loader2, Printer } from "lucide-react";
+
+import { Event } from "@/entities/event/event.entity";
+import { useAuthStore } from "@/stores/auth.store";
+import { getMyQr, MyQr } from "@/services/qr.service";
+import { dateFormat } from "@/shared/utils/format";
+import BackLink from "@/features/dashboard/shared/BackLink";
+
+export default function BadgePage({ event }: { event: Event }) {
+  const { user } = useAuthStore();
+  const [qr, setQr] = useState<MyQr | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await getMyQr(event.uuid);
+        if (!cancelled && res.data) setQr(res.data);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [event.uuid]);
+
+  const role = user?.role === "SUPERADMIN" ? "SUPERADMIN" : "VISITOR";
+
+  return (
+    <div className="mx-auto max-w-md px-4 py-8">
+      <BackLink href={`/dashboard/${event.slug ?? event.uuid}`} />
+      <div className="mb-6 text-center">
+        <h1 className="text-xl font-bold text-gray-900">ID Badge</h1>
+        <p className="text-sm text-gray-500">{event.name}</p>
+      </div>
+
+      {loading ? (
+        <div className="flex justify-center py-16">
+          <Loader2 className="h-6 w-6 animate-spin text-secondary" />
+        </div>
+      ) : (
+        <div id="badge-print" className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+          {/* header */}
+          <div className="bg-gradient-to-r from-brand-500 to-brand-600 px-6 py-5 text-center">
+            <p className="text-xs font-semibold uppercase tracking-widest text-white/80">Mexpo</p>
+            <p className="mt-1 truncate font-bold text-white">{event.name}</p>
+            <p className="text-xs text-white/80">{dateFormat(event.start_date)}</p>
+          </div>
+          {/* body */}
+          <div className="flex flex-col items-center px-6 py-6">
+            {user?.photo ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={user.photo}
+                alt={user.full_name}
+                className="h-20 w-20 rounded-full object-cover ring-2 ring-brand-500"
+              />
+            ) : (
+              <div className="flex h-20 w-20 items-center justify-center rounded-full bg-brand-50 text-2xl font-bold text-brand-600">
+                {(user?.full_name ?? "?")[0]}
+              </div>
+            )}
+            <p className="mt-3 text-lg font-bold text-gray-900">{user?.full_name}</p>
+            <p className="text-xs text-gray-500">{user?.email}</p>
+            <span className="mt-2 rounded-full bg-brand-50 px-3 py-0.5 text-xs font-semibold uppercase text-brand-600">
+              {role}
+            </span>
+            {qr && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={qr.image} alt="QR Code" className="mt-4 h-36 w-36" />
+            )}
+          </div>
+        </div>
+      )}
+
+      <button
+        onClick={() => window.print()}
+        className="mt-6 inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-secondary px-5 py-3 text-sm font-semibold text-white hover:bg-secondary/80"
+      >
+        <Printer className="h-4 w-4" /> Cetak Badge
+      </button>
+    </div>
+  );
+}

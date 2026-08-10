@@ -1,0 +1,21 @@
+flowchart TD
+    U[Pengunjung]
+    FE[Frontend]
+    API[API NestJS]
+    DB[(MariaDB)]
+    MAIL[(SMTP)]
+
+    U -->|1. isi formulir daftar| FE
+    FE -->|2. POST /users  Basic| API
+    API -->|3. hash password, buat user| DB
+    API -->|4. kirim email verifikasi| MAIL
+    U -->|5. klik link /users/verification/:code| API
+    API -->|6. set verify_at| DB
+    U -->|7. POST /auth {email,password}| API
+    API -->|8. verifikasi + tanda tangan JWT {uuid,role}| DB
+    API -->|9. kembalikan token| FE
+    FE -->|10. simpan token di cookie httpOnly| FE
+
+    style U fill:#eef2ff
+    style FE fill:#ecfeff
+    style API fill:#e0f2fe

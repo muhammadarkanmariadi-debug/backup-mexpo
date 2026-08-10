@@ -1,0 +1,24 @@
+flowchart TD
+    O[Owner / Committee]
+    SA[Super Admin]
+    FE[Frontend]
+    API[API NestJS]
+    DB[(MariaDB)]
+
+    O -->|1. POST /events| FE
+    FE -->|2. buat event, pembuat jadi OWNER, status DRAFTED| API
+    API -->|3. insert events + user_event_roles| DB
+    O -->|4. konfigurasi: PUT /events/:id (features, visibility, ticket_mode, souvenir_rules)| API
+    O -->|5. tambah konten: rundown/sponsor/kontak/speaker/workshop| API
+    O -->|6. POST /events/:id/publish-request| API
+    API -->|7. status = PENDING| DB
+    SA -->|8. GET /events/approval-queue| FE
+    FE -->|9. tampilkan antrean PENDING| API
+    SA -->|10. PUT /events/:id/approval {status}| API
+    API -->|11a. PUBLISHED| DB
+    API -->|11b. REJECTED + rejection_reason| DB
+    API -->|12. email pemberitahuan ke pemohon| DB
+
+    style O fill:#fff7ed
+    style SA fill:#f5f3ff
+    style API fill:#e0f2fe

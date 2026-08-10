@@ -1,0 +1,20 @@
+flowchart TD
+    V[Pengunjung]
+    FE[Frontend]
+    API[API NestJS]
+    DB[(MariaDB)]
+
+    V -->|1. buka halaman event| FE
+    FE -->|2. GET /public-api/events/:id| API
+    FE -->|3. GET /public-api/registration-fields/:event_id| API
+    FE -->|4. GET /public-api/ticket-types/:event_id| API
+    V -->|5. isi formulir dinamis + answers[]| FE
+    FE -->|6. POST /public-api/registration/:event_id| API
+    API -->|7. validasi field wajib + kuota| DB
+    API -->|8a. FREE: buat user_event_roles VISITOR| DB
+    API -->|8b. PAID: buat tickets RESERVED/PAID| DB
+    API -->|9. kembalikan sukses + tiket| FE
+
+    style V fill:#eef2ff
+    style FE fill:#ecfeff
+    style API fill:#e0f2fe

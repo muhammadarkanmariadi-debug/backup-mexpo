@@ -1,0 +1,24 @@
+flowchart TD
+    V[Pengunjung]
+    STAFF[Petugas / Tenant / Petugas Souvenir]
+    FE[Frontend - pemindai QR]
+    API[API NestJS]
+    DB[(MariaDB)]
+
+    V -->|1. GET /qr-codes/my/:event_id| FE
+    FE -->|2. tampilkan PNG code_data=mexo:event:user| API
+    V -->|3. tunjukkan QR| STAFF
+    STAFF -->|4. pindai QR| FE
+    FE -->|5. POST /qr-codes/resolve {code_data}| API
+    API -->|6. kembalikan {user_id, user}| DB
+
+    STAFF -->|7a. venue: POST /attendances/event/:event_id| API
+    API -->|8a. log_attendances (sekali/hari)| DB
+    STAFF -->|7b. booth: POST /attendances/tenant/:tenant_id| API
+    API -->|8b. booth_visits (sekali/hari/tenant)| DB
+    STAFF -->|9c. souvenir: POST /souvenirs/check/:event_id + /souvenirs/:event_id| API
+    API -->|10c. cek aturan + serahkan| DB
+
+    style V fill:#eef2ff
+    style STAFF fill:#fef3c7
+    style API fill:#e0f2fe

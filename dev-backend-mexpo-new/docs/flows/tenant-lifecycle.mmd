@@ -1,0 +1,21 @@
+flowchart TD
+    CO[Perusahaan / Tenant]
+    OWN[Owner Event / Committee]
+    TFE[Portal Tenant FE]
+    API[API NestJS]
+    DB[(MariaDB)]
+
+    CO -->|1. POST /tenants/:event_id + /event-users/tenant/:event_id| API
+    API -->|2. tenant PENDING| DB
+    OWN -->|3. PUT /tenants/verify/:id {APPROVED}| API
+    API -->|4. tenant APPROVED| DB
+    OWN -->|5. PUT /tenants/verify/member/:id {APPROVED}| API
+    CO -->|6. undang rekan: POST /tenants/invite/:tenant_id| TFE
+    TFE -->|7. buat akun + kirim kredensial via email| API
+    CO -->|8. ubah peran: PUT /tenants/member/:id {OWNER|STAFF}| API
+    CO -->|9. kelola profil/produk/POS/laporan| TFE
+    TFE -->|10. tenant-transactions / tenant-products / reports| API
+
+    style CO fill:#ccfbf1
+    style OWN fill:#fff7ed
+    style API fill:#e0f2fe

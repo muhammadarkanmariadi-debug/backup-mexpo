@@ -1,0 +1,24 @@
+flowchart TD
+    V[Pengunjung]
+    CS[Petugas Souvenir]
+    FE[Frontend - pemindai QR]
+    API[API NestJS]
+    DB[(MariaDB)]
+
+    V -->|1. tunjukkan QR| CS
+    CS -->|2. pindai QR| FE
+    FE -->|3. POST /qr-codes/resolve {code_data}| API
+    API -->|4. user_id| DB
+    CS -->|5. POST /souvenirs/check/:event_id {user_id}| API
+    API -->|6. evaluasi aturan: minVisitedBooth / joinedSeminar / requireAll + cek sudah diklaim| DB
+    alt Memenuhi syarat
+        API -->|7. POST /souvenirs/:event_id {user_id}| API
+        API -->|8. serahkan souvenir (unik per event/user)| DB
+        API -->|9. sukses| FE
+    else Belum memenuhi
+        API -->|7b. kembalikan pesan aturan yang belum terpenuhi| FE
+    end
+
+    style V fill:#eef2ff
+    style CS fill:#fdf4ff
+    style API fill:#e0f2fe

@@ -1,0 +1,659 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model users {
+  uuid                          String                  @id @default(uuid())
+  full_name                     String                  @default("")
+  email                         String                  @unique @default("")
+  password                      String                  @default("")
+  verify_at                     DateTime?
+  is_active                     Boolean                 @default(false)
+  phone                         String                  @default("")
+  photo                         String                  @default("")
+  organization                  String                  @default("")
+  role                          UserRole                @default(USER)
+  created_at                    DateTime                @default(now())
+  updated_at                    DateTime                @updatedAt
+  events_creator                events[]                @relation("creator_event")
+  editor_event                  events[]                @relation("editor_event")
+  approver_event                events[]                @relation("approver_event")
+  creator_user_event_roles      user_event_roles[]      @relation("creator_user_event_roles")
+  editor_user_event_roles       user_event_roles[]      @relation("editor_user_event_roles")
+  creator_event_rundown         event_rundown[]         @relation("creator_event_rundown")
+  editor_event_rundown          event_rundown[]         @relation("editor_event_rundown")
+  creator_event_speakers        event_speakers[]        @relation("creator_event_speakers")
+  editor_event_speakers         event_speakers[]        @relation("editor_event_speakers")
+  creator_event_sponsors        event_sponsors[]        @relation("creator_event_sponsors")
+  editor_event_sponsors         event_sponsors[]        @relation("editor_event_sponsors")
+  creator_workshops             workshops[]             @relation("creator_workshops")
+  editor_workshops              workshops[]             @relation("editor_workshops")
+  workshopBookings              workshop_bookings[]
+  creator_workshop_bookings     workshop_bookings[]     @relation("creator_workshop_bookings")
+  editor_workshop_bookings      workshop_bookings[]     @relation("editor_workshop_bookings")
+  creator_tenants               tenants[]               @relation("creator_tenants")
+  editor_tenants                tenants[]               @relation("editor_tenants")
+  tenantMembers                 tenant_members[]
+  creator_tenant_members        tenant_members[]        @relation("creator_tenant_members")
+  editor_tenant_members         tenant_members[]        @relation("editor_tenant_members")
+  creator_tenant_events         tenant_events[]         @relation("creator_tenant_events")
+  editor_tenant_events          tenant_events[]         @relation("editor_tenant_events")
+  creator_tenant_products       tenant_products[]       @relation("creator_tenant_products")
+  editor_tenant_products        tenant_products[]       @relation("editor_tenant_products")
+  creator_tenant_transactions   tenant_transactions[]   @relation("creator_tenant_transactions")
+  editor_tenant_transactions    tenant_transactions[]   @relation("editor_tenant_transactions")
+  visitorTransactions           tenant_transactions[]   @relation("visitor_transactions")
+  boothVisits                   booth_visits[]
+  creator_booth_visits          booth_visits[]          @relation("creator_booth_visits")
+  editor_booth_visits           booth_visits[]          @relation("editor_booth_visits")
+  logAttendances                log_attendances[]
+  qrCodes                       qr_codes[]
+  emailVerificationTokens       email_verification[]
+  userEventRoles                user_event_roles[]
+  creator_event_rundown_speaker event_rundown_speaker[] @relation("creator_event_rundown_speaker")
+  editor_event_rundown_speaker  event_rundown_speaker[] @relation("editor_event_rundown_speaker")
+  creator_workshop_speaker      workshop_speaker[]      @relation("creator_workshop_speaker")
+  editor_workshop_speaker       workshop_speaker[]      @relation("editor_workshop_speaker")
+  creator_event_contact         event_contact[]         @relation("creator_event_contact")
+  editor_event_contact          event_contact[]         @relation("editor_event_contact")
+  emailResetPasswords           email_reset_password[]
+  creator_tenant_categories     tenant_categories[]     @relation("creator_tenant_categories")
+  editor_tenant_categories      tenant_categories[]     @relation("editor_tenant_categories")
+  creator_souvenirs             souvenirs[]             @relation("creator_souvenirs")
+  editor_souvenirs              souvenirs[]             @relation("editor_souvenirs")
+  souvenirs                     souvenirs[]
+
+  tickets                       tickets[]
+  creator_tickets               tickets[]               @relation("creator_tickets")
+  editor_tickets                tickets[]               @relation("editor_tickets")
+  creator_ticket_types          ticket_types[]          @relation("creator_ticket_types")
+  editor_ticket_types           ticket_types[]          @relation("editor_ticket_types")
+  creator_registration_fields   event_registration_fields[] @relation("creator_registration_fields")
+  editor_registration_fields    event_registration_fields[] @relation("editor_registration_fields")
+  registrationAnswers           registration_answers[]
+  creator_registration_answers  registration_answers[] @relation("creator_registration_answers")
+  editor_registration_answers   registration_answers[] @relation("editor_registration_answers")
+
+  usersBio users_bio?
+}
+
+enum departureMonth {
+  Januari
+  Februari
+  Maret
+  April
+  Mei
+  Juni
+  Juli
+  Agustus
+  September
+  Oktober
+  November
+  Desember
+}
+
+model users_bio {
+  uuid                String           @id @default(uuid())
+  city                String?
+  role_type           RoleType?
+  destination_country String?
+  departure_month     departureMonth?
+  user_id             String           @unique @default("")
+  user                users            @relation(fields: [user_id], references: [uuid], onDelete: Cascade)
+}
+
+enum RoleType {
+  PARTICIPANT
+  SUPERVISOR
+}
+
+model email_verification {
+  uuid      String   @id @default(uuid())
+  user_id   String   @default("")
+  expiresAt DateTime
+  user      users    @relation(fields: [user_id], references: [uuid], onDelete: Cascade)
+}
+
+model email_reset_password {
+  uuid      String   @id @default(uuid())
+  user_id   String   @default("")
+  expiresAt DateTime
+  user      users    @relation(fields: [user_id], references: [uuid], onDelete: Cascade)
+}
+
+enum UserRole {
+  SUPERADMIN
+  USER
+}
+
+model events {
+  uuid                  String                @id @default(uuid())
+  slug                  String?               @unique @map("slug")
+  name                  String                @default("")
+  description           String                @db.Text
+  location              String                @default("")
+  start_date            DateTime              @default(now())
+  end_date              DateTime              @default(now())
+  registration_deadline DateTime              @default(now())
+  registration_start    DateTime?
+  organizer_name        String                @default("")
+  quota                 Int                   @default(0)
+  status                EventStatus           @default(DRAFTED)
+  visibility            EventVisibility       @default(PUBLIC)
+  event_type            EventType             @default(OTHER)
+  ticket_mode           TicketMode            @default(FREE)
+  features              Json?
+  rejection_reason      String?
+  photo                 String                @default("")
+  souvenir_rules        Json?
+  approved_by           String?
+  approver              users?                @relation("approver_event", fields: [approved_by], references: [uuid])
+  created_by            String                @default("")
+  creator               users                 @relation("creator_event", fields: [created_by], references: [uuid])
+  updated_by            String                @default("")
+  editor                users                 @relation("editor_event", fields: [updated_by], references: [uuid])
+  created_at            DateTime              @default(now())
+  updated_at            DateTime              @updatedAt
+  eventRundowns         event_rundown[]
+  eventSpeakers         event_speakers[]
+  eventSponsors         event_sponsors[]
+  workshops             workshops[]
+  tenantEvents          tenant_events[]
+  tenantProducts        tenant_products[]
+  tenantTransactions    tenant_transactions[]
+  boothVisits           booth_visits[]
+  logAttendances        log_attendances[]
+  qrCodes               qr_codes[]
+  userEventRoles        user_event_roles[]
+  eventContacts         event_contact[]
+  tenants               tenants[]
+  souvenirs             souvenirs[]
+  ticketTypes           ticket_types[]
+  tickets               tickets[]
+  registrationFields    event_registration_fields[]
+  registrationAnswers   registration_answers[]
+}
+
+enum EventStatus {
+  DRAFTED
+  PENDING
+  PUBLISHED
+  REJECTED
+  FINISHED
+}
+
+enum EventVisibility {
+  PUBLIC
+  PRIVATE
+}
+
+enum EventType {
+  EXPO
+  CAREER_FAIR
+  SEMINAR
+  GRADUATION
+  EXHIBITION
+  MARKETPLACE
+  GOVERNMENT
+  CAMPUS_SCHOOL
+  OTHER
+}
+
+enum TicketMode {
+  FREE
+  PAID
+}
+
+enum TicketStatus {
+  RESERVED
+  PAID
+  CANCELLED
+}
+
+enum TenantMemberRole {
+  OWNER
+  STAFF
+}
+
+enum RegistrationFieldType {
+  TEXT
+  TEXTAREA
+  NUMBER
+  EMAIL
+  SELECT
+  DATE
+  BOOLEAN
+}
+
+model user_event_roles {
+  uuid       String            @id @default(uuid())
+  user_id    String            @default("")
+  user       users             @relation(fields: [user_id], references: [uuid], onDelete: Cascade)
+  event_id   String            @default("")
+  event      events            @relation(fields: [event_id], references: [uuid], onDelete: Cascade)
+  role       EventRole         @default(VISITOR)
+  status     USER_EVENT_STATUS @default(PENDING)
+  created_by String            @default("")
+  creator    users             @relation("creator_user_event_roles", fields: [created_by], references: [uuid])
+  updated_by String            @default("")
+  editor     users             @relation("editor_user_event_roles", fields: [updated_by], references: [uuid])
+  verify_at  DateTime?
+  created_at DateTime          @default(now())
+  updated_at DateTime          @updatedAt
+}
+
+enum USER_EVENT_STATUS {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum EventRole {
+  OWNER
+  COMMITTEE
+  TENANT
+  VISITOR
+}
+
+model event_contact {
+  uuid         String   @id @default(uuid())
+  event_id     String   @default("")
+  event        events   @relation(fields: [event_id], references: [uuid], onDelete: Cascade)
+  name         String   @default("")
+  email        String   @default("")
+  phone_number String   @default("")
+  created_by   String   @default("")
+  creator      users    @relation("creator_event_contact", fields: [created_by], references: [uuid])
+  updated_by   String   @default("")
+  editor       users    @relation("editor_event_contact", fields: [updated_by], references: [uuid])
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+}
+
+model event_rundown {
+  uuid                 String                  @id @default(uuid())
+  event_id             String                  @default("")
+  event                events                  @relation(fields: [event_id], references: [uuid], onDelete: Cascade)
+  title                String                  @default("")
+  description          String                  @db.Text
+  start_time           DateTime                @default(now())
+  end_time             DateTime                @default(now())
+  created_by           String                  @default("")
+  creator              users                   @relation("creator_event_rundown", fields: [created_by], references: [uuid])
+  updated_by           String                  @default("")
+  editor               users                   @relation("editor_event_rundown", fields: [updated_by], references: [uuid])
+  created_at           DateTime                @default(now())
+  updated_at           DateTime                @updatedAt
+  eventRundownSpeakers event_rundown_speaker[]
+}
+
+model event_speakers {
+  uuid                 String                  @id @default(uuid())
+  event_id             String                  @default("")
+  event                events                  @relation(fields: [event_id], references: [uuid], onDelete: Cascade)
+  name                 String                  @default("")
+  bio                  String                  @db.Text
+  photo                String                  @default("")
+  created_by           String                  @default("")
+  creator              users                   @relation("creator_event_speakers", fields: [created_by], references: [uuid])
+  updated_by           String                  @default("")
+  editor               users                   @relation("editor_event_speakers", fields: [updated_by], references: [uuid])
+  created_at           DateTime                @default(now())
+  updated_at           DateTime                @updatedAt
+  eventRundownSpeakers event_rundown_speaker[]
+  workshopSpeakers     workshop_speaker[]
+}
+
+model event_rundown_speaker {
+  uuid          String         @id @default(uuid())
+  rundown_id    String         @default("")
+  event_rundown event_rundown  @relation(fields: [rundown_id], references: [uuid], onDelete: Cascade)
+  speaker_id    String         @default("")
+  event_speaker event_speakers @relation(fields: [speaker_id], references: [uuid], onDelete: Cascade)
+  created_by    String         @default("")
+  creator       users          @relation("creator_event_rundown_speaker", fields: [created_by], references: [uuid])
+  updated_by    String         @default("")
+  editor        users          @relation("editor_event_rundown_speaker", fields: [updated_by], references: [uuid])
+  created_at    DateTime       @default(now())
+  updated_at    DateTime       @updatedAt
+}
+
+model event_sponsors {
+  uuid       String       @id @default(uuid())
+  event_id   String       @default("")
+  event      events       @relation(fields: [event_id], references: [uuid], onDelete: Cascade)
+  name       String       @default("")
+  logo       String       @default("")
+  level      SponsorLevel @default(PLATINUM)
+  created_by String       @default("")
+  creator    users        @relation("creator_event_sponsors", fields: [created_by], references: [uuid])
+  updated_by String       @default("")
+  editor     users        @relation("editor_event_sponsors", fields: [updated_by], references: [uuid])
+  created_at DateTime     @default(now())
+  updated_at DateTime     @updatedAt
+}
+
+enum SponsorLevel {
+  PLATINUM
+  GOLD
+  SILVER
+  BRONZE
+}
+
+model workshops {
+  uuid             String              @id @default(uuid())
+  slug             String?             @unique @map("slug")
+  event_id         String              @default("")
+  event            events              @relation(fields: [event_id], references: [uuid], onDelete: Cascade)
+  title            String              @default("")
+  description      String              @db.Text
+  location         String              @default("")
+  start_time       DateTime            @default(now())
+  end_time         DateTime            @default(now())
+  quota            Int                 @default(0)
+  is_public        Boolean             @default(true)
+  created_by       String              @default("")
+  creator          users               @relation("creator_workshops", fields: [created_by], references: [uuid])
+  updated_by       String              @default("")
+  editor           users               @relation("editor_workshops", fields: [updated_by], references: [uuid])
+  created_at       DateTime            @default(now())
+  updated_at       DateTime            @updatedAt
+  workshopBookings workshop_bookings[]
+  workshopSpeakers workshop_speaker[]
+}
+
+model workshop_speaker {
+  uuid          String         @id @default(uuid())
+  workshop_id   String         @default("")
+  workshop      workshops      @relation(fields: [workshop_id], references: [uuid], onDelete: Cascade)
+  speaker_id    String         @default("")
+  event_speaker event_speakers @relation(fields: [speaker_id], references: [uuid], onDelete: Cascade)
+  created_by    String         @default("")
+  creator       users          @relation("creator_workshop_speaker", fields: [created_by], references: [uuid])
+  updated_by    String         @default("")
+  editor        users          @relation("editor_workshop_speaker", fields: [updated_by], references: [uuid])
+  created_at    DateTime       @default(now())
+  updated_at    DateTime       @updatedAt
+}
+
+model workshop_bookings {
+  uuid        String        @id @default(uuid())
+  workshop_id String        @default("")
+  workshop    workshops     @relation(fields: [workshop_id], references: [uuid], onDelete: Cascade)
+  user_id     String        @default("")
+  checkin_at  DateTime?
+  user        users         @relation(fields: [user_id], references: [uuid], onDelete: Cascade)
+  status      BookingStatus @default(REGISTERED)
+  created_by  String        @default("")
+  creator     users         @relation("creator_workshop_bookings", fields: [created_by], references: [uuid])
+  updated_by  String        @default("")
+  editor      users         @relation("editor_workshop_bookings", fields: [updated_by], references: [uuid])
+  created_at  DateTime      @default(now())
+  updated_at  DateTime      @updatedAt
+}
+
+enum BookingStatus {
+  REGISTERED
+  CHECKED_IN
+  CANCELLED
+}
+
+model tenant_categories {
+  uuid       String    @id @default(uuid())
+  name       String    @default("")
+  created_by String    @default("")
+  creator    users     @relation("creator_tenant_categories", fields: [created_by], references: [uuid])
+  updated_by String    @default("")
+  editor     users     @relation("editor_tenant_categories", fields: [updated_by], references: [uuid])
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+  tenants    tenants[]
+}
+
+model tenants {
+  uuid               String                @id @default(uuid())
+  slug               String?               @unique @map("slug")
+  event_id           String                @default("")
+  event              events                @relation(fields: [event_id], references: [uuid], onDelete: Cascade)
+  status             TenantStatus          @default(PENDING)
+  name               String                @default("")
+  description        String                @db.Text
+  logo               String                @default("")
+  website            String                @default("")
+  email              String                @default("")
+  phone              String                @default("")
+  booth_number       String                @default("")
+  category_id        String?
+  category           tenant_categories?    @relation(fields: [category_id], references: [uuid], onDelete: Cascade)
+  created_by         String                @default("")
+  creator            users                 @relation("creator_tenants", fields: [created_by], references: [uuid])
+  updated_by         String                @default("")
+  editor             users                 @relation("editor_tenants", fields: [updated_by], references: [uuid])
+  created_at         DateTime              @default(now())
+  updated_at         DateTime              @updatedAt
+  tenantMembers      tenant_members[]
+  tenantEvents       tenant_events[]
+  tenantProducts     tenant_products[]
+  tenantTransactions tenant_transactions[]
+  boothVisits        booth_visits[]
+}
+
+enum TenantStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model tenant_members {
+  uuid       String           @id @default(uuid())
+  tenant_id  String           @default("")
+  tenant     tenants          @relation(fields: [tenant_id], references: [uuid], onDelete: Cascade)
+  user_id    String           @default("")
+  user       users            @relation(fields: [user_id], references: [uuid], onDelete: Cascade)
+  created_by String           @default("")
+  status     TenantStatus     @default(PENDING)
+  role       TenantMemberRole @default(STAFF)
+  creator    users            @relation("creator_tenant_members", fields: [created_by], references: [uuid])
+  updated_by String           @default("")
+  editor     users            @relation("editor_tenant_members", fields: [updated_by], references: [uuid])
+  created_at DateTime         @default(now())
+  updated_at DateTime         @updatedAt
+}
+
+model tenant_events {
+  uuid       String   @id @default(uuid())
+  tenant_id  String   @default("")
+  tenant     tenants  @relation(fields: [tenant_id], references: [uuid], onDelete: Cascade)
+  event_id   String   @default("")
+  event      events   @relation(fields: [event_id], references: [uuid], onDelete: Cascade)
+  created_by String   @default("")
+  creator    users    @relation("creator_tenant_events", fields: [created_by], references: [uuid])
+  updated_by String   @default("")
+  editor     users    @relation("editor_tenant_events", fields: [updated_by], references: [uuid])
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+}
+
+model tenant_products {
+  uuid                     String                       @id @default(uuid())
+  tenant_id                String                       @default("")
+  tenant                   tenants                      @relation(fields: [tenant_id], references: [uuid], onDelete: Cascade)
+  event_id                 String                       @default("")
+  event                    events                       @relation(fields: [event_id], references: [uuid], onDelete: Cascade)
+  name                     String                       @default("")
+  description              String                       @db.Text
+  price                    Float                        @default(0) @db.DoublePrecision
+  photo                    String                       @default("")
+  created_by               String                       @default("")
+  creator                  users                        @relation("creator_tenant_products", fields: [created_by], references: [uuid])
+  updated_by               String                       @default("")
+  editor                   users                        @relation("editor_tenant_products", fields: [updated_by], references: [uuid])
+  created_at               DateTime                     @default(now())
+  updated_at               DateTime                     @updatedAt
+  tenantTransactionDetails tenant_transaction_details[]
+}
+
+model tenant_transactions {
+  uuid                     String                       @id @default(uuid())
+  event_id                 String                       @default("")
+  event                    events                       @relation(fields: [event_id], references: [uuid], onDelete: Cascade)
+  tenant_id                String                       @default("")
+  tenant                   tenants                      @relation(fields: [tenant_id], references: [uuid], onDelete: Cascade)
+  amount                   Float                        @default(0) @db.DoublePrecision
+  transaction_date         DateTime                     @default(now())
+  payment_method           String                       @default("")
+  paid                     Boolean                      @default(false)
+  visitor_id               String?
+  visitor                  users?                       @relation("visitor_transactions", fields: [visitor_id], references: [uuid], onDelete: SetNull)
+  proof                    String                       @default("")
+  created_by               String                       @default("")
+  creator                  users                        @relation("creator_tenant_transactions", fields: [created_by], references: [uuid])
+  updated_by               String                       @default("")
+  editor                   users                        @relation("editor_tenant_transactions", fields: [updated_by], references: [uuid])
+  created_at               DateTime                     @default(now())
+  updated_at               DateTime                     @updatedAt
+  tenantTransactionDetails tenant_transaction_details[]
+}
+
+model tenant_transaction_details {
+  id             Int                 @id @default(autoincrement())
+  transaction_id String              @default("")
+  transaction    tenant_transactions @relation(fields: [transaction_id], references: [uuid])
+  product_id     String              @default("")
+  product        tenant_products     @relation(fields: [product_id], references: [uuid])
+  quantity       Float               @default(0) @db.DoublePrecision
+  purchase_price Float               @default(0) @db.DoublePrecision
+  created_at     DateTime            @default(now())
+  updated_at     DateTime            @updatedAt
+}
+
+model booth_visits {
+  uuid       String   @id @default(uuid())
+  tenant_id  String   @default("")
+  tenant     tenants  @relation(fields: [tenant_id], references: [uuid], onDelete: Cascade)
+  event_id   String   @default("")
+  event      events   @relation(fields: [event_id], references: [uuid], onDelete: Cascade)
+  user_id    String   @default("")
+  user       users    @relation(fields: [user_id], references: [uuid], onDelete: Cascade)
+  created_by String   @default("")
+  creator    users    @relation("creator_booth_visits", fields: [created_by], references: [uuid])
+  updated_by String   @default("")
+  editor     users    @relation("editor_booth_visits", fields: [updated_by], references: [uuid])
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+}
+
+model log_attendances {
+  uuid       String   @id @default(uuid())
+  event_id   String   @default("")
+  event      events   @relation(fields: [event_id], references: [uuid], onDelete: Cascade)
+  user_id    String   @default("")
+  user       users    @relation(fields: [user_id], references: [uuid], onDelete: Cascade)
+  created_at DateTime @default(now())
+  updated_at DateTime @default(now())
+}
+
+model qr_codes {
+  uuid       String   @id @default(uuid())
+  code_data  String   @unique @default("")
+  event_id   String   @default("")
+  event      events   @relation(fields: [event_id], references: [uuid], onDelete: Cascade)
+  user_id    String   @default("")
+  user       users    @relation(fields: [user_id], references: [uuid], onDelete: Cascade)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+}
+
+model souvenirs {
+  id         Int      @id @default(autoincrement())
+  event_id   String   @default("")
+  events     events   @relation(fields: [event_id], references: [uuid], onDelete: Cascade)
+  user_id    String   @default("")
+  users      users    @relation(fields: [user_id], references: [uuid], onDelete: Cascade)
+  created_by String   @default("")
+  creator    users    @relation("creator_souvenirs", fields: [created_by], references: [uuid])
+  updated_by String   @default("")
+  editor     users    @relation("editor_souvenirs", fields: [updated_by], references: [uuid])
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+}
+
+
+model ticket_types {
+  uuid         String   @id @default(uuid())
+  event_id     String   @default("")
+  event        events   @relation(fields: [event_id], references: [uuid], onDelete: Cascade)
+  name         String   @default("")
+  price        Float    @default(0) @db.DoublePrecision
+  created_by   String   @default("")
+  creator      users    @relation("creator_ticket_types", fields: [created_by], references: [uuid])
+  updated_by   String   @default("")
+  editor       users    @relation("editor_ticket_types", fields: [updated_by], references: [uuid])
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+  tickets      tickets[]
+}
+
+model tickets {
+  uuid              String       @id @default(uuid())
+  event_id          String       @default("")
+  event             events       @relation(fields: [event_id], references: [uuid], onDelete: Cascade)
+  user_id           String       @default("")
+  user              users        @relation(fields: [user_id], references: [uuid], onDelete: Cascade)
+  ticket_type_id    String?      @default("")
+  ticket_type       ticket_types? @relation(fields: [ticket_type_id], references: [uuid], onDelete: SetNull)
+  status            TicketStatus @default(RESERVED)
+  payment_reference String       @default("")
+  payment_method    String       @default("")
+  created_by        String       @default("")
+  creator           users        @relation("creator_tickets", fields: [created_by], references: [uuid])
+  updated_by        String       @default("")
+  editor            users        @relation("editor_tickets", fields: [updated_by], references: [uuid])
+  created_at        DateTime     @default(now())
+  updated_at        DateTime     @updatedAt
+}
+
+model event_registration_fields {
+  uuid       String                @id @default(uuid())
+  event_id   String                @default("")
+  event      events                @relation(fields: [event_id], references: [uuid], onDelete: Cascade)
+  field_key  String                @default("")
+  label      String                @default("")
+  type       RegistrationFieldType @default(TEXT)
+  required   Boolean               @default(false)
+  options    Json?
+  condition  Json?
+  position   Int                   @default(0)
+  created_by String                @default("")
+  creator    users                 @relation("creator_registration_fields", fields: [created_by], references: [uuid])
+  updated_by String                @default("")
+  editor     users                 @relation("editor_registration_fields", fields: [updated_by], references: [uuid])
+  created_at DateTime              @default(now())
+  updated_at DateTime              @updatedAt
+}
+
+model registration_answers {
+  uuid       String   @id @default(uuid())
+  event_id   String   @default("")
+  event      events   @relation(fields: [event_id], references: [uuid], onDelete: Cascade)
+  user_id    String   @default("")
+  user       users    @relation(fields: [user_id], references: [uuid], onDelete: Cascade)
+  field_key  String   @default("")
+  value      String   @default("")
+  created_by String   @default("")
+  creator    users    @relation("creator_registration_answers", fields: [created_by], references: [uuid])
+  updated_by String   @default("")
+  editor     users    @relation("editor_registration_answers", fields: [updated_by], references: [uuid])
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+}

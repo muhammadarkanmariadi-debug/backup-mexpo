@@ -1,0 +1,141 @@
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Put,
+  Param,
+  Delete,
+  UseGuards,
+  UsePipes,
+  ValidationPipe,
+  UseInterceptors,
+  UploadedFile,
+  Request,
+  Query,
+} from '@nestjs/common';
+import { UsersService } from './users.service';
+import { CreateUserDto } from './dto/create-user.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
+import { BasicGuard } from 'src/helper/basic-auth';
+import FormatValidation from 'src/helper/validation.format';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { imageFileFilter } from 'src/helper/upload.format';
+import { AuthGuard } from '@nestjs/passport';
+import { RoleGuard, Roles } from 'src/helper/role-guard';
+import * as authTypes from 'src/auth/auth.types';
+import { QueryUserDto } from './dto/query-user.dto';
+import { ApiTags } from '@nestjs/swagger';
+import {
+  ResetPasswordDto,
+  VerifyResetPasswordDto,
+} from './dto/reset-password.dto';
+
+@ApiTags('Users')
+@Controller('users')
+export class UsersController {
+  constructor(private readonly usersService: UsersService) {}
+
+  @Post()
+  @UseGuards(BasicGuard)
+  @UsePipes(new ValidationPipe({ exceptionFactory: FormatValidation }))
+  @UseInterceptors(FileInterceptor('file', imageFileFilter))
+  create(
+    @Body() createUserDto: CreateUserDto,
+    @UploadedFile() file?: Express.Multer.File,
+  ) {
+    return this.usersService.create(createUserDto, `USER`, file);
+  }
+
+  @Post(`superadmin`)
+  @UseGuards(BasicGuard)
+  @UsePipes(new ValidationPipe({ exceptionFactory: FormatValidation }))
+  @UseInterceptors(FileInterceptor('file', imageFileFilter))
+  createSuperAdmin(
+    @Body() createUserDto: CreateUserDto,
+    @UploadedFile() file?: Express.Multer.File,
+  ) {
+    return this.usersService.create(createUserDto, `SUPERADMIN`, file);
+  }
+
+  @Post(`reset-password`)
+  @UseGuards(BasicGuard)
+  @UsePipes(new ValidationPipe({ exceptionFactory: FormatValidation }))
+  sendResetPassword(@Body() sendReset: ResetPasswordDto) {
+    return this.usersService.sendEmailResetPassword(sendReset);
+  }
+
+  @Post(`reset-password/verify`)
+  @UseGuards(BasicGuard)
+  @UsePipes(new ValidationPipe({ exceptionFactory: FormatValidation }))
+  verifyResetPassword(@Body() resetPassword: VerifyResetPasswordDto) {
+    return this.usersService.verifyResetPassword(resetPassword);
+  }
+
+  @Get()
+  @UseGuards(AuthGuard(`jwt`), RoleGuard)
+  @Roles(`SUPERADMIN`)
+  @UsePipes(new ValidationPipe({ exceptionFactory: FormatValidation }))
+  findAll(@Query() query: QueryUserDto) {
+    return this.usersService.findAll(query, `USER`);
+  }
+
+  @Get(`superadmin`)
+  @UseGuards(AuthGuard(`jwt`), RoleGuard)
+  @Roles(`SUPERADMIN`)
+  @UsePipes(new ValidationPipe({ exceptionFactory: FormatValidation }))
+  findAllSuperadmin(@Query() query: QueryUserDto) {
+    return this.usersService.findAll(query, `SUPERADMIN`);
+  }
+
+  @Get('verification/:code')
+  verifyEmail(@Param('code') code: string) {
+    return this.usersService.verifyEmail(code);
+  }
+
+  @Get('me')
+  @UseGuards(AuthGuard(`jwt`))
+  findMe(@Request() req: authTypes.AuthRequest) {
+    return this.usersService.findOne(req.user.uuid);
+  }
+
+  @Get(':id')
+  @UseGuards(AuthGuard(`jwt`), RoleGuard)
+  @Roles(`SUPERADMIN`)
+  findOne(@Param('id') id: string) {
+    return this.usersService.findOne(id);
+  }
+
+  @Put('me')
+  @UseGuards(AuthGuard(`jwt`))
+  @UsePipes(new ValidationPipe({ exceptionFactory: FormatValidation }))
+  @UseInterceptors(FileInterceptor('file', imageFileFilter))
+  updateMe(
+    @Body() updateUserDto: UpdateUserDto,
+    @Request() req: authTypes.AuthRequest,
+    @UploadedFile() file?: Express.Multer.File,
+  ) {
+    const id: string = req.user.uuid;
+    return this.usersService.update(id, updateUserDto, file);
+  }
+
+  @Put(':id')
+  @UseGuards(AuthGuard(`jwt`), RoleGuard)
+  @Roles(`SUPERADMIN`)
+  @UsePipes(new ValidationPipe({ exceptionFactory: FormatValidation }))
+  @UseInterceptors(FileInterceptor('file', imageFileFilter))
+  update(
+    @Param('id') id: string,
+    @Body() updateUserDto: UpdateUserDto,
+    @UploadedFile() file?: Express.Multer.File,
+  ) {
+    return this.usersService.update(id, updateUserDto, file);
+  }
+
+  @Delete(':id')
+  @UseGuards(AuthGuard(`jwt`), RoleGuard)
+  @Roles(`SUPERADMIN`)
+  remove(@Param('id') id: string) {
+    return this.usersService.remove(id);
+  }
+}

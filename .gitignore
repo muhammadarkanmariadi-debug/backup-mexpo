@@ -1,0 +1,70 @@
+# ============================================
+# Mexpo Monorepo — Root .gitignore
+# ============================================
+# This file covers the root workspace.
+# Each sub-project (dev-backend-mexpo-new, dev-frontend-mexpo-new)
+# has its own .gitignore for project-specific patterns.
+
+# ── OS generated ──
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.swp
+*.swo
+*~
+
+# ── IDE / editors ──
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+!.vscode/launch.json
+*.sublime-project
+*.sublime-workspace
+*.code-workspace
+
+# ── Node / package managers ──
+node_modules/
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+# NOTE: commit lockfiles (package-lock.json / yarn.lock / pnpm-lock.yaml)
+# inside each sub-project for reproducible installs; do NOT ignore them.
+
+# ── Environment variables ──
+.env
+.env.*
+!.env.example
+
+# ── Logs ──
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ── Build output ──
+dist/
+build/
+out/
+.next/
+
+# ── Test / coverage ──
+coverage/
+.nyc_output/
+
+# ── Temp ──
+.temp/
+.tmp/
+*.pid
+*.pid.lock
+*.seed
+
+# ── Runtime / diagnostic ──
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+pids/

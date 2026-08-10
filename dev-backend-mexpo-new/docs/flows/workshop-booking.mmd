@@ -1,0 +1,20 @@
+flowchart TD
+    V[Pengunjung]
+    SC[Petugas Check-in]
+    FE[Frontend]
+    API[API NestJS]
+    DB[(MariaDB)]
+
+    V -->|1. lihat workshop dari event| FE
+    FE -->|2. POST /workshop-bookings/:workshop_id| API
+    API -->|3. cek kuota + tidak boleh dobel| DB
+    API -->|4. buat booking REGISTERED| DB
+    V -->|5. hadir di lokasi| SC
+    SC -->|6. POST /attendances/workshop/:workshop_id {user_id}| API
+    API -->|7. status = CHECKED_IN + checkin_at| DB
+    V -->|8. GET /workshop-bookings/certificates/my/:event_id| FE
+    FE -->|9. tampilkan daftar sertifikat| API
+
+    style V fill:#eef2ff
+    style SC fill:#fef3c7
+    style API fill:#e0f2fe

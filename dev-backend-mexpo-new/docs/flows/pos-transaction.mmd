@@ -1,0 +1,19 @@
+flowchart TD
+    TS[Staf Tenant]
+    TFE[POS Portal Tenant]
+    API[API NestJS]
+    DB[(MariaDB)]
+
+    TS -->|1. buka tab POS| TFE
+    TS -->|2. opsional: pindai QR pengunjung| TFE
+    TFE -->|3. POST /qr-codes/resolve {code_data}| API
+    API -->|4. kembalikan visitor_id| DB
+    TS -->|5. pilih produk + qty + payment_method + paid| TFE
+    TFE -->|6. POST /tenant-transactions/:tenant_id multipart detail_transactions string JSON| API
+    API -->|7. hitung amount = sum(qty*harga), simpan detail| DB
+    TS -->|8. ubah paid: PUT /tenant-transactions/:id| API
+    TS -->|9. cetak nota (di sisi klien)| TFE
+
+    style TS fill:#ccfbf1
+    style TFE fill:#cef7f0
+    style API fill:#e0f2fe
