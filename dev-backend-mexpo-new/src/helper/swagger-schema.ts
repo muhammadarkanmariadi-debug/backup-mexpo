@@ -101,8 +101,27 @@ function modelToSchema(
 
 /** Parse the whole Prisma schema into OpenAPI components.schemas entries. */
 export function prismaModelsToOpenApiSchemas(): Record<string, unknown> {
-  const file = resolve(process.cwd(), 'prisma', 'schema.prisma');
-  const text = readFileSync(file, 'utf8');
+  // Try multiple paths: __dirname-relative (works in serverless/Vercel),
+  // then process.cwd()-relative (works in traditional deploys).
+  const candidates = [
+    resolve(__dirname, '..', '..', '..', 'prisma', 'schema.prisma'),  // dist/src/helper -> project root
+    resolve(__dirname, '..', '..', 'prisma', 'schema.prisma'),         // fallback
+    resolve(process.cwd(), 'prisma', 'schema.prisma'),                 // traditional CWD
+  ];
+  let text: string | null = null;
+  for (const file of candidates) {
+    try {
+      text = readFileSync(file, 'utf8');
+      break;
+    } catch {
+      // try next candidate
+    }
+  }
+  if (!text) {
+    // If schema file is not found at all, return empty schemas
+    // (Swagger docs will lack DB schema but the app still works).
+    return {};
+  }
   const enums = parseEnums(text);
 
   const modelBlocks: Record<string, string> = {};

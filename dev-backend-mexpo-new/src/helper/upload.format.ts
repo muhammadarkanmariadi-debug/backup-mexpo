@@ -1,8 +1,10 @@
 // src/common/multer.config.ts
 import { BadRequestException } from '@nestjs/common';
 import { MulterOptions } from '@nestjs/platform-express/multer/interfaces/multer-options.interface';
+import { memoryStorage } from 'multer';
 
 export const imageFileFilter: MulterOptions = {
+  storage: memoryStorage(),
   fileFilter: (req, file, cb) => {
     const allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/jpg'];
     if (allowedMimes.includes(file.mimetype)) {
@@ -12,6 +14,6 @@ export const imageFileFilter: MulterOptions = {
     }
   },
   limits: {
-    fileSize: 5 * 1024 * 1024,
+    fileSize: 4 * 1024 * 1024, // 4 MB — Vercel serverless body limit is 4.5 MB
   },
 };
