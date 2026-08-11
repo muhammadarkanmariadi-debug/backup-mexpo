@@ -50,7 +50,14 @@ async function bootstrap(): Promise<void> {
           `and redeploy. See .env.example for the full list.`,
       );
     }
-    const app = await NestFactory.create(AppModule, new ExpressAdapter(server));
+    const app = await NestFactory.create(AppModule, new ExpressAdapter(server), {
+      // CRITICAL for serverless: the default `abortOnError: true` calls
+      // process.exit(1) on any DI/bootstrap failure, which instantly kills
+      // the Lambda container -> Vercel "Serverless Function has crashed."
+      // With `false`, bootstrap throws instead, so our try/catch can surface
+      // a readable 500 JSON to the caller.
+      abortOnError: false,
+    });
     app.enableCors();
 
     // ── Swagger / OpenAPI docs ─────────────────────────────────────────────
@@ -95,12 +102,29 @@ design & user-flow docs.`,
   }
 }
 
-// Kick off bootstrap during cold start. The .catch() swallows the rejection so
-// the process never crashes from an unhandled rejection; the error is surfaced
-// by the handler below as a readable 500.
-const coldStart = bootstrap().catch(() => {
-  /* handled via bootError */
+// Safety net: never let a stray rejected promise kill the function container.
+// With a handler registered, Vercel gets a chance to respond instead of the
+// process dying with "Serverless Function has crashed".
+process.on('unhandledRejection', (reason) => {
+  console.error('[serverless] Unhandled rejection:', reason);
 });
+
+let bootPromise: Promise<void> | null = null;
+
+/**
+ * Bootstrap is LAZY — it starts on the first request, never at module load.
+ * This guarantees a module-load-time failure cannot crash the function before
+ * the handler exists. The .catch() swallows the rejection (handled via
+ * bootError), so the promise never becomes an unhandled rejection.
+ */
+function ensureBoot(): Promise<void> {
+  if (!bootPromise) {
+    bootPromise = bootstrap().catch(() => {
+      /* handled via bootError */
+    });
+  }
+  return bootPromise;
+}
 
 function sendError(res: Response, status: number, message: string) {
   const body = JSON.stringify({ status: false, message });
@@ -134,10 +158,11 @@ function withBootstrapTimeout<T>(promise: Promise<T>): Promise<T> {
     timer = setTimeout(() => {
       reject(
         new Error(
-          'Server initialization timed out. This usually means an environment ' +
-            'variable is missing in the Vercel project (DATABASE_URL, JWT_SECRET, ' +
-            'BASIC_AUTH_USERNAME/PASSWORD, PUBLIC_FRONTEND_URL, MAIL_*, MINIO_*). ' +
-            'Set them under Project Settings -> Environment Variables and redeploy.',
+          'Server initialization timed out. Likely causes: the DATABASE_URL in ' +
+            'the Vercel project is unreachable, or an environment variable is ' +
+            'missing. Check the Supabase connection string (session pooler, port ' +
+            '5432, ?sslmode=no-verify) and that JWT_SECRET and the other vars are ' +
+            'set under Project Settings -> Environment Variables.',
         ),
       );
     }, BOOTSTRAP_TIMEOUT_MS);
@@ -155,7 +180,7 @@ export default async function handler(req: Request, res: Response) {
         return;
       }
       try {
-        await withBootstrapTimeout(coldStart);
+        await withBootstrapTimeout(ensureBoot());
       } catch (bootTimeoutErr) {
         bootError =
           bootTimeoutErr instanceof Error
