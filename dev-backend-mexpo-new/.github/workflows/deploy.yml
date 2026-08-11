@@ -22,7 +22,7 @@ jobs:
           port: 9002
           script: |
             # Server prerequisites:
-            #   - Node.js >= 20 (NestJS 11 requirement)
+            #   - Node.js >= 22 (Prisma 7 requirement; Vercel uses 24) — see .nvmrc
             #   - A `.env` file in this dir with DATABASE_URL, JWT_SECRET,
             #     BASIC_AUTH_*, PUBLIC_FRONTEND_URL, MAIL_*, MINIO_*/AWS_REGION
             #   - PM2 process named `backend-expo` already created, e.g.

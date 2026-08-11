@@ -80,7 +80,7 @@ documented in `.env.example`.
 `.github/workflows/deploy.yml` deploys on push to `main`:
 `git pull && npm install && npx prisma migrate deploy && npm run build && pm2 restart backend-expo`.
 
-Server requirements: **Node.js >= 20** (see `.nvmrc`), a `.env` file with the
+Server requirements: **Node.js >= 22** (see `.nvmrc`), a `.env` file with the
 variables above, and a PM2 process
 (`pm2 start dist/src/main.js --name backend-expo`).
 
