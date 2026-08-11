@@ -16,7 +16,7 @@ Mexpo is a web platform for organizing events (currently oriented around an Expo
 |---|---|---|
 | Backend | `dev-backend-mexpo-new/` | NestJS 11, Prisma 7 (`prisma-client-js` + `@prisma/adapter-pg`), Supabase PostgreSQL (pooler), passport-jwt + bcrypt, class-validator, nodemailer, AWS SDK v3 vs **MinIO** (S3-compatible), multer |
 | Frontend | `dev-frontend-mexpo-new/` | Next.js **16.2.6 (custom build — see ⚠ below)**, React 19, Tailwind CSS **v4 (CSS-first, no tailwind.config.ts)**, radix-ui + shadcn-style components, react-hook-form + zod v4, zustand, server actions + fetch wrapper, lucide-react + fontawesome, framer-motion, leaflet |
-| Ports / URLs | — | Backend default port **3500**; dev API `http://localhost:3500`, prod API `https://mexpo-api.smktelkom-mlg.sch.id` |
+| Ports / URLs | — | Backend default port **3500**; dev API `http://localhost:3500`, prod API `https://mexpo-api.smktelkom-mlg.sch.id`. Backend runs as a **long-running NestJS process** (`node dist/src/main`): VPS + PM2 via `.github/workflows/deploy.yml`, or Render/Railway via `render.yaml` / `railway.json`. **Vercel is frontend-only** — the backend is not serverless and is not deployed to Vercel. |
 
 > ⚠ **Frontend: "This is NOT the Next.js you know."** `dev-frontend-mexpo-new/AGENTS.md` states this Next.js 16 build has breaking changes. Read the relevant guide in `node_modules/next/dist/docs/` before writing any frontend code. Note `middleware` is renamed to `proxy.ts` (and the current `proxy.ts` is broken — see Blockers).
 

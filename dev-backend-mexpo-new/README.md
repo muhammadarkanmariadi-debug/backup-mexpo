@@ -59,16 +59,50 @@ $ npm run test:cov
 
 ## Deployment
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+The backend is a standard **long-running NestJS process** (not serverless). It
+listens on `process.env.PORT` (default 3500) and serves Swagger at `/docs`.
 
 ```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+npm install
+npm run build          # runs `prisma generate && nest build`
+npm run start:prod     # node dist/src/main
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+### Required environment variables
+
+Copy `.env.example` to `.env` and fill in the values: Supabase
+`DATABASE_URL`, `JWT_SECRET`, `BASIC_AUTH_USERNAME/PASSWORD`,
+`PUBLIC_FRONTEND_URL`, `MAIL_*`, and `MINIO_*` / `AWS_REGION`. All keys are
+documented in `.env.example`.
+
+### Option 1 — VPS + PM2 (current production)
+
+`.github/workflows/deploy.yml` deploys on push to `main`:
+`git pull && npm install && npx prisma migrate deploy && npm run build && pm2 restart backend-expo`.
+
+Server requirements: **Node.js >= 20** (see `.nvmrc`), a `.env` file with the
+variables above, and a PM2 process
+(`pm2 start dist/src/main.js --name backend-expo`).
+
+### Option 2 — Render (cloud, long-running)
+
+`render.yaml` is included. Connect the repo → **New + → Blueprint**, set the
+service **Root Directory** to `dev-backend-mexpo-new`, fill in the `sync: false`
+env vars in the dashboard, and deploy. Render runs
+`npm install && npm run build` then `npm run start:prod`, health-checking `/`.
+
+> Free plan instances sleep after ~15 min idle and cold-start on the next
+> request — use a paid plan for always-on.
+
+### Option 3 — Railway (cloud, long-running)
+
+`railway.json` is included (Nixpacks builder, `npm run start:prod`, health
+check on `/`). Create a service, set the **Root Directory** to
+`dev-backend-mexpo-new`, add the env vars, and deploy.
+
+> The backend is **not** deployed to Vercel — Vercel is used only for the
+> frontend. Vercel is serverless-only and is a poor fit for a long-running
+> NestJS server.
 
 ## Resources
 

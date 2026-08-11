@@ -1,0 +1,66 @@
+# Render blueprint — deploys the backend as a normal long-running Node process
+# ("default NestJS", NOT serverless).
+#
+# How to use:
+#   1. Connect this repo to Render (GitHub/GitLab).
+#   2. New + -> Blueprint, then set the service Root Directory to
+#      `dev-backend-mexpo-new`.
+#   3. Fill in every `sync: false` env var from the Render dashboard
+#      (copy values from .env / Supabase dashboard).
+#   4. Deploy. Render runs `npm install && npm run build` then
+#      `npm run start:prod` (`node dist/src/main`).
+#
+# NOTE: on the FREE plan the instance sleeps after ~15 min idle and cold-starts
+# on the next request. Use a paid plan (starter+) for always-on / no cold start.
+services:
+  - type: web
+    name: mexpo-backend
+    runtime: node
+    rootDir: .
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm run start:prod
+    healthCheckPath: /
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # PORT is injected by Render; the app reads process.env.PORT.
+      # Supabase PostgreSQL connection string (pooler, session mode).
+      # See .env.example for the format.
+      - key: DATABASE_URL
+        sync: false
+      # Long random string, e.g. `openssl rand -hex 32`.
+      - key: JWT_SECRET
+        sync: false
+      # HTTP Basic auth for /public-api, /reports and user-creation/reset.
+      - key: BASIC_AUTH_USERNAME
+        sync: false
+      - key: BASIC_AUTH_PASSWORD
+        sync: false
+      # Base URL used in emails (verify email, reset password, temp credentials).
+      - key: PUBLIC_FRONTEND_URL
+        sync: false
+      # SMTP (nodemailer).
+      - key: MAIL_HOST
+        sync: false
+      - key: MAIL_PORT
+        sync: false
+      - key: MAIL_SECURE
+        sync: false
+      - key: MAIL_USER
+        sync: false
+      - key: MAIL_PASSWORD
+        sync: false
+      # S3-compatible object storage (MinIO / AWS S3 / Cloudflare R2).
+      - key: MINIO_ENDPOINT
+        sync: false
+      - key: MINIO_ENDPOINT_UPLOAD
+        sync: false
+      - key: MINIO_ACCESS_KEY
+        sync: false
+      - key: MINIO_SECRET_KEY
+        sync: false
+      - key: MINIO_BUCKET
+        sync: false
+      - key: AWS_REGION
+        sync: false
