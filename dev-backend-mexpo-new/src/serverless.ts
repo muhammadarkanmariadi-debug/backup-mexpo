@@ -1,10 +1,11 @@
 /**
  * Vercel Serverless entry point.
  *
- * Vercel invokes a single exported handler per request. We bootstrap the
- * NestJS app once (cold start) and re-use it across warm invocations.
- * The underlying Express instance is extracted and wrapped as a standard
- * Node.js HTTP request handler that Vercel can call.
+ * Vercel invokes this exported handler per request. The NestJS app is
+ * bootstrapped once on cold start; warm invocations reuse the underlying
+ * Express instance.
+ *
+ * Vercel lives at `api/index.js` -> `dist/src/serverless.js` (see /api).
  */
 import { NestFactory } from '@nestjs/core';
 import { ExpressAdapter } from '@nestjs/platform-express';
@@ -12,7 +13,6 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { prismaModelsToOpenApiSchemas } from './helper/swagger-schema';
 import express from 'express';
-import type { Request, Response } from 'express';
 
 const server = express();
 
@@ -61,8 +61,11 @@ design & user-flow docs.`,
 // Start bootstrap immediately (runs during cold start)
 const bootstrapPromise = bootstrap();
 
-// Vercel calls this handler for every request
-export default async function handler(req: Request, res: Response) {
+/** Vercel calls this handler for every request. */
+export default async function handler(
+  req: Parameters<typeof server>[0],
+  res: Parameters<typeof server>[1],
+): Promise<void> {
   if (!isReady) {
     await bootstrapPromise;
   }
