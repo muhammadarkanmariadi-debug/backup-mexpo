@@ -4,6 +4,7 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { prismaModelsToOpenApiSchemas } from './helper/swagger-schema';
 import { setupSwaggerUi } from './helper/swagger-ui';
+import { hasDbConfig } from './helper/db-provider';
 import express from 'express';
 import type { Request, Response } from 'express';
 
@@ -21,10 +22,13 @@ const isServerless = process.env.VERCEL === '1';
 const server = express();
 
 /** Env vars the app fails-fast on at boot (checked before Nest boots). */
-const REQUIRED_ENV = ['DATABASE_URL', 'JWT_SECRET'];
+const REQUIRED_ENV = ['JWT_SECRET'];
 
 async function bootstrap() {
   const missing = REQUIRED_ENV.filter((key) => !process.env[key]);
+  if (!hasDbConfig()) {
+    missing.push('DATABASE_URL (or DB_HOST/DB_USER/DB_PASSWORD/DB_NAME)');
+  }
   if (missing.length > 0) {
     throw new Error(
       `Missing required environment variables: ${missing.join(', ')}. ` +

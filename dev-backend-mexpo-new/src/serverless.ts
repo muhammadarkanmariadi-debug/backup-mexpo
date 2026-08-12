@@ -21,6 +21,7 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { prismaModelsToOpenApiSchemas } from './helper/swagger-schema';
 import { setupSwaggerUi } from './helper/swagger-ui';
+import { hasDbConfig } from './helper/db-provider';
 import express from 'express';
 import type { Request, Response } from 'express';
 
@@ -35,10 +36,14 @@ let bootError: Error | null = null;
  * BEFORE calling NestFactory.create so a misconfigured Vercel project returns a
  * readable 500 instead of crashing.
  */
-const REQUIRED_ENV = ['DATABASE_URL', 'JWT_SECRET'];
+const REQUIRED_ENV = ['JWT_SECRET'];
 
 function missingRequiredEnv(): string[] {
-  return REQUIRED_ENV.filter((key) => !process.env[key]);
+  const missing = REQUIRED_ENV.filter((key) => !process.env[key]);
+  if (!hasDbConfig()) {
+    missing.push('DATABASE_URL (or DB_HOST/DB_USER/DB_PASSWORD/DB_NAME)');
+  }
+  return missing;
 }
 
 async function bootstrap(): Promise<void> {

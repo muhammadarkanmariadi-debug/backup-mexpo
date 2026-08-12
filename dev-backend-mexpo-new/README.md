@@ -28,10 +28,13 @@
 ## Database — hybrid (PostgreSQL or MySQL)
 
 The app can run against **PostgreSQL** (Supabase) **or** **MySQL/MariaDB** —
-you pick one per environment. Everything is driven by `DATABASE_URL`:
+you pick one per environment. The connection is **composed from individual
+parameters** (`DB_HOST` / `DB_PORT` / `DB_USER` / `DB_PASSWORD` / `DB_NAME` /
+`DB_SSLMODE`) in `src/helper/db-provider.ts`; a full `DATABASE_URL` still
+overrides them if you prefer the single string.
 
-- `postgresql://...` → `@prisma/adapter-pg` + migrations in `prisma/migrations`
-- `mysql://...` → `@prisma/adapter-mariadb` + migrations in `prisma/migrations-mysql`
+- `DB_PROVIDER=postgresql` → `@prisma/adapter-pg` + migrations in `prisma/migrations`
+- `DB_PROVIDER=mysql` → `@prisma/adapter-mariadb` + migrations in `prisma/migrations-mysql`
 
 Because the generated Prisma client and migrations are provider-specific,
 switch the schema provider before building / migrating:
@@ -42,9 +45,8 @@ npm run build
 npx prisma migrate deploy      # applies the matching migration set
 ```
 
-`DB_PROVIDER=mysql|postgresql` can force the provider instead of inferring from
-the URL scheme. The schema must be portable — it uses no provider-only native
-types (`@db.Text` is valid on both; `Float` maps to `double` on both).
+The schema must be portable — it uses no provider-only native types
+(`@db.Text` is valid on both; `Float` maps to `double` on both).
 
 ## Project setup
 

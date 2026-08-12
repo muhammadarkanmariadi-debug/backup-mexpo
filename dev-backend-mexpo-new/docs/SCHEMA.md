@@ -431,11 +431,12 @@ Relations: `users_bio` (1:1), all audit FKs (`creator_*`/`editor_*` on ~20 table
 
 ## 4. Migrations
 
-- **Hybrid DB (Option A):** the provider is chosen per environment from `DATABASE_URL` scheme (`mysql://` → MySQL, `postgresql://` → PostgreSQL) or forced via `DB_PROVIDER`. Before building/migrating, the schema datasource provider must match — run `npm run db:provider:mysql` / `npm run db:provider:postgres` (edits `prisma/schema.prisma` + regenerates the client).
+- **Hybrid DB (Option A):** the provider is chosen per environment from `DB_PROVIDER` (mysql|postgresql). Before building/migrating, the schema datasource provider must match — run `npm run db:provider:mysql` / `npm run db:provider:postgres` (edits `prisma/schema.prisma` + regenerates the client).
+- **Connection:** built from individual parameters `DB_HOST` / `DB_PORT` / `DB_USER` / `DB_PASSWORD` / `DB_NAME` (+ `DB_SSLMODE` for Postgres, default `no-verify`) in `src/helper/db-provider.ts`. A full `DATABASE_URL` still overrides the params (backward compatible). Both `prisma.config.ts` (CLI) and `src/prisma/prisma.service.ts` (runtime) use the same `getDatabaseUrl()`.
 - Migration sets are per provider, selected in `prisma.config.ts`:
   - `prisma/migrations/` → PostgreSQL (`migrate deploy` applied via CI).
   - `prisma/migrations-mysql/` → MySQL (generated from the same portable schema).
 - The schema is portable: no provider-only native types (`@db.Text` is valid on both MySQL and Postgres; `Float` maps to `double` on both).
 - `prisma/seed.ts` upserts 7 demo visitor users (`pengunjung1..7@gmail.com`, fixed UUIDs) and 7 APPROVED VISITOR `user_event_roles` rows for hardcoded event UUID `b63146f1-93a5-4381-8ca8-62a03fa5684e`.
 - The CI deploy script runs `npx prisma migrate deploy` on the server (was `migrate dev --name init`, fixed).
-- Runtime connection picks the driver adapter from `DATABASE_URL`/`DB_PROVIDER` (`@prisma/adapter-pg` vs `@prisma/adapter-mariadb`); `prisma.config.ts` (CLI: migrate/generate/seed) uses the same `DATABASE_URL`. See `.env.example` for both connection formats.
+- Runtime connection uses the driver adapter matching `DB_PROVIDER` (`@prisma/adapter-pg` vs `@prisma/adapter-mariadb`); `prisma.config.ts` (CLI: migrate/generate/seed) resolves the same URL. See `.env.example` for both connection styles (params or `DATABASE_URL`).

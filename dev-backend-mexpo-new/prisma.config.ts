@@ -2,20 +2,22 @@
 // npm install --save-dev prisma dotenv
 import "dotenv/config";
 import { defineConfig } from "prisma/config";
+import {
+  getDatabaseUrl,
+  resolveDbProvider,
+} from "./src/helper/db-provider";
 
 // Hybrid database (Option A): the provider is chosen per environment from
-// DB_PROVIDER, or inferred from the DATABASE_URL scheme. The schema datasource
-// provider must match (set it with `npm run db:provider:<mysql|postgres>`),
-// and the migrations path is selected here so each provider keeps its own
-// migration history:
+// DB_PROVIDER, or inferred from DATABASE_URL. The connection string is taken
+// from DATABASE_URL if set, otherwise composed from the individual DB_*
+// parameters (DB_HOST/DB_PORT/DB_USER/DB_PASSWORD/DB_NAME/DB_SSLMODE).
+// The schema datasource provider must match (set it with
+// `npm run db:provider:<mysql|postgres>`), and the migrations path is
+// selected here so each provider keeps its own migration history:
 //   - postgresql -> prisma/migrations
 //   - mysql      -> prisma/migrations-mysql
-const databaseUrl = process.env["DATABASE_URL"] || "";
-const provider =
-  (process.env["DB_PROVIDER"] ||
-    (databaseUrl.startsWith("mysql://") ? "mysql" : "postgresql")) as
-    | "mysql"
-    | "postgresql";
+const databaseUrl = getDatabaseUrl();
+const provider = resolveDbProvider(databaseUrl, process.env["DB_PROVIDER"]);
 
 export default defineConfig({
   schema: "prisma/schema.prisma",
@@ -24,7 +26,7 @@ export default defineConfig({
     seed: "prisma/seed.ts",
   },
   datasource: {
-    url: process.env["DATABASE_URL"],
+    url: databaseUrl,
     shadowDatabaseUrl: process.env["SHADOW_DATABASE_URL"],
   },
 });
