@@ -15,7 +15,7 @@ import {
 import { WorkshopBookingsService } from './workshop_bookings.service';
 import { UpdateWorkshopBookingDto } from './dto/update-workshop_booking.dto';
 import { AuthGuard } from '@nestjs/passport';
-import FormatValidation from 'src/helper/validation.format';
+import FormatValidation from '../helper/validation.format';
 import * as authType from '../auth/auth.types';
 import { QueryWorkshopBookingDto } from './dto/query-workshop-booking.dto';
 import { UserRole } from '@prisma/client';

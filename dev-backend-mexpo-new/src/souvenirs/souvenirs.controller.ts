@@ -14,7 +14,7 @@ import {
 import { SouvenirsService } from './souvenirs.service';
 import { CreateSouvenirDto } from './dto/create-souvenir.dto';
 import { AuthGuard } from '@nestjs/passport';
-import FormatValidation from 'src/helper/validation.format';
+import FormatValidation from '../helper/validation.format';
 import * as authRequest from '../auth/auth.types';
 import { QuerySouvenirDto } from './dto/query-souvenir.dto';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';

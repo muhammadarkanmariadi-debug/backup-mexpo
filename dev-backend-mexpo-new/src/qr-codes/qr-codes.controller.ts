@@ -10,7 +10,7 @@ import {
   ValidationPipe,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
-import FormatValidation from 'src/helper/validation.format';
+import FormatValidation from '../helper/validation.format';
 import * as authType from '../auth/auth.types';
 import { QrCodesService } from './qr-codes.service';
 import { ResolveQrDto } from './dto/resolve-qr.dto';

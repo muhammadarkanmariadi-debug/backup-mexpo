@@ -10,10 +10,10 @@ import {
   ValidationPipe,
 } from '@nestjs/common';
 import { PublicApiService } from './public-api.service';
-import { BasicGuard } from 'src/helper/basic-auth';
-import FormatValidation from 'src/helper/validation.format';
+import { BasicGuard } from '../helper/basic-auth';
+import FormatValidation from '../helper/validation.format';
 import { QueryPublicEventDto } from './dto/query-public-api.dto';
-import { QueryEventUserDto } from 'src/event-users/dto/query-event-user.dto';
+import { QueryEventUserDto } from '../event-users/dto/query-event-user.dto';
 import { CreateUserDto } from './dto/create-user.dto';
 import { ApiBasicAuth, ApiTags } from '@nestjs/swagger';
 

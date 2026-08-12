@@ -8,18 +8,18 @@ import {
 } from '@nestjs/common';
 import { CreateTenantDto } from './dto/create-tenant.dto';
 import { UpdateTenantDto } from './dto/update-tenant.dto';
-import { PrismaService } from 'src/prisma/prisma.service';
+import { PrismaService } from '../prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
-import { S3Service } from 'src/s3/s3.service';
+import { S3Service } from '../s3/s3.service';
 import { InviteTenantDto } from './dto/invite-tenant.dto';
-import { BcryptService } from 'src/bcrypt/bcrypt.service';
-import { MailService } from 'src/mail/mail.service';
+import { BcryptService } from '../bcrypt/bcrypt.service';
+import { MailService } from '../mail/mail.service';
 import { QueryTenantDto } from './dto/query-tenant.dto';
 import { VerifyTenantDto } from './dto/verify-tenant.dto';
 import { UpdateTenantMemberDto } from './dto/update-tenant-member.dto';
 import { UserRole } from '@prisma/client';
-import { assertEventFeature } from 'src/events/event-features';
-import { isUuid, uniqueSlug } from 'src/helper/slug';
+import { assertEventFeature } from '../events/event-features';
+import { isUuid, uniqueSlug } from '../helper/slug';
 
 @Injectable()
 export class TenantsService {

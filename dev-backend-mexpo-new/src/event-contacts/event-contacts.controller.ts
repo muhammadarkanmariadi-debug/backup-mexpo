@@ -16,7 +16,7 @@ import { EventContactsService } from './event-contacts.service';
 import { CreateEventContactDto } from './dto/create-event-contact.dto';
 import { UpdateEventContactDto } from './dto/update-event-contact.dto';
 import { AuthGuard } from '@nestjs/passport';
-import FormatValidation from 'src/helper/validation.format';
+import FormatValidation from '../helper/validation.format';
 import * as authType from '../auth/auth.types';
 import { QueryEventContactDto } from './dto/query-event-contact.dto';
 import { UserRole } from '@prisma/client';

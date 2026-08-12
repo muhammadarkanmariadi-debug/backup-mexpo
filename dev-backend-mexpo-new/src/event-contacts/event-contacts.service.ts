@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { CreateEventContactDto } from './dto/create-event-contact.dto';
 import { UpdateEventContactDto } from './dto/update-event-contact.dto';
-import { PrismaService } from 'src/prisma/prisma.service';
+import { PrismaService } from '../prisma/prisma.service';
 import { QueryEventContactDto } from './dto/query-event-contact.dto';
 import { UserRole } from '@prisma/client';
 

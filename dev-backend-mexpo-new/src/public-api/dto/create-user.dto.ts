@@ -9,7 +9,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { RegistrationAnswerDto } from 'src/registration-fields/dto/registration-field.dto';
+import { RegistrationAnswerDto } from '../../registration-fields/dto/registration-field.dto';
 
 export class CreateUserDto {
   @IsNotEmpty()

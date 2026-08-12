@@ -7,8 +7,8 @@ import {
 } from '@nestjs/common';
 import { CreateEventSpeakerDto } from './dto/create-event_speaker.dto';
 import { UpdateEventSpeakerDto } from './dto/update-event_speaker.dto';
-import { PrismaService } from 'src/prisma/prisma.service';
-import { S3Service } from 'src/s3/s3.service';
+import { PrismaService } from '../prisma/prisma.service';
+import { S3Service } from '../s3/s3.service';
 import { ConfigService } from '@nestjs/config';
 import { QueryEventSpeakerDto } from './dto/query-event-speaker.dto';
 import { UserRole } from '@prisma/client';

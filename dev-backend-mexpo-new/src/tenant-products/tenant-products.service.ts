@@ -7,12 +7,12 @@ import {
 } from '@nestjs/common';
 import { CreateTenantProductDto } from './dto/create-tenant-product.dto';
 import { UpdateTenantProductDto } from './dto/update-tenant-product.dto';
-import { PrismaService } from 'src/prisma/prisma.service';
-import { S3Service } from 'src/s3/s3.service';
+import { PrismaService } from '../prisma/prisma.service';
+import { S3Service } from '../s3/s3.service';
 import { ConfigService } from '@nestjs/config';
 import { QueryTenantProductDto } from './dto/query-tenant-product.dto';
 import { UserRole } from '@prisma/client';
-import { assertEventFeature } from 'src/events/event-features';
+import { assertEventFeature } from '../events/event-features';
 
 @Injectable()
 export class TenantProductsService {

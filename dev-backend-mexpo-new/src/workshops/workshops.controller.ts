@@ -16,7 +16,7 @@ import { WorkshopsService } from './workshops.service';
 import { CreateWorkshopDto } from './dto/create-workshop.dto';
 import { UpdateWorkshopDto } from './dto/update-workshop.dto';
 import { AuthGuard } from '@nestjs/passport';
-import FormatValidation from 'src/helper/validation.format';
+import FormatValidation from '../helper/validation.format';
 import * as authType from '../auth/auth.types';
 import { QueryWorkshopDto } from './dto/query-workshop.dto';
 import { AddSpeakerWorkshopDto } from './dto/add-speaker-workshop.dto';

@@ -6,15 +6,15 @@ import {
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
-import { PrismaService } from 'src/prisma/prisma.service';
+import { PrismaService } from '../prisma/prisma.service';
 import { QueryPublicEventDto } from './dto/query-public-api.dto';
-import { QueryEventUserDto } from 'src/event-users/dto/query-event-user.dto';
+import { QueryEventUserDto } from '../event-users/dto/query-event-user.dto';
 import { CreateUserDto } from './dto/create-user.dto';
-import { BcryptService } from 'src/bcrypt/bcrypt.service';
-import { MailService } from 'src/mail/mail.service';
+import { BcryptService } from '../bcrypt/bcrypt.service';
+import { MailService } from '../mail/mail.service';
 import { ConfigService } from '@nestjs/config';
 import { EventStatus, EventVisibility, Prisma } from '@prisma/client';
-import { isUuid } from 'src/helper/slug';
+import { isUuid } from '../helper/slug';
 
 @Injectable()
 export class PublicApiService {

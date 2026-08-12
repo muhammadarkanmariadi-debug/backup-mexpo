@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { CreateTenantCategoryDto } from './dto/create-tenant-category.dto';
 import { UpdateTenantCategoryDto } from './dto/update-tenant-category.dto';
-import { PrismaService } from 'src/prisma/prisma.service';
+import { PrismaService } from '../prisma/prisma.service';
 import { QueryTenantCategoryDto } from './dto/query-tenant-category.dto';
 
 @Injectable()

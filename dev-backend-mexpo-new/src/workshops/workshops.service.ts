@@ -9,13 +9,13 @@ import {
 } from '@nestjs/common';
 import { CreateWorkshopDto } from './dto/create-workshop.dto';
 import { UpdateWorkshopDto } from './dto/update-workshop.dto';
-import { PrismaService } from 'src/prisma/prisma.service';
+import { PrismaService } from '../prisma/prisma.service';
 import { QueryWorkshopDto } from './dto/query-workshop.dto';
-import { buildOrderBy } from 'src/helper/sort';
-import { isUuid, uniqueSlug } from 'src/helper/slug';
+import { buildOrderBy } from '../helper/sort';
+import { isUuid, uniqueSlug } from '../helper/slug';
 import { AddSpeakerWorkshopDto } from './dto/add-speaker-workshop.dto';
 import { UserRole } from '@prisma/client';
-import { assertEventFeature } from 'src/events/event-features';
+import { assertEventFeature } from '../events/event-features';
 import { Prisma } from '@prisma/client';
 
 const WORKSHOP_SORTABLE: Record<

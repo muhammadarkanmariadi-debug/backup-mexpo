@@ -7,9 +7,9 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { CreateSouvenirDto } from './dto/create-souvenir.dto';
-import { PrismaService } from 'src/prisma/prisma.service';
+import { PrismaService } from '../prisma/prisma.service';
 import { QuerySouvenirDto } from './dto/query-souvenir.dto';
-import { assertEventFeature } from 'src/events/event-features';
+import { assertEventFeature } from '../events/event-features';
 import { evaluateSouvenirEligibility } from './souvenir-rules';
 
 @Injectable()

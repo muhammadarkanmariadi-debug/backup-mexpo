@@ -7,9 +7,9 @@ import {
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
-import { PrismaService } from 'src/prisma/prisma.service';
+import { PrismaService } from '../prisma/prisma.service';
 import { UserRole } from '@prisma/client';
-import { assertEventFeature } from 'src/events/event-features';
+import { assertEventFeature } from '../events/event-features';
 import {
   CreateTicketTypeDto,
   UpdateTicketTypeDto,

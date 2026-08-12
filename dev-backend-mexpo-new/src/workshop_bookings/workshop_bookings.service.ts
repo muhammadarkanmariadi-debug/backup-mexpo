@@ -7,10 +7,10 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { UpdateWorkshopBookingDto } from './dto/update-workshop_booking.dto';
-import { PrismaService } from 'src/prisma/prisma.service';
+import { PrismaService } from '../prisma/prisma.service';
 import { QueryWorkshopBookingDto } from './dto/query-workshop-booking.dto';
 import { UserRole } from '@prisma/client';
-import { assertEventFeature } from 'src/events/event-features';
+import { assertEventFeature } from '../events/event-features';
 
 @Injectable()
 export class WorkshopBookingsService {

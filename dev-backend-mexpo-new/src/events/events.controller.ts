@@ -19,12 +19,12 @@ import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { ApproveEventDto } from './dto/approve-event.dto';
 import { AuthGuard } from '@nestjs/passport';
-import FormatValidation from 'src/helper/validation.format';
+import FormatValidation from '../helper/validation.format';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { imageFileFilter } from 'src/helper/upload.format';
+import { imageFileFilter } from '../helper/upload.format';
 import * as authType from '../auth/auth.types';
 import { QueryEventDto } from './dto/query-event.dto';
-import { RoleGuard, Roles } from 'src/helper/role-guard';
+import { RoleGuard, Roles } from '../helper/role-guard';
 import { UserRole } from '@prisma/client';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 

@@ -8,7 +8,7 @@ import {
 } from '@nestjs/common';
 import { CreateEventRundownDto } from './dto/create-event-rundown.dto';
 import { UpdateEventRundownDto } from './dto/update-event-rundown.dto';
-import { PrismaService } from 'src/prisma/prisma.service';
+import { PrismaService } from '../prisma/prisma.service';
 import { QueryEventRundownDto } from './dto/query-event-rundown.dto';
 import { AddSpeakerRundownDto } from './dto/add-speaker-rundown.dto';
 import { UserRole } from '@prisma/client';

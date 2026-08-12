@@ -11,14 +11,14 @@ import {
 import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { ApproveEventDto } from './dto/approve-event.dto';
-import { PrismaService } from 'src/prisma/prisma.service';
-import { S3Service } from 'src/s3/s3.service';
-import { MailService } from 'src/mail/mail.service';
+import { PrismaService } from '../prisma/prisma.service';
+import { S3Service } from '../s3/s3.service';
+import { MailService } from '../mail/mail.service';
 import { ConfigService } from '@nestjs/config';
 import { QueryEventDto } from './dto/query-event.dto';
 import { EventRole, EventStatus, Prisma, UserRole } from '@prisma/client';
-import { buildOrderBy } from 'src/helper/sort';
-import { isUuid, uniqueSlug } from 'src/helper/slug';
+import { buildOrderBy } from '../helper/sort';
+import { isUuid, uniqueSlug } from '../helper/slug';
 
 const EVENT_SORTABLE: Record<
   string,

@@ -16,7 +16,7 @@ import { EventUsersService } from './event-users.service';
 import { CreateEventUserDto } from './dto/create-event-user.dto';
 import { UpdateEventUserDto } from './dto/update-event-user.dto';
 import { AuthGuard } from '@nestjs/passport';
-import FormatValidation from 'src/helper/validation.format';
+import FormatValidation from '../helper/validation.format';
 import * as authType from '../auth/auth.types';
 import { QueryEventUserDto } from './dto/query-event-user.dto';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';

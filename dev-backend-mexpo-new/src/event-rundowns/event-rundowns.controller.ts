@@ -16,7 +16,7 @@ import { EventRundownsService } from './event-rundowns.service';
 import { CreateEventRundownDto } from './dto/create-event-rundown.dto';
 import { UpdateEventRundownDto } from './dto/update-event-rundown.dto';
 import { AuthGuard } from '@nestjs/passport';
-import FormatValidation from 'src/helper/validation.format';
+import FormatValidation from '../helper/validation.format';
 import * as authType from '../auth/auth.types';
 import { QueryEventRundownDto } from './dto/query-event-rundown.dto';
 import { AddSpeakerRundownDto } from './dto/add-speaker-rundown.dto';

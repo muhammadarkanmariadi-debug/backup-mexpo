@@ -8,10 +8,10 @@ import {
 } from '@nestjs/common';
 import { CreateEventUserDto } from './dto/create-event-user.dto';
 import { UpdateEventUserDto } from './dto/update-event-user.dto';
-import { PrismaService } from 'src/prisma/prisma.service';
+import { PrismaService } from '../prisma/prisma.service';
 import { EventRole } from '@prisma/client';
 import { QueryEventUserDto } from './dto/query-event-user.dto';
-import { buildOrderBy } from 'src/helper/sort';
+import { buildOrderBy } from '../helper/sort';
 import { Prisma } from '@prisma/client';
 
 const EVENT_USER_SORTABLE: Record<

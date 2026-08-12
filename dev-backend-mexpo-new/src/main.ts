@@ -1,10 +1,44 @@
 import { NestFactory } from '@nestjs/core';
+import { ExpressAdapter } from '@nestjs/platform-express';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { prismaModelsToOpenApiSchemas } from './helper/swagger-schema';
+import express from 'express';
+import type { Request, Response } from 'express';
+
+/**
+ * Dual-mode entry point.
+ *
+ * - Long-running host (VPS / PM2 / Render / Railway): calls `app.listen()`
+ *   exactly like a normal NestJS server.
+ * - Vercel serverless (the NestJS preset runs `src/main.ts`): `VERCEL=1` is
+ *   set, so `listen()` is skipped and the default export is used as the
+ *   request handler (lazy bootstrap, no process.exit on DI errors).
+ */
+const isServerless = process.env.VERCEL === '1';
+
+const server = express();
+
+/** Env vars the app fails-fast on at boot (checked before Nest boots). */
+const REQUIRED_ENV = ['DATABASE_URL', 'JWT_SECRET'];
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const missing = REQUIRED_ENV.filter((key) => !process.env[key]);
+  if (missing.length > 0) {
+    throw new Error(
+      `Missing required environment variables: ${missing.join(', ')}. ` +
+        `Set them in the environment (Vercel: Settings -> Environment Variables) ` +
+        `and redeploy. See .env.example for the full list.`,
+    );
+  }
+
+  const app = await NestFactory.create(
+    AppModule,
+    new ExpressAdapter(server),
+    // Serverless: never call process.exit(1) on DI failure — let the handler
+    // return a readable 500. Long-running host keeps the default fail-fast.
+    { abortOnError: !isServerless },
+  );
   app.enableCors();
 
   // ── Swagger / OpenAPI docs ─────────────────────────────────────────────
@@ -28,8 +62,6 @@ design & user-flow docs.`,
 
   const document = SwaggerModule.createDocument(app, swaggerConfig);
 
-  // Inject the Prisma models into components.schemas so the DB schema is
-  // part of the API documentation (visible via /docs-json and tooling).
   document.components = {
     schemas: {
       ...(document.components?.schemas ?? {}),
@@ -41,11 +73,86 @@ design & user-flow docs.`,
     swaggerOptions: { persistAuthorization: true },
   });
 
-  const port = process.env.PORT ?? 3500;
-  await app.listen(Number(port));
-  console.log(`Server run properly on http://localhost:${port}`);
-  console.log(`Swagger UI: http://localhost:${port}/docs`);
+  await app.init();
+  return app;
 }
-bootstrap()
-  .then(() => console.log(`Server start complete`))
-  .catch((error) => console.log(`Server error when running: ${error}`));
+
+// ── Serverless handler (Vercel) ──────────────────────────────────────────
+
+let appReady = false;
+let bootError: Error | null = null;
+let bootPromise: Promise<void> | null = null;
+
+function ensureBoot(): Promise<void> {
+  if (!bootPromise) {
+    bootPromise = bootstrap()
+      .then(() => {
+        appReady = true;
+        console.log('[serverless] NestJS app initialized');
+      })
+      .catch((err) => {
+        bootError = err instanceof Error ? err : new Error(String(err));
+        console.error('[serverless] Bootstrap failed:', err);
+      });
+  }
+  return bootPromise;
+}
+
+function sendError(res: Response, status: number, message: string) {
+  const body = JSON.stringify({ status: false, message });
+  // Vercel passes RAW Node req/res (not Express-augmented).
+  if (typeof (res as unknown as { status?: unknown }).status !== 'function') {
+    res.statusCode = status;
+    res.setHeader('content-type', 'application/json');
+    res.end(body);
+    return;
+  }
+  (res as Response).status(status).json({ status: false, message });
+}
+
+function bootErrorMessage(): string | null {
+  return bootError ? bootError.message : null;
+}
+
+/** Vercel invokes this for every request when running `src/main.ts`. */
+export default async function handler(req: Request, res: Response) {
+  try {
+    if (!appReady) {
+      const err = bootErrorMessage();
+      if (err) {
+        sendError(res, 500, `Server failed to initialize: ${err}`);
+        return;
+      }
+      await ensureBoot();
+      if (!appReady) {
+        sendError(
+          res,
+          500,
+          `Server failed to initialize: ${bootErrorMessage() ?? 'unknown error'}`,
+        );
+        return;
+      }
+    }
+    server(req, res);
+  } catch (err) {
+    sendError(res, 500, err instanceof Error ? err.message : String(err));
+  }
+}
+
+// ── Long-running server (VPS / PM2 / Render / Railway) ───────────────────
+
+if (!isServerless) {
+  bootstrap()
+    .then((app) => {
+      const port = process.env.PORT ?? 3500;
+      return app.listen(Number(port)).then(() => {
+        console.log(`Server run properly on http://localhost:${port}`);
+        console.log(`Swagger UI: http://localhost:${port}/docs`);
+      });
+    })
+    .then(() => console.log(`Server start complete`))
+    .catch((error) => {
+      console.error(`Server error when running: ${error}`);
+      process.exit(1);
+    });
+}

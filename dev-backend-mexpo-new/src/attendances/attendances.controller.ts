@@ -13,7 +13,7 @@ import {
 import { AttendancesService } from './attendances.service';
 import { CreateAttendanceDto } from './dto/create-attendance.dto';
 import { AuthGuard } from '@nestjs/passport';
-import FormatValidation from 'src/helper/validation.format';
+import FormatValidation from '../helper/validation.format';
 import * as authType from '../auth/auth.types';
 import { QueryAttendanceDto } from './dto/query-attendance.dto';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';

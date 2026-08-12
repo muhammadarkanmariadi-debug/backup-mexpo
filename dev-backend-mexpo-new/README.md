@@ -100,9 +100,11 @@ env vars in the dashboard, and deploy. Render runs
 check on `/`). Create a service, set the **Root Directory** to
 `dev-backend-mexpo-new`, add the env vars, and deploy.
 
-> The backend is **not** deployed to Vercel — Vercel is used only for the
-> frontend. Vercel is serverless-only and is a poor fit for a long-running
-> NestJS server.
+> The backend can also be deployed to **Vercel** via `api/index.js` →
+> compiled `dist/src/serverless.js` (`vercel.json` uses the legacy `builds`
+> config so the NestJS framework preset does not hijack the build — the preset
+> bundles raw `src/` with esbuild, which lacks `emitDecoratorMetadata` and
+> breaks NestJS DI). The VPS/PM2 path above remains the primary production host.
 
 ## Resources
 

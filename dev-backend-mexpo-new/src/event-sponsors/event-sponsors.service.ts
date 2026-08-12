@@ -8,8 +8,8 @@ import {
 } from '@nestjs/common';
 import { CreateEventSponsorDto } from './dto/create-event-sponsor.dto';
 import { UpdateEventSponsorDto } from './dto/update-event-sponsor.dto';
-import { PrismaService } from 'src/prisma/prisma.service';
-import { S3Service } from 'src/s3/s3.service';
+import { PrismaService } from '../prisma/prisma.service';
+import { S3Service } from '../s3/s3.service';
 import { ConfigService } from '@nestjs/config';
 import { QueryEventSponsorDto } from './dto/query-event-sponsor.dto';
 import { UserRole } from '@prisma/client';

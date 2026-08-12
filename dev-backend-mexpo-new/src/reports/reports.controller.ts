@@ -10,9 +10,9 @@ import {
 } from '@nestjs/common';
 import type { Response } from 'express';
 import { ReportsService } from './reports.service';
-import FormatValidation from 'src/helper/validation.format';
+import FormatValidation from '../helper/validation.format';
 import { FilterReportDto } from './dto/filter-report.dto';
-import { BasicGuard } from 'src/helper/basic-auth';
+import { BasicGuard } from '../helper/basic-auth';
 import { ApiBasicAuth, ApiTags } from '@nestjs/swagger';
 
 @ApiTags('Reports')

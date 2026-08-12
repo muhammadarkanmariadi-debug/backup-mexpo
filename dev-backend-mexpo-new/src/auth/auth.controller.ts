@@ -8,7 +8,7 @@ import {
 import { ApiTags } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { AuthDTO } from './dto/auth.dto';
-import FormatValidation from 'src/helper/validation.format';
+import FormatValidation from '../helper/validation.format';
 
 @ApiTags('Auth')
 @Controller('auth')

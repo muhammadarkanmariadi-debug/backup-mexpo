@@ -17,13 +17,13 @@ import {
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { BasicGuard } from 'src/helper/basic-auth';
-import FormatValidation from 'src/helper/validation.format';
+import { BasicGuard } from '../helper/basic-auth';
+import FormatValidation from '../helper/validation.format';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { imageFileFilter } from 'src/helper/upload.format';
+import { imageFileFilter } from '../helper/upload.format';
 import { AuthGuard } from '@nestjs/passport';
-import { RoleGuard, Roles } from 'src/helper/role-guard';
-import * as authTypes from 'src/auth/auth.types';
+import { RoleGuard, Roles } from '../helper/role-guard';
+import * as authTypes from '../auth/auth.types';
 import { QueryUserDto } from './dto/query-user.dto';
 import { ApiTags } from '@nestjs/swagger';
 import {

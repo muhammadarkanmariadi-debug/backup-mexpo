@@ -11,10 +11,10 @@ import {
   CreateBoothAttendance,
   CreateWorkshopAttendance,
 } from './dto/create-attendance.dto';
-import { PrismaService } from 'src/prisma/prisma.service';
+import { PrismaService } from '../prisma/prisma.service';
 import { EventRole } from '@prisma/client';
 import { QueryAttendanceDto } from './dto/query-attendance.dto';
-import { buildOrderBy } from 'src/helper/sort';
+import { buildOrderBy } from '../helper/sort';
 import { Prisma } from '@prisma/client';
 
 const ATTENDANCE_SORTABLE: Record<

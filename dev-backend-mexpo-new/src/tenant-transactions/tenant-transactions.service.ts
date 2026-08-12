@@ -9,13 +9,13 @@ import {
 } from '@nestjs/common';
 import { CreateTenantTransactionDto } from './dto/create-tenant-transaction.dto';
 import { UpdateTenantTransactionDto } from './dto/update-tenant-transaction.dto';
-import { PrismaService } from 'src/prisma/prisma.service';
-import { S3Service } from 'src/s3/s3.service';
+import { PrismaService } from '../prisma/prisma.service';
+import { S3Service } from '../s3/s3.service';
 import { ConfigService } from '@nestjs/config';
 import { QueryTenantTransactionDto } from './dto/query-tenant-transaction.dto';
 import { UserRole } from '@prisma/client';
-import { assertEventFeature } from 'src/events/event-features';
-import { buildOrderBy } from 'src/helper/sort';
+import { assertEventFeature } from '../events/event-features';
+import { buildOrderBy } from '../helper/sort';
 import { Prisma } from '@prisma/client';
 
 const TRANSACTION_SORTABLE: Record<

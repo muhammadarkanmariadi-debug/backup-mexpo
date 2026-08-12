@@ -8,18 +8,18 @@ import {
 } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { PrismaService } from 'src/prisma/prisma.service';
-import { BcryptService } from 'src/bcrypt/bcrypt.service';
+import { PrismaService } from '../prisma/prisma.service';
+import { BcryptService } from '../bcrypt/bcrypt.service';
 import { UserRole } from '@prisma/client';
-import { MailService } from 'src/mail/mail.service';
-import { S3Service } from 'src/s3/s3.service';
+import { MailService } from '../mail/mail.service';
+import { S3Service } from '../s3/s3.service';
 import { ConfigService } from '@nestjs/config';
 import { QueryUserDto } from './dto/query-user.dto';
 import {
   ResetPasswordDto,
   VerifyResetPasswordDto,
 } from './dto/reset-password.dto';
-import { buildOrderBy } from 'src/helper/sort';
+import { buildOrderBy } from '../helper/sort';
 import { Prisma } from '@prisma/client';
 
 const USER_SORTABLE: Record<
