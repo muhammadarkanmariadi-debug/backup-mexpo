@@ -1,6 +1,7 @@
-"use client";
+﻿"use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+
 import { toast } from "sonner";
 import { CalendarClock, Loader2, Plus, Pencil, Trash2, UserPlus } from "lucide-react";
 
@@ -22,6 +23,8 @@ import {
 import { getSpeakers } from "@/services/event-content.service";
 import BackLink from "@/features/dashboard/shared/BackLink";
 import { useList } from "@/features/dashboard/shared/useList";
+import { useApiQuery } from "@/lib/hooks/useApi";
+import { keys } from "@/lib/query-keys";
 import SortMenu from "@/shared/components/ui/SortMenu";
 
 function toLocalInputValue(dateString?: string): string {
@@ -43,27 +46,16 @@ const EMPTY: WorkshopPayload = {
 };
 
 export default function WorkshopsManager({ event }: { event: Event }) {
-  const [speakers, setSpeakers] = useState<EventSpeaker[]>([]);
   const [busy, setBusy] = useState(false);
   const [form, setForm] = useState<WorkshopPayload>(EMPTY);
   const [editingId, setEditingId] = useState<string | null>(null);
 
   const list = useList<Workshop>((q) => getWorkshops(event.uuid, q), [event.uuid]);
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await getSpeakers(event.uuid);
-        if (!cancelled) setSpeakers(res.data ?? []);
-      } catch {
-        // ignore
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [event.uuid]);
+  const { data: speakers } = useApiQuery<EventSpeaker[]>(
+    keys.content.speakers(event.uuid),
+    () => getSpeakers(event.uuid),
+  );
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -208,13 +200,13 @@ export default function WorkshopsManager({ event }: { event: Event }) {
                     <p className="font-semibold text-gray-900 text-sm">{w.title}</p>
                     <p className="text-xs text-gray-500">
                       {new Date(w.start_time).toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short" })}
-                      {" – "}
+                      {" â€“ "}
                       {new Date(w.end_time).toLocaleString("id-ID", { timeStyle: "short" })}
-                      {" · "}
-                      {w.location} · kuota {w.quota > 0 ? w.quota : "∞"}
+                      {" Â· "}
+                      {w.location} Â· kuota {w.quota > 0 ? w.quota : "âˆž"}
                     </p>
                   </div>
-                  <button onClick={() => attachSpeaker(w.uuid)} disabled={speakers.length === 0} className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-40">
+                  <button onClick={() => attachSpeaker(w.uuid)} disabled={(speakers ?? []).length === 0} className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-40">
                     <UserPlus className="h-3.5 w-3.5" /> Speaker
                   </button>
                   <button onClick={() => startEdit(w)} className="p-2 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-700" title="Edit">
@@ -229,7 +221,7 @@ export default function WorkshopsManager({ event }: { event: Event }) {
                     {w.workshopSpeakers.map((s) => (
                       <span key={s.uuid} className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-1 text-xs text-blue-700">
                         {s.event_speaker?.name ?? "Speaker"}
-                        <button onClick={() => detachSpeaker(s.uuid)} className="hover:text-red-600" title="Lepas">×</button>
+                        <button onClick={() => detachSpeaker(s.uuid)} className="hover:text-red-600" title="Lepas">Ã—</button>
                       </span>
                     ))}
                   </div>

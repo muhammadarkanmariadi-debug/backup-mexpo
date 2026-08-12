@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -12,6 +11,8 @@ import { toast } from "sonner";
 
 import { dateFormat, formatDateRange } from "@/shared/utils/format";
 import { Event } from "@/entities/event/event.entity";
+import { useApiMutation } from "@/lib/hooks/useApi";
+import { keys } from "@/lib/query-keys";
 import { publishRequest, finishEvent, reopenEvent } from "@/services/event.service";
 import EventHero from "@/features/dashboard/shared/EventHero";
 import KelolaMenu, { KelolaItem } from "@/features/dashboard/shared/KelolaMenu";
@@ -20,53 +21,46 @@ interface Props { event: Event }
 
 export default function CommitteeView({ event }: Props) {
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
   const isDrafted = event.status === "DRAFTED" || event.status === "REJECTED";
   const isPublished = event.status === "PUBLISHED";
   const isFinished = event.status === "FINISHED";
 
-  const handlePublishRequest = async () => {
-    setLoading(true);
-    try {
-      const res = await publishRequest(event.uuid);
-      if (!res.status) throw new Error();
-      toast.success("Publish request dikirim. Menunggu persetujuan super admin.");
-      router.refresh();
-    } catch {
-      toast.error("Gagal mengirim publish request.");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const detailKey = keys.events.detail(event.uuid);
 
-  const handleFinish = async () => {
+  const publish = useApiMutation(() => publishRequest(event.uuid), {
+    invalidate: [detailKey],
+    successMessage: "Publish request dikirim. Menunggu persetujuan super admin.",
+    errorMessage: "Gagal mengirim publish request.",
+    notify: toast,
+    onSuccess: () => router.refresh(),
+  });
+
+  const finish = useApiMutation(() => finishEvent(event.uuid), {
+    invalidate: [detailKey],
+    successMessage: "Event ditandai selesai.",
+    errorMessage: "Gagal menyelesaikan event.",
+    notify: toast,
+    onSuccess: () => router.refresh(),
+  });
+
+  const reopen = useApiMutation(() => reopenEvent(event.uuid), {
+    invalidate: [detailKey],
+    successMessage: "Event dibuka kembali.",
+    errorMessage: "Gagal membuka kembali event.",
+    notify: toast,
+    onSuccess: () => router.refresh(),
+  });
+
+  const loading = publish.isPending || finish.isPending || reopen.isPending;
+
+  const handlePublishRequest = () => publish.mutate();
+  const handleFinish = () => {
     if (!confirm(`Selesaikan event "${event.name}"? Registrasi baru akan ditutup.`)) return;
-    setLoading(true);
-    try {
-      const res = await finishEvent(event.uuid);
-      if (!res.status) throw new Error();
-      toast.success("Event ditandai selesai.");
-      router.refresh();
-    } catch {
-      toast.error("Gagal menyelesaikan event.");
-    } finally {
-      setLoading(false);
-    }
+    finish.mutate();
   };
-
-  const handleReopen = async () => {
+  const handleReopen = () => {
     if (!confirm(`Buka kembali event "${event.name}"?`)) return;
-    setLoading(true);
-    try {
-      const res = await reopenEvent(event.uuid);
-      if (!res.status) throw new Error();
-      toast.success("Event dibuka kembali.");
-      router.refresh();
-    } catch {
-      toast.error("Gagal membuka kembali event.");
-    } finally {
-      setLoading(false);
-    }
+    reopen.mutate();
   };
 
   const kelolaItems: KelolaItem[] = [

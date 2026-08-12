@@ -83,10 +83,10 @@ export default function Navbar() {
   if (shouldHide) return null
 
   const navItems: NavItem[] = [
-    { title: 'Home', href: '/' },
-    { title: 'About', href: '/about' },
-    { title: 'FAQ', href: '/faq' },
-    { title: 'Contact', href: '/contact' },
+    { title: 'Beranda', href: '/' },
+    { title: 'Tentang Kami', href: '/about' },
+    { title: 'Bantuan', href: '/faq' },
+    { title: 'Hubungi Kami', href: '/contact' },
     ...(username ? [{
       title: 'Dashboard',
       href: '/dashboard'

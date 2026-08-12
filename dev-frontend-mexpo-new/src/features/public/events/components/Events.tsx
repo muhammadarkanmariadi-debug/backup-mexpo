@@ -3,24 +3,15 @@
 import Image from "next/image";
 import { useState } from "react";
 import { motion } from "framer-motion";
+import { useSearchParams } from "next/navigation";
 
 import EventsLayout from "./content/EventsLayout";
-import { Event, EventType } from "@/entities/event/event.entity";
-import { useSearchParams } from "next/navigation";
-import SearchBar from "@/shared/components/form/SearchBar";
+import TrendingEvents from "./content/TrendingEvents";
+import CategoryFilter from "./content/CategoryFilter";
 
-const EVENT_TYPES: { value: EventType | "ALL"; label: string }[] = [
-  { value: "ALL", label: "All Types" },
-  { value: "EXPO", label: "Expo" },
-  { value: "CAREER_FAIR", label: "Career Fair" },
-  { value: "SEMINAR", label: "Seminar" },
-  { value: "GRADUATION", label: "Graduation" },
-  { value: "EXHIBITION", label: "Exhibition" },
-  { value: "MARKETPLACE", label: "Marketplace" },
-  { value: "GOVERNMENT", label: "Government" },
-  { value: "CAMPUS_SCHOOL", label: "Campus/School" },
-  { value: "OTHER", label: "Other" },
-];
+import { Event, EventType } from "@/entities/event/event.entity";
+import SearchBar from "@/shared/components/form/SearchBar";
+import ContentTitle1 from "@/shared/components/ui/ContentTitle1";
 
 type Category = "All Events" | "On Going" | "Upcoming" | "Past";
 
@@ -43,88 +34,87 @@ export default function Events({ events }: { events: Event[] }) {
   return (
     <div className="mx-auto max-w-7xl">
       <motion.div
-        className="relative flex flex-col mt-0 lg:mt-10"
+        className="relative flex flex-col items-center justify-center w-full min-h-[320px] md:min-h-[400px] rounded-xl overflow-hidden mt-0 lg:mt-10 py-12 px-4 sm:px-6 md:px-8"
         initial={{ opacity: 0, y: 30 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
         transition={{ duration: 0.6 }}
       >
+        {/* Image as background using fill */}
         <Image
           src="/images/cards/card-e.png"
           alt="Event 1"
-          width={1800}
-          height={1000}
-          loading="eager"
-          className="rounded-lg w-full h-80 md:h-96 object-cover"
+          fill
+          priority
+       
         />
-        <div className="top-1/2 left-1/2 absolute flex flex-col gap-4 sm:gap-3 md:gap-4 px-4 sm:px-6 md:px-8 w-full max-w-7xl text-white text-center -translate-x-1/2 -translate-y-2/3 transform">
-          <p className="font-jakarta text-xs sm:text-sm md:text-base">
+
+        {/* Konten diletakkan secara normal (relative), bukan absolute */}
+        <div className="relative z-10 flex flex-col gap-4 sm:gap-3 md:gap-4 w-full max-w-7xl items-center text-white text-center">
+          <p className="font-jakarta text-xs sm:text-sm md:text-base drop-shadow-md">
             Manage your event exhibition or expo easily with{" "}
             <span className="font-semibold">MEXPO!</span>
           </p>
-          <h1 className="font-public-sans font-extrabold text-3xl sm:text-5xl md:text-6xl lg:text-7xl">
+          <h1 className="font-public-sans font-extrabold text-3xl sm:text-5xl md:text-6xl lg:text-7xl drop-shadow-lg">
             {category}
           </h1>
-          <div className="mx-auto w-full max-w-md">
+          <div className="w-full max-w-md">
             <SearchBar search={search} setSearch={setSearch} placeholder="Search Events..." />
           </div>
-          <div className="flex flex-wrap sm:justify-center gap-2 sm:gap-3 md:gap-4 bg-white mx-auto p-1.5 sm:p-2 rounded-2xl w-fit">
+          <div className="flex flex-wrap justify-center gap-2 sm:gap-3 md:gap-4 bg-white/95 backdrop-blur-sm p-1.5 sm:p-2 rounded-2xl w-fit shadow-md text-gray-800">
             <button
-              className={`font-jakarta px-3 sm:px-4 py-1.5 sm:py-2 rounded-full font-semibold text-xs sm:text-sm whitespace-nowrap ${category === "All Events"
+              className={`font-jakarta px-3 sm:px-4 py-1.5 sm:py-2 rounded-full font-semibold text-xs sm:text-sm whitespace-nowrap transition-colors ${category === "All Events"
                 ? "bg-secondary text-white"
-                : "bg-gray-200 text-gray-700"
+                : "bg-transparent text-gray-700 hover:bg-gray-100"
                 }`}
               onClick={() => setCategory("All Events")}
             >
               All Events
             </button>
             <button
-              className={`font-jakarta px-3 sm:px-4 py-1.5 sm:py-2 rounded-full font-semibold text-xs sm:text-sm whitespace-nowrap ${category === "On Going"
+              className={`font-jakarta px-3 sm:px-4 py-1.5 sm:py-2 rounded-full font-semibold text-xs sm:text-sm whitespace-nowrap transition-colors ${category === "On Going"
                 ? "bg-secondary text-white"
-                : "bg-gray-200 text-gray-700"
+                : "bg-transparent text-gray-700 hover:bg-gray-100"
                 }`}
               onClick={() => setCategory("On Going")}
             >
               On Going
             </button>
             <button
-              className={`font-jakarta px-3 sm:px-4 py-1.5 sm:py-2 rounded-full font-semibold text-xs sm:text-sm whitespace-nowrap ${category === "Upcoming"
+              className={`font-jakarta px-3 sm:px-4 py-1.5 sm:py-2 rounded-full font-semibold text-xs sm:text-sm whitespace-nowrap transition-colors ${category === "Upcoming"
                 ? "bg-secondary text-white"
-                : "bg-gray-200 text-gray-700"
+                : "bg-transparent text-gray-700 hover:bg-gray-100"
                 }`}
               onClick={() => setCategory("Upcoming")}
             >
               Upcoming
             </button>
             <button
-              className={`font-jakarta px-3 sm:px-4 py-1.5 sm:py-2 rounded-full font-semibold text-xs sm:text-sm whitespace-nowrap ${category === "Past"
+              className={`font-jakarta px-3 sm:px-4 py-1.5 sm:py-2 rounded-full font-semibold text-xs sm:text-sm whitespace-nowrap transition-colors ${category === "Past"
                 ? "bg-secondary text-white"
-                : "bg-gray-200 text-gray-700"
+                : "bg-transparent text-gray-700 hover:bg-gray-100"
                 }`}
               onClick={() => setCategory("Past")}
             >
               Past
             </button>
           </div>
-
-        </div>
-        {/* A7 — event-type filter */}
-        <div className="flex flex-wrap sm:justify-center gap-1.5 sm:gap-2 bg-white/95 mx-auto p-1.5 sm:p-2 rounded-2xl w-fit">
-          {EVENT_TYPES.map(({ value, label }) => (
-            <button
-              key={value}
-              className={`font-jakarta px-2.5 sm:px-3 py-1 rounded-full font-semibold text-[11px] sm:text-xs whitespace-nowrap ${eventType === value
-                ? "bg-gray-900 text-white"
-                : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                }`}
-              onClick={() => setEventType(value)}
-            >
-              {label}
-            </button>
-          ))}
         </div>
       </motion.div>
 
+      <ContentTitle1
+        title='Uncover the world of '
+        spanText='Events'
+        description='Explore a diverse range of events tailored to your interests. From tech conferences to art exhibitions, find the perfect event to expand your horizons and connect with like-minded individuals.'
+      />
+
+      {/* Laris Manis Section */}
+      <TrendingEvents events={events} />
+
+      {/* Kategori Event Section */}
+      <CategoryFilter eventType={eventType} setEventType={setEventType} />
+
+      {/* List Event Terfilter */}
       <EventsLayout category={category} search={search} events={filteredByType} isLoading={false} />
     </div>
   );

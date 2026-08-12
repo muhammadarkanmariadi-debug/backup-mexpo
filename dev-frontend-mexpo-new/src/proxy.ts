@@ -1,12 +1,14 @@
-// proxy.ts (Next.js 16: Middleware was renamed to Proxy — see node_modules/next/dist/docs/01-app/01-getting-started/16-proxy.md)
+// src/proxy.ts (Next.js 16: Middleware was renamed to Proxy — see node_modules/next/dist/docs/01-app/01-getting-started/16-proxy.md)
 // Proteksi route berdasarkan sesi login.
+// MUST live in src/ (same level as src/app) — Next only scans the directory that
+// contains app/, i.e. <root>/src for this project. A root-level proxy.ts is ignored.
 // Reads the httpOnly `token` cookie directly from the request — do NOT import
 // "use server" modules or `next/headers` here (they are not available in the proxy runtime).
 
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-const PROTECTED_PREFIXES = ["/dashboard", "/organizer", "/profile"];
+const PROTECTED_PREFIXES = ["/dashboard", "/profile"];
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -25,5 +27,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/organizer/:path*", "/profile"],
+  matcher: ["/dashboard/:path*", "/profile"],
 };

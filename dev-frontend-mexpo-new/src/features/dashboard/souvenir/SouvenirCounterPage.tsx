@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -14,6 +14,7 @@ import { Html5Qrcode } from "html5-qrcode";
 
 import Input from "@/shared/components/form/Input";
 import { Event } from "@/entities/event/event.entity";
+import { useApiMutation } from "@/lib/hooks/useApi";
 import { resolveQr, ResolvedQr } from "@/services/qr.service";
 import {
   checkSouvenir,
@@ -26,7 +27,6 @@ export default function SouvenirCounterPage({ event }: { event: Event }) {
   const [qrCode, setQrCode] = useState("");
   const [check, setCheck] = useState<SouvenirCheckResult | null>(null);
   const [checking, setChecking] = useState(false);
-  const [granting, setGranting] = useState(false);
   const [result, setResult] = useState<{ ok: boolean; message: string } | null>(null);
   const [scanning, setScanning] = useState(false);
   const scannerRef = useRef<Html5Qrcode | null>(null);
@@ -103,24 +103,31 @@ export default function SouvenirCounterPage({ event }: { event: Event }) {
     }
   };
 
-  const handleGrant = async () => {
+  const handleGrant = useApiMutation(
+    () => grantSouvenir(event.uuid, check?.user.uuid ?? ""),
+    {
+      onSuccess: (res) => {
+        const message =
+          typeof res === "object" && res && "message" in res && res.message
+            ? String(res.message)
+            : "Souvenir diberikan.";
+        setResult({ ok: true, message });
+        setCheck(null);
+        setQrCode("");
+      },
+      onError: (err) => {
+        setResult({
+          ok: false,
+          message: err instanceof Error ? err.message : "Gagal memberikan souvenir",
+        });
+      },
+    },
+  );
+
+  const onGrant = () => {
     if (!check) return;
-    setGranting(true);
     setResult(null);
-    try {
-      const res = await grantSouvenir(event.uuid, check.user.uuid);
-      if (!res.status) throw new Error(res.message || "Gagal memberikan souvenir");
-      setResult({ ok: true, message: res.message || "Souvenir diberikan." });
-      setCheck(null);
-      setQrCode("");
-    } catch (err) {
-      setResult({
-        ok: false,
-        message: err instanceof Error ? err.message : "Gagal memberikan souvenir",
-      });
-    } finally {
-      setGranting(false);
-    }
+    handleGrant.mutate();
   };
 
   return (
@@ -193,7 +200,7 @@ export default function SouvenirCounterPage({ event }: { event: Event }) {
                 <p className="font-semibold text-gray-900">{check.user.full_name}</p>
                 <p className="text-xs text-gray-500">{check.user.email}</p>
                 <p className="mt-1 text-xs text-gray-500">
-                  Booth: {check.boothVisits} · Seminar: {check.joinedSeminar ? "ya" : "belum"}
+                  Booth: {check.boothVisits} Â· Seminar: {check.joinedSeminar ? "ya" : "belum"}
                 </p>
               </div>
             </div>
@@ -204,11 +211,11 @@ export default function SouvenirCounterPage({ event }: { event: Event }) {
               </div>
             ) : check.eligible ? (
               <button
-                onClick={() => void handleGrant()}
-                disabled={granting}
+                onClick={onGrant}
+                disabled={handleGrant.isPending}
                 className="mt-3 inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-fuchsia-600 px-4 py-2 text-sm font-semibold text-white hover:bg-fuchsia-700 disabled:opacity-50"
               >
-                {granting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Gift className="h-4 w-4" />}
+                {handleGrant.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Gift className="h-4 w-4" />}
                 Berikan Souvenir
               </button>
             ) : (
@@ -238,3 +245,5 @@ export default function SouvenirCounterPage({ event }: { event: Event }) {
     </div>
   );
 }
+
+

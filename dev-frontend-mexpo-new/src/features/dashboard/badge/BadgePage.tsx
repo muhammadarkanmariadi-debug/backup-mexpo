@@ -1,33 +1,22 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { Loader2, Printer } from "lucide-react";
 
 import { Event } from "@/entities/event/event.entity";
 import { useAuthStore } from "@/stores/auth.store";
+import { useApiQuery } from "@/lib/hooks/useApi";
+import { keys } from "@/lib/query-keys";
 import { getMyQr, MyQr } from "@/services/qr.service";
 import { dateFormat } from "@/shared/utils/format";
 import BackLink from "@/features/dashboard/shared/BackLink";
 
 export default function BadgePage({ event }: { event: Event }) {
   const { user } = useAuthStore();
-  const [qr, setQr] = useState<MyQr | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await getMyQr(event.uuid);
-        if (!cancelled && res.data) setQr(res.data);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [event.uuid]);
+  const { data: qr, isLoading: loading } = useApiQuery<MyQr | null>(
+    keys.qr.my(event.uuid),
+    () => getMyQr(event.uuid),
+    { retry: 0 },
+  );
 
   const role = user?.role === "SUPERADMIN" ? "SUPERADMIN" : "VISITOR";
 

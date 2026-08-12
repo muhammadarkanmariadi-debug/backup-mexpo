@@ -1,34 +1,24 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Award, Loader2, Printer, X } from "lucide-react";
 
 import { Event } from "@/entities/event/event.entity";
 import { useAuthStore } from "@/stores/auth.store";
+import { useApiQuery } from "@/lib/hooks/useApi";
+import { keys } from "@/lib/query-keys";
 import { getMyCertificates, Certificate } from "@/services/workshop.service";
 import { formatDateWithDay } from "@/shared/utils/format";
 import BackLink from "@/features/dashboard/shared/BackLink";
 
 export default function CertificatesPage({ event }: { event: Event }) {
   const { user } = useAuthStore();
-  const [items, setItems] = useState<Certificate[]>([]);
-  const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState<Certificate | null>(null);
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await getMyCertificates(event.uuid);
-        if (!cancelled) setItems(res.data ?? []);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [event.uuid]);
+  const { data: items, isLoading: loading } = useApiQuery<Certificate[]>(
+    keys.certificates.mine,
+    () => getMyCertificates(event.uuid),
+  );
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-8">
@@ -44,14 +34,14 @@ export default function CertificatesPage({ event }: { event: Event }) {
         <div className="flex justify-center py-16">
           <Loader2 className="h-6 w-6 animate-spin text-secondary" />
         </div>
-      ) : items.length === 0 ? (
+      ) : (items ?? []).length === 0 ? (
         <div className="rounded-xl border border-gray-100 bg-white p-10 text-center text-sm text-gray-500">
           Belum ada sertifikat. Sertifikat diterbitkan setelah kamu check-in ke
           sebuah workshop.
         </div>
       ) : (
         <div className="space-y-2">
-          {items.map((c) => (
+          {(items ?? []).map((c) => (
             <div
               key={c.uuid}
               className="flex items-center gap-3 rounded-xl border border-gray-100 bg-white px-4 py-3"

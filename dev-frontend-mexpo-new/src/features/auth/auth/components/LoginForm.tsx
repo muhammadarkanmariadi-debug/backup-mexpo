@@ -32,6 +32,28 @@ export function LoginForm() {
     },
   });
 
+  /**
+   * Read the `?next=` query param set by src/proxy.ts when a logged-out user
+   * hit a protected page (/dashboard, /profile). After a successful login we
+   * return them to that page instead of always dropping them on `/`.
+   *
+   * We read it from window.location (client-only) rather than useSearchParams
+   * because /auth is statically prerendered in this Next 16 build and
+   * useSearchParams would require an extra Suspense boundary (see the
+   * /verify-email + / home fixes). Reading at submit time avoids that entirely.
+   */
+  const resolvePostLoginPath = (): string => {
+    if (typeof window === "undefined") return "/";
+    const raw = new URLSearchParams(window.location.search).get("next");
+    if (!raw) return "/";
+    // Open-redirect guard: only allow same-origin absolute paths starting with
+    // a single "/" (blocks "//evil.com", "/\evil.com", "http://...", etc.).
+    if (!raw.startsWith("/") || raw.startsWith("//") || raw.startsWith("/\\")) {
+      return "/";
+    }
+    return raw;
+  };
+
   const onSubmit = async (data: LoginFormData) => {
     setServerError(null);
     const result = await loginAction(data);
@@ -44,7 +66,7 @@ export function LoginForm() {
     toast.success(result.message);
     await syncProfile()
     setRememberedEmail(data.email, isChecked);
-    router.push('/');
+    router.push(resolvePostLoginPath());
   };
 
   return (

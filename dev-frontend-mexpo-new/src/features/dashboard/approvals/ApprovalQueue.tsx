@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { CheckCircle2, XCircle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -10,6 +9,7 @@ import { DataPagination } from "@/shared/components/ui/DataPagination";
 import { useAuthStore } from "@/stores/auth.store";
 import { Event } from "@/entities/event/event.entity";
 import { formatDateRange } from "@/shared/utils/format";
+import { useApiMutation } from "@/lib/hooks/useApi";
 import { getApprovalQueue, approveEvent } from "@/services/event.service";
 import BackLink from "@/features/dashboard/shared/BackLink";
 import { useList } from "@/features/dashboard/shared/useList";
@@ -17,46 +17,40 @@ import { useList } from "@/features/dashboard/shared/useList";
 export default function ApprovalQueue() {
   const router = useRouter();
   const { user } = useAuthStore();
-  const [busyId, setBusyId] = useState<string | null>(null);
 
   const isSuperAdmin = user?.role === "SUPERADMIN";
   const list = useList<Event>((q) => getApprovalQueue(q), [isSuperAdmin]);
 
-  const handleApprove = async (event: Event) => {
-    setBusyId(event.uuid);
-    try {
-      const res = await approveEvent(event.uuid, { approved: true });
-      if (!res.status) throw new Error();
-      toast.success(`"${event.name}" disetujui dan dipublikasikan.`);
-      list.refetch();
-      router.refresh();
-    } catch {
-      toast.error("Gagal menyetujui event.");
-    } finally {
-      setBusyId(null);
-    }
-  };
+  const decide = useApiMutation(
+    (args: { event: Event; approved: boolean }) =>
+      approveEvent(args.event.uuid, {
+        approved: args.approved,
+        rejection_reason: args.approved
+          ? undefined
+          : (prompt(`Alasan penolakan untuk "${args.event.name}"?`)?.trim() ||
+              "Tidak ada alasan"),
+      }),
+    {
+      successMessage: "",
+      errorMessage: "",
+      notify: toast,
+      onSuccess: (_data, { event, approved }) => {
+        if (approved) {
+          toast.success(`"${event.name}" disetujui dan dipublikasikan.`);
+        } else {
+          toast.success(`"${event.name}" ditolak.`);
+        }
+        list.refetch();
+        router.refresh();
+      },
+      onError: (_err, { approved }) => {
+        toast.error(approved ? "Gagal menyetujui event." : "Gagal menolak event.");
+      },
+    },
+  );
 
-  const handleReject = async (event: Event) => {
-    const reason =
-      prompt(`Alasan penolakan untuk "${event.name}"?`)?.trim() ||
-      "Tidak ada alasan";
-    setBusyId(event.uuid);
-    try {
-      const res = await approveEvent(event.uuid, {
-        approved: false,
-        rejection_reason: reason,
-      });
-      if (!res.status) throw new Error();
-      toast.success(`"${event.name}" ditolak.`);
-      list.refetch();
-      router.refresh();
-    } catch {
-      toast.error("Gagal menolak event.");
-    } finally {
-      setBusyId(null);
-    }
-  };
+  const handleApprove = (event: Event) => decide.mutate({ event, approved: true });
+  const handleReject = (event: Event) => decide.mutate({ event, approved: false });
 
   if (!isSuperAdmin) {
     return (
@@ -125,14 +119,14 @@ export default function ApprovalQueue() {
                     <>
                       <button
                         onClick={() => handleApprove(event)}
-                        disabled={busyId === event.uuid}
+                        disabled={decide.isPending}
                         className="inline-flex items-center gap-1.5 bg-green-600 hover:bg-green-700 disabled:opacity-50 px-3 py-1.5 rounded-lg font-semibold text-white text-xs transition-colors"
                       >
                         <CheckCircle2 className="w-3.5 h-3.5" /> Approve
                       </button>
                       <button
                         onClick={() => handleReject(event)}
-                        disabled={busyId === event.uuid}
+                        disabled={decide.isPending}
                         className="inline-flex items-center gap-1.5 bg-white hover:bg-red-50 disabled:opacity-50 px-3 py-1.5 border border-red-200 rounded-lg font-semibold text-red-600 text-xs transition-colors"
                       >
                         <XCircle className="w-3.5 h-3.5" /> Reject

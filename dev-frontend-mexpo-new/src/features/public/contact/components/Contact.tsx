@@ -15,9 +15,6 @@ import { submitContactAction } from '../contact.action'
 import { toast } from 'sonner'
 
 
-const BrowserOnlyComponent = dynamic(() => import('../../../../shared/components/ui/Gmaps'), {
-    ssr: false
-});
 
 export default function ContactPage() {
     const [formData, setFormData] = useState({
@@ -187,7 +184,18 @@ export default function ContactPage() {
                     <h1 className="mb-4 font-bold text-2xl"></h1>
 
 
-                    <BrowserOnlyComponent />
+                    <div>
+                  
+                        <div className="shadow-sm border border-border-light rounded-lg h-[200px] overflow-hidden">
+                            <iframe
+                                title="Kantor Mexpo"
+                                src="https://www.google.com/maps?q=SMK%20Telkom%20Malang%20Jl.%20Danau%20Ranau%20Sawojajar&output=embed"
+                                className="grayscale-[20%] border-0 w-full h-full"
+                                loading="lazy"
+                                referrerPolicy="no-referrer-when-downgrade"
+                            />
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

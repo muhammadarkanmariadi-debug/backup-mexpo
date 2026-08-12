@@ -1,61 +1,74 @@
-import React from 'react'
-import { motion } from 'framer-motion'
-import { Heart } from 'lucide-react'
+import React from "react";
+import Image from "next/image";
+import { motion } from "framer-motion";
+import { ArrowRight, CalendarPlus } from "lucide-react";
+import Button from "@/shared/components/button/Button";
+
+/**
+ * About page hero — full-width banner (per layout reference):
+ * big 2-line bold headline + short supporting text + visual as background.
+ * Uses the brand blue (`secondary`/`brand-500`) for accents and the site's
+ * standard `card-e.png` hero visual to stay consistent with the rest of the
+ * public site. Stacks vertically on mobile by default (text over image).
+ */
 const Hero = () => {
-    return (
-        <div className="gap-8 grid grid-cols-1 lg:grid-cols-2 mb-16">
-            <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.6 }}
-                className="flex flex-col justify-center"
-            >
-                <div className="flex items-center gap-2 mb-4">
-                    <div className="bg-secondary/10 p-2 rounded-xl">
-                        <Heart className="w-5 h-5 text-secondary" />
-                    </div>
-                    <h2 className="font-public-sans font-bold text-gray-900 text-xl sm:text-2xl">
-                        Our Story
-                    </h2>
-                </div>
-                <p className="mb-4 font-jakarta text-gray-600 text-sm sm:text-base leading-relaxed">
-                    MEXPO was born out of frustration. After years of managing
-                    complex corporate conferences, our founders realized that the
-                    existing tools were fragmented, unreliable, and visually chaotic.
-                </p>
-                <p className="font-jakarta text-gray-600 text-sm sm:text-base leading-relaxed">
-                    We set out to create a unified system—one that prioritizes data
-                    density over decorative fluff, and operational efficiency over
-                    everything else. The result is a platform engineered for the
-                    realities of live events: spotty Wi-Fi, last-minute changes, and
-                    the absolute necessity of a seamless attendee experience.
-                </p>
-            </motion.div>
-
-            <motion.div
-                initial={{ opacity: 0, x: 20 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.6, delay: 0.2 }}
-                className="flex justify-center items-center bg-gradient-to-br from-secondary/5 to-secondary/15 shadow-sm p-8 sm:p-10 border border-gray-200 rounded-3xl min-h-[220px]"
-            >
-                <div className="text-center">
-                    <div className="flex justify-center mb-4">
-                        <div className="bg-secondary/10 p-3 rounded-full">
-                            <Heart className="w-8 h-8 text-secondary" />
-                        </div>
-                    </div>
-                    <p className="font-public-sans font-bold text-gray-800 text-lg sm:text-xl md:text-2xl italic leading-relaxed">
-                        &ldquo;We built the tool we desperately needed.&rdquo;
-                    </p>
-                    <p className="mt-3 font-jakarta text-gray-500 text-sm">
-                        — The MEXPO Founders
-                    </p>
-                </div>
-            </motion.div>
+  return (
+    <section className="relative mt-0 lg:mt-10">
+      <motion.div
+        initial={{ opacity: 0, y: 30 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.6 }}
+        className="relative flex flex-col"
+      >
+        {/* Background visual - absolute to fill container */}
+        <div className="absolute inset-0 rounded-2xl overflow-hidden">
+          <Image
+            src="/images/carousel/carousel-01.png"
+            alt="Suasana event dan expo yang dikelola MEXPO"
+            fill
+            priority
+            className="object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-gray-900/85 via-gray-900/60 to-transparent" />
         </div>
-    )
-}
 
-export default Hero
+        {/* Content - relative to dictate height */}
+        <div className="relative flex flex-col justify-center gap-4 sm:gap-5 px-5 sm:px-8 lg:px-14 py-12 md:py-16 lg:py-20 max-w-3xl text-left text-white min-h-[320px] md:min-h-[384px]">
+          <p className="font-jakarta text-xs sm:text-sm md:text-base text-white/85">
+            Platform Manajemen Event &amp; Expo
+          </p>
+          <h1 className="font-public-sans font-extrabold text-3xl sm:text-5xl md:text-6xl leading-tight">
+            Kelola Event &amp; Expo <span className="text-secondary">Jadi Mudah</span>
+            <br />
+            dengan Satu Platform Terintegrasi
+          </h1>
+          <p className="font-jakarta text-gray-100 text-sm sm:text-base md:text-lg leading-relaxed max-w-xl">
+            MEXPO menyatukan pendaftaran, check-in QR, workshop, tenant/POS,
+            sertifikat digital, hingga laporan dalam satu sistem — cepat, akurat,
+            dan siap dipakai di event apa pun.
+          </p>
+          <div className="flex flex-wrap gap-3 pt-1">
+            <Button
+              href="/dashboard/create"
+              startIcon={<CalendarPlus className="w-4 h-4" />}
+              className="bg-secondary text-white hover:bg-secondary/85"
+            >
+              Buat Event
+            </Button>
+            <Button
+              href="/"
+              variant="secondary"
+              endIcon={<ArrowRight className="w-4 h-4" />}
+              className="border border-white/40"
+            >
+              Jelajahi Event
+            </Button>
+          </div>
+        </div>
+      </motion.div>
+    </section>
+  );
+};
+
+export default Hero;

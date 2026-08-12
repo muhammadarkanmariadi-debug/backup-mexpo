@@ -77,12 +77,8 @@ const EventsLayout = ({ category, search, events, isLoading }: EventsLayoutProps
   }
 
   return (
-    <div className='mx-5'>
-      <ContentTitle1
-        title='Uncover the world of '
-        spanText='Events'
-        description='Explore a diverse range of events tailored to your interests. From tech conferences to art exhibitions, find the perfect event to expand your horizons and connect with like-minded individuals.'
-      />
+    <div>
+  
 
       {category === 'All Events' ? (
         // AllEvents.tsx dihapus — render langsung di sini

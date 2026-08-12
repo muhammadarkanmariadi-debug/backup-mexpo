@@ -6,6 +6,7 @@ siapa pun yang mengubah tampilan/komponen.
 | Dokumen | Isi |
 |---|---|
 | [`DESIGN.md`](./DESIGN.md) | Design tokens (warna, font, spacing), inventori komponen, panduan UI, dan daftar dead links |
+| [`TANSTACK-QUERY.md`](./TANSTACK-QUERY.md) | Cara data dari API dikelola dengan TanStack Query (`useApiQuery` / `useApiMutation` / `useList` / `keys`), alur & keuntungannya (Bahasa Indonesia) |
 
 ## Referensi silang
 

@@ -1,12 +1,15 @@
 "use client";
 
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { Frown, Loader2, Plus, ShieldCheck, Users } from "lucide-react";
 
 import { useAuthStore } from "@/stores/auth.store";
+import { useApiQuery } from "@/lib/hooks/useApi";
+import { keys } from "@/lib/query-keys";
+import { queryClient } from "@/lib/query-client";
 
 import { DataPagination } from "@/shared/components/ui/DataPagination";
 import SearchBar from "@/shared/components/form/SearchBar";
@@ -40,8 +43,6 @@ export default function EventList() {
   const user = useAuthStore((s) => s.user);
   const isSuperAdmin = user?.role === "SUPERADMIN";
 
-  const [events, setEvents] = useState<Event[]>([]);
-  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const [typeFilter, setTypeFilter] = useState<string>("ALL");
@@ -49,46 +50,39 @@ export default function EventList() {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
-  const fetchEvents = useCallback(async () => {
-    const res = await getMyEvents();
-    if (res.data) setEvents(res.data);
-  }, []);
+  // TanStack Query — server-backed fetch with automatic cache + refetch.
+  const { data: events, isLoading: loading } = useApiQuery<Event[]>(
+    keys.events.my({}),
+    () => getMyEvents(),
+  );
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await getMyEvents();
-        if (!cancelled && res.data) setEvents(res.data);
-      } catch (error) {
-        console.error("Failed to fetch events", error);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const filtered = useMemo(
+    () =>
+      (events ?? []).filter((e) => {
+        const matchSearch = e.name.toLowerCase().includes(search.toLowerCase());
+        const matchStatus = statusFilter === "ALL" || e.status === statusFilter;
+        const matchType = typeFilter === "ALL" || e.event_type === typeFilter;
+        return matchSearch && matchStatus && matchType;
+      }),
+    [events, search, statusFilter, typeFilter],
+  );
 
-  const filtered = events.filter((e) => {
-    const matchSearch = e.name.toLowerCase().includes(search.toLowerCase());
-    const matchStatus = statusFilter === "ALL" || e.status === statusFilter;
-    const matchType = typeFilter === "ALL" || e.event_type === typeFilter;
-    return matchSearch && matchStatus && matchType;
-  });
-
-  const sorted = [...filtered].sort((a, b) => {
-    if (sortBy === "name_asc") return a.name.localeCompare(b.name);
-    if (sortBy === "name_desc") return b.name.localeCompare(a.name);
-    return (b.created_at ?? "").localeCompare(a.created_at ?? ""); // latest first
-  });
+  const sorted = useMemo(() => {
+    const next = [...filtered];
+    if (sortBy === "name_asc") return next.sort((a, b) => a.name.localeCompare(b.name));
+    if (sortBy === "name_desc") return next.sort((a, b) => b.name.localeCompare(a.name));
+    return next.sort((a, b) => (b.created_at ?? "").localeCompare(a.created_at ?? "")); // latest first
+  }, [filtered, sortBy]);
 
   const totalPages = Math.ceil(sorted.length / itemsPerPage);
   const paginated = sorted.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
+
+  // Refresh after a DashboardCard photo update (data mutation → refetch).
+  const handlePhotoUpdated = () =>
+    queryClient.invalidateQueries({ queryKey: keys.events.my({}) });
 
   return (
     <div className="pb-20">
@@ -153,7 +147,7 @@ export default function EventList() {
           </p>
         </div>
 
-        {!loading && events.length > 0 && (
+        {!loading && (events ?? []).length > 0 && (
           <div className="space-y-3">
             <div className="flex flex-wrap items-center gap-3">
               <div className="min-w-[200px] flex-1">
@@ -229,7 +223,7 @@ export default function EventList() {
                 <DashboardCard
                   key={item.uuid}
                   data={item}
-                  onPhotoUpdated={fetchEvents}
+                  onPhotoUpdated={handlePhotoUpdated}
                 />
               ))}
               <div className="mt-4">

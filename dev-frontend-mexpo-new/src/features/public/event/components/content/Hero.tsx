@@ -161,6 +161,8 @@ const Hero = ({ eventData }: { eventData: Event }) => {
               transition={{ delay: 0.6, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
               className='absolute -bottom-4 left-4 sm:left-6 flex items-center gap-3 rounded-xl border border-white/60 bg-white/90 px-4 py-3 shadow-lg backdrop-blur-md'
             >
+
+              
               <div className='flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-secondary'>
                 <FontAwesomeIcon icon={faCalendar} className='h-4 w-4' />
               </div>

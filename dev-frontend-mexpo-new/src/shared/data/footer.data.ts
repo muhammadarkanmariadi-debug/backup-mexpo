@@ -1,11 +1,11 @@
 export const footerData = {
-  tagline: "Manage your event exhibition or expo easily with MEXPO!.",
+  tagline: "Platform manajemen event dan expo terintegrasi. Cepat, akurat, dan andal.",
 
   socialMedia: [
     {
       platform: "Instagram",
       icon: "instagram",
-      href: "https://instagram.com/namabrand",
+      href: "https://instagram.com/smktelkommalang",
     },
     {
       platform: "WhatsApp",
@@ -15,7 +15,7 @@ export const footerData = {
     {
       platform: "TikTok",
       icon: "tiktok",
-      href: "https://tiktok.com/@namabrand",
+      href: "https://tiktok.com/@smktelkommalang",
     },
   ],
 
@@ -23,33 +23,28 @@ export const footerData = {
     {
       title: "Mexpo",
       links: [
-        { label: "About Mexpo", href: "/about" },
+        { label: "Beranda", href: "/" },
+        { label: "Tentang Kami", href: "/about" },
         { label: "FAQ", href: "/faq" },
-        { label: "Contact", href: "/contact" },
+        { label: "Hubungi Kami", href: "/contact" },
       ],
     },
     {
-      title: "Events",
+      title: "Penyelenggara",
       links: [
-        { label: "All Events", href: "/" },
-        { label: "On Going", href: "/?filter=On Going" },
-        { label: "Upcoming", href: "/?filter=Upcoming" },
-        { label: "Past Events", href: "/?filter=Past" },
+        { label: "Buat Event", href: "/dashboard/create" },
+        { label: "Dashboard", href: "/dashboard" },
+        { label: "Panduan", href: "/faq" },
       ],
     },
-
+    {
+      title: "Legal",
+      links: [
+        { label: "Kebijakan Privasi", href: "/privacy-policy" },
+        { label: "Syarat & Ketentuan", href: "/terms" },
+      ],
+    }
   ],
 
-  legalLinks: [
-    {
-      label: "Kebijakan Privasi",
-      href: "/privacy-policy",
-    },
-    {
-      label: "Syarat & Ketentuan",
-      href: "/terms",
-    },
-  ],
-
-  copyright: `© ${new Date().getFullYear()} Mexpo. All rights reserved.`,
+  copyright: `© ${new Date().getFullYear()} Mexpo. Hak Cipta Dilindungi.`,
 };

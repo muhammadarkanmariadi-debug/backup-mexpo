@@ -1,5 +1,12 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+> ⚠️ **Custom Next.js 16.2.6 build** — read `node_modules/next/dist/docs/` before coding (see `AGENTS.md`).
+
+## Docs
+
+- **`docs/TANSTACK-QUERY.md`** — bagaimana data dari API dikelola dengan TanStack Query (`useApiQuery` / `useApiMutation` / `useList` / `keys`), alur & contohnya (Bahasa Indonesia).
+- **`AGENTS.md`** — aturan agent: jangan tambahkan fetch manual (`useEffect`+`useState`) untuk data server; pakai TanStack Query.
+
 ## Getting Started
 
 First, run the development server:

@@ -9,7 +9,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "mysql"
 }
 
 model users {
@@ -73,16 +73,16 @@ model users {
   editor_souvenirs              souvenirs[]             @relation("editor_souvenirs")
   souvenirs                     souvenirs[]
 
-  tickets                       tickets[]
-  creator_tickets               tickets[]               @relation("creator_tickets")
-  editor_tickets                tickets[]               @relation("editor_tickets")
-  creator_ticket_types          ticket_types[]          @relation("creator_ticket_types")
-  editor_ticket_types           ticket_types[]          @relation("editor_ticket_types")
-  creator_registration_fields   event_registration_fields[] @relation("creator_registration_fields")
-  editor_registration_fields    event_registration_fields[] @relation("editor_registration_fields")
-  registrationAnswers           registration_answers[]
-  creator_registration_answers  registration_answers[] @relation("creator_registration_answers")
-  editor_registration_answers   registration_answers[] @relation("editor_registration_answers")
+  tickets                      tickets[]
+  creator_tickets              tickets[]                   @relation("creator_tickets")
+  editor_tickets               tickets[]                   @relation("editor_tickets")
+  creator_ticket_types         ticket_types[]              @relation("creator_ticket_types")
+  editor_ticket_types          ticket_types[]              @relation("editor_ticket_types")
+  creator_registration_fields  event_registration_fields[] @relation("creator_registration_fields")
+  editor_registration_fields   event_registration_fields[] @relation("editor_registration_fields")
+  registrationAnswers          registration_answers[]
+  creator_registration_answers registration_answers[]      @relation("creator_registration_answers")
+  editor_registration_answers  registration_answers[]      @relation("editor_registration_answers")
 
   usersBio users_bio?
 }
@@ -103,13 +103,13 @@ enum departureMonth {
 }
 
 model users_bio {
-  uuid                String           @id @default(uuid())
+  uuid                String          @id @default(uuid())
   city                String?
   role_type           RoleType?
   destination_country String?
   departure_month     departureMonth?
-  user_id             String           @unique @default("")
-  user                users            @relation(fields: [user_id], references: [uuid], onDelete: Cascade)
+  user_id             String          @unique @default("")
+  user                users           @relation(fields: [user_id], references: [uuid], onDelete: Cascade)
 }
 
 enum RoleType {
@@ -137,33 +137,33 @@ enum UserRole {
 }
 
 model events {
-  uuid                  String                @id @default(uuid())
-  slug                  String?               @unique @map("slug")
-  name                  String                @default("")
-  description           String                @db.Text
-  location              String                @default("")
-  start_date            DateTime              @default(now())
-  end_date              DateTime              @default(now())
-  registration_deadline DateTime              @default(now())
+  uuid                  String                      @id @default(uuid())
+  slug                  String?                     @unique @map("slug")
+  name                  String                      @default("")
+  description           String                      @db.Text
+  location              String                      @default("")
+  start_date            DateTime                    @default(now())
+  end_date              DateTime                    @default(now())
+  registration_deadline DateTime                    @default(now())
   registration_start    DateTime?
-  organizer_name        String                @default("")
-  quota                 Int                   @default(0)
-  status                EventStatus           @default(DRAFTED)
-  visibility            EventVisibility       @default(PUBLIC)
-  event_type            EventType             @default(OTHER)
-  ticket_mode           TicketMode            @default(FREE)
+  organizer_name        String                      @default("")
+  quota                 Int                         @default(0)
+  status                EventStatus                 @default(DRAFTED)
+  visibility            EventVisibility             @default(PUBLIC)
+  event_type            EventType                   @default(OTHER)
+  ticket_mode           TicketMode                  @default(FREE)
   features              Json?
   rejection_reason      String?
-  photo                 String                @default("")
+  photo                 String                      @default("")
   souvenir_rules        Json?
   approved_by           String?
-  approver              users?                @relation("approver_event", fields: [approved_by], references: [uuid])
-  created_by            String                @default("")
-  creator               users                 @relation("creator_event", fields: [created_by], references: [uuid])
-  updated_by            String                @default("")
-  editor                users                 @relation("editor_event", fields: [updated_by], references: [uuid])
-  created_at            DateTime              @default(now())
-  updated_at            DateTime              @updatedAt
+  approver              users?                      @relation("approver_event", fields: [approved_by], references: [uuid])
+  created_by            String                      @default("")
+  creator               users                       @relation("creator_event", fields: [created_by], references: [uuid])
+  updated_by            String                      @default("")
+  editor                users                       @relation("editor_event", fields: [updated_by], references: [uuid])
+  created_at            DateTime                    @default(now())
+  updated_at            DateTime                    @updatedAt
   eventRundowns         event_rundown[]
   eventSpeakers         event_speakers[]
   eventSponsors         event_sponsors[]
@@ -588,39 +588,38 @@ model souvenirs {
   updated_at DateTime @updatedAt
 }
 
-
 model ticket_types {
-  uuid         String   @id @default(uuid())
-  event_id     String   @default("")
-  event        events   @relation(fields: [event_id], references: [uuid], onDelete: Cascade)
-  name         String   @default("")
-  price        Float    @default(0)
-  created_by   String   @default("")
-  creator      users    @relation("creator_ticket_types", fields: [created_by], references: [uuid])
-  updated_by   String   @default("")
-  editor       users    @relation("editor_ticket_types", fields: [updated_by], references: [uuid])
-  created_at   DateTime @default(now())
-  updated_at   DateTime @updatedAt
-  tickets      tickets[]
+  uuid       String    @id @default(uuid())
+  event_id   String    @default("")
+  event      events    @relation(fields: [event_id], references: [uuid], onDelete: Cascade)
+  name       String    @default("")
+  price      Float     @default(0)
+  created_by String    @default("")
+  creator    users     @relation("creator_ticket_types", fields: [created_by], references: [uuid])
+  updated_by String    @default("")
+  editor     users     @relation("editor_ticket_types", fields: [updated_by], references: [uuid])
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+  tickets    tickets[]
 }
 
 model tickets {
-  uuid              String       @id @default(uuid())
-  event_id          String       @default("")
-  event             events       @relation(fields: [event_id], references: [uuid], onDelete: Cascade)
-  user_id           String       @default("")
-  user              users        @relation(fields: [user_id], references: [uuid], onDelete: Cascade)
-  ticket_type_id    String?      @default("")
+  uuid              String        @id @default(uuid())
+  event_id          String        @default("")
+  event             events        @relation(fields: [event_id], references: [uuid], onDelete: Cascade)
+  user_id           String        @default("")
+  user              users         @relation(fields: [user_id], references: [uuid], onDelete: Cascade)
+  ticket_type_id    String?       @default("")
   ticket_type       ticket_types? @relation(fields: [ticket_type_id], references: [uuid], onDelete: SetNull)
-  status            TicketStatus @default(RESERVED)
-  payment_reference String       @default("")
-  payment_method    String       @default("")
-  created_by        String       @default("")
-  creator           users        @relation("creator_tickets", fields: [created_by], references: [uuid])
-  updated_by        String       @default("")
-  editor            users        @relation("editor_tickets", fields: [updated_by], references: [uuid])
-  created_at        DateTime     @default(now())
-  updated_at        DateTime     @updatedAt
+  status            TicketStatus  @default(RESERVED)
+  payment_reference String        @default("")
+  payment_method    String        @default("")
+  created_by        String        @default("")
+  creator           users         @relation("creator_tickets", fields: [created_by], references: [uuid])
+  updated_by        String        @default("")
+  editor            users         @relation("editor_tickets", fields: [updated_by], references: [uuid])
+  created_at        DateTime      @default(now())
+  updated_at        DateTime      @updatedAt
 }
 
 model event_registration_fields {

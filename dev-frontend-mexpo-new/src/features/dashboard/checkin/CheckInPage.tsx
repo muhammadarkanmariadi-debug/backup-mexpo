@@ -17,6 +17,7 @@ import { Html5Qrcode } from "html5-qrcode";
 import Input from "@/shared/components/form/Input";
 import { Event } from "@/entities/event/event.entity";
 import { Workshop } from "@/entities/event/workshop.entity";
+import { useApiMutation } from "@/lib/hooks/useApi";
 import { resolveQr, ResolvedQr } from "@/services/qr.service";
 import { checkInEvent, checkInWorkshop } from "@/services/attendance.service";
 import BackLink from "@/features/dashboard/shared/BackLink";
@@ -39,7 +40,6 @@ export default function CheckInPage({ event, workshops }: Props) {
   const [qrCode, setQrCode] = useState("");
   const [resolved, setResolved] = useState<ResolvedQr | null>(null);
   const [searching, setSearching] = useState(false);
-  const [checkingIn, setCheckingIn] = useState(false);
   const [result, setResult] = useState<{ ok: boolean; message: string } | null>(null);
   const [scanning, setScanning] = useState(false);
   const scannerRef = useRef<Html5Qrcode | null>(null);
@@ -115,30 +115,38 @@ export default function CheckInPage({ event, workshops }: Props) {
     }
   };
 
-  const handleCheckIn = async () => {
-    if (!resolved) return;
-    setCheckingIn(true);
-    setResult(null);
-    try {
-      let res;
+  const checkIn = useApiMutation(
+    () => {
+      if (!resolved) throw new Error("Pengunjung belum di-resolve.");
       if (mode === "workshop") {
         if (!workshopId) throw new Error("Pilih workshop terlebih dahulu.");
-        res = await checkInWorkshop(workshopId, resolved.user_id);
-      } else {
-        res = await checkInEvent(event.uuid, resolved.user_id);
+        return checkInWorkshop(workshopId, resolved.user_id);
       }
-      if (!res.status) throw new Error(res.message || "Check-in gagal");
-      setResult({ ok: true, message: res.message || "Check-in berhasil." });
-      setResolved(null);
-      setQrCode("");
-    } catch (err) {
-      setResult({
-        ok: false,
-        message: err instanceof Error ? err.message : "Check-in gagal",
-      });
-    } finally {
-      setCheckingIn(false);
-    }
+      return checkInEvent(event.uuid, resolved.user_id);
+    },
+    {
+      onSuccess: (res) => {
+        const message =
+          typeof res === "object" && res && "message" in res && res.message
+            ? String(res.message)
+            : "Check-in berhasil.";
+        setResult({ ok: true, message });
+        setResolved(null);
+        setQrCode("");
+      },
+      onError: (err) => {
+        setResult({
+          ok: false,
+          message: err instanceof Error ? err.message : "Check-in gagal",
+        });
+      },
+    },
+  );
+
+  const handleCheckIn = () => {
+    if (!resolved) return;
+    setResult(null);
+    checkIn.mutate();
   };
 
   return (
@@ -247,11 +255,11 @@ export default function CheckInPage({ event, workshops }: Props) {
               <p className="text-xs text-gray-500">{resolved.user.email}</p>
             </div>
             <button
-              onClick={() => void handleCheckIn()}
-              disabled={checkingIn}
+              onClick={handleCheckIn}
+              disabled={checkIn.isPending}
               className="inline-flex items-center gap-1.5 rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-50"
             >
-              {checkingIn ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+              {checkIn.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
               Konfirmasi
             </button>
           </div>

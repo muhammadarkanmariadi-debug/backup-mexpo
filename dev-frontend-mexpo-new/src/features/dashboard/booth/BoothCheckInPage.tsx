@@ -16,6 +16,8 @@ import { Html5Qrcode } from "html5-qrcode";
 import Input from "@/shared/components/form/Input";
 import { Event } from "@/entities/event/event.entity";
 import { Tenant } from "@/entities/event/tenant.entity";
+import { useApiMutation, useApiQuery } from "@/lib/hooks/useApi";
+import { keys } from "@/lib/query-keys";
 import { getMyTenants } from "@/services/event-data.service";
 import { resolveQr, ResolvedQr } from "@/services/qr.service";
 import { checkInTenant } from "@/services/attendance.service";
@@ -26,34 +28,26 @@ interface Props {
 }
 
 export default function BoothCheckInPage({ event }: Props) {
-  const [tenants, setTenants] = useState<Tenant[]>([]);
-  const [tenantId, setTenantId] = useState("");
-  const [loadingTenants, setLoadingTenants] = useState(true);
   const [qrCode, setQrCode] = useState("");
   const [resolved, setResolved] = useState<ResolvedQr | null>(null);
   const [searching, setSearching] = useState(false);
-  const [checkingIn, setCheckingIn] = useState(false);
   const [result, setResult] = useState<{ ok: boolean; message: string } | null>(null);
   const [scanning, setScanning] = useState(false);
   const scannerRef = useRef<Html5Qrcode | null>(null);
 
+  // Tenant list for the booth selector — server-backed via TanStack Query.
+  const { data: myTenants, isLoading: loadingTenants } = useApiQuery<Tenant[]>(
+    keys.tenants.mine({ event: event.uuid }),
+    () => getMyTenants(event.uuid),
+  );
+  const tenants = myTenants ?? [];
+  const [tenantId, setTenantId] = useState("");
+
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await getMyTenants(event.uuid);
-        if (!cancelled) {
-          setTenants(res.data ?? []);
-          setTenantId(res.data?.[0]?.uuid ?? "");
-        }
-      } finally {
-        if (!cancelled) setLoadingTenants(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [event.uuid]);
+    if (tenantId === "" && tenants.length > 0) {
+      setTenantId(tenants[0].uuid);
+    }
+  }, [tenants, tenantId]);
 
   useEffect(() => {
     return () => {
@@ -125,28 +119,35 @@ export default function BoothCheckInPage({ event }: Props) {
     }
   };
 
-  const handleCheckIn = async () => {
+  const checkIn = useApiMutation(
+    () => {
+      if (!resolved) throw new Error("Pengunjung belum di-resolve.");
+      if (!tenantId) throw new Error("Pilih tenant/booth terlebih dahulu.");
+      return checkInTenant(tenantId, resolved.user_id);
+    },
+    {
+      onSuccess: (res) => {
+        const message =
+          typeof res === "object" && res && "message" in res && res.message
+            ? String(res.message)
+            : "Booth visit tercatat.";
+        setResult({ ok: true, message });
+        setResolved(null);
+        setQrCode("");
+      },
+      onError: (err) => {
+        setResult({
+          ok: false,
+          message: err instanceof Error ? err.message : "Check-in booth gagal",
+        });
+      },
+    },
+  );
+
+  const handleCheckIn = () => {
     if (!resolved) return;
-    if (!tenantId) {
-      toast.error("Pilih tenant/booth terlebih dahulu.");
-      return;
-    }
-    setCheckingIn(true);
     setResult(null);
-    try {
-      const res = await checkInTenant(tenantId, resolved.user_id);
-      if (!res.status) throw new Error(res.message || "Check-in booth gagal");
-      setResult({ ok: true, message: res.message || "Booth visit tercatat." });
-      setResolved(null);
-      setQrCode("");
-    } catch (err) {
-      setResult({
-        ok: false,
-        message: err instanceof Error ? err.message : "Check-in booth gagal",
-      });
-    } finally {
-      setCheckingIn(false);
-    }
+    checkIn.mutate();
   };
 
   return (
@@ -256,11 +257,11 @@ export default function BoothCheckInPage({ event }: Props) {
                 <p className="text-xs text-gray-500">{resolved.user.email}</p>
               </div>
               <button
-                onClick={() => void handleCheckIn()}
-                disabled={checkingIn}
+                onClick={handleCheckIn}
+                disabled={checkIn.isPending}
                 className="inline-flex items-center gap-1.5 rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-50"
               >
-                {checkingIn ? (
+                {checkIn.isPending ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
                   <CheckCircle2 className="h-4 w-4" />

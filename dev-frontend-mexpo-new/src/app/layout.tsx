@@ -5,6 +5,7 @@ import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
 import { AuthProvider } from '@/context/AuthContext';
+import QueryProvider from '@/lib/providers/QueryProvider';
 import { Toaster } from 'sonner';
 
 const geistSans = Geist({
@@ -36,13 +37,15 @@ export default function RootLayout({
       lang="id"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <AuthProvider>
-        <body className="flex flex-col min-h-full">
-          {children}
-          {/* Global toasts (FIX-15) — mounted once here, not per template. */}
-          <Toaster richColors position="top-left" />
-        </body>
-      </AuthProvider>
+      <QueryProvider>
+        <AuthProvider>
+          <body className="flex flex-col min-h-full">
+            {children}
+            {/* Global toasts (FIX-15) — mounted once here, not per template. */}
+            <Toaster richColors position="top-left" />
+          </body>
+        </AuthProvider>
+      </QueryProvider>
     </html>
   );
 }

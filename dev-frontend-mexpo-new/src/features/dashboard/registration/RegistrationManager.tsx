@@ -1,12 +1,14 @@
-"use client";
+﻿"use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { Loader2, Plus, Pencil, Trash2 } from "lucide-react";
 
 import Input from "@/shared/components/form/Input";
 import SearchBar from "@/shared/components/form/SearchBar";
 import { DataPagination } from "@/shared/components/ui/DataPagination";
+import { useApiMutation, useApiQuery } from "@/lib/hooks/useApi";
+import { keys } from "@/lib/query-keys";
 import { Event, RegistrationField, RegistrationFieldType, TicketType } from "@/entities/event/event.entity";
 import {
   getEventTicketTypes,
@@ -68,57 +70,43 @@ export default function RegistrationManager({ event }: { event: Event }) {
   );
 }
 
-// ── Ticket types ──
+// â”€â”€ Ticket types â”€â”€
 
 function TicketTypesPanel({ eventId }: { eventId: string }) {
-  const [items, setItems] = useState<TicketType[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [busy, setBusy] = useState(false);
   const [form, setForm] = useState({ name: "", price: "" });
   const [editingId, setEditingId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 10;
 
-  const load = async () => {
-    const res = await getEventTicketTypes(eventId);
-    setItems(res.data ?? []);
-  };
+  const { data: items, isLoading: loading } = useApiQuery<TicketType[]>(
+    keys.tickets.list(eventId),
+    () => getEventTicketTypes(eventId),
+  );
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await getEventTicketTypes(eventId);
-        if (!cancelled) setItems(res.data ?? []);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [eventId]);
-
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setBusy(true);
-    try {
+  const save = useApiMutation(
+    () => {
       const payload = { name: form.name, price: Number(form.price) || 0 };
-      const res = editingId
-        ? await updateTicketType(editingId, payload)
-        : await createTicketType(eventId, payload);
-      if (!res.status) throw new Error();
-      toast.success(editingId ? "Tiket diperbarui." : "Tiket ditambahkan.");
-      setForm({ name: "", price: "" });
-      setEditingId(null);
-      setPage(1);
-      await load();
-    } catch {
-      toast.error("Gagal menyimpan tiket.");
-    } finally {
-      setBusy(false);
-    }
+      return editingId
+        ? updateTicketType(editingId, payload)
+        : createTicketType(eventId, payload);
+    },
+    {
+      invalidate: [keys.tickets.all(eventId)],
+      successMessage: editingId ? "Tiket diperbarui." : "Tiket ditambahkan.",
+      errorMessage: "Gagal menyimpan tiket.",
+      notify: toast,
+      onSuccess: () => {
+        setForm({ name: "", price: "" });
+        setEditingId(null);
+        setPage(1);
+      },
+    },
+  );
+
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault();
+    save.mutate();
   };
 
   const startEdit = (t: TicketType) => {
@@ -126,20 +114,21 @@ function TicketTypesPanel({ eventId }: { eventId: string }) {
     setForm({ name: t.name, price: String(t.price) });
   };
 
-  const remove = async (t: TicketType) => {
+  const remove = useApiMutation((t: TicketType) => deleteTicketType(t.uuid), {
+    invalidate: [keys.tickets.all(eventId)],
+    successMessage: "Tiket dihapus.",
+    errorMessage: "Gagal menghapus tiket.",
+    notify: toast,
+    onSuccess: () => setPage(1),
+  });
+
+  const removeClick = (t: TicketType) => {
     if (!confirm(`Hapus tiket "${t.name}"?`)) return;
-    const res = await deleteTicketType(t.uuid);
-    if (!res.status) {
-      toast.error("Gagal menghapus tiket.");
-      return;
-    }
-toast.success("Tiket dihapus.");
-      setPage(1);
-      await load();
+    remove.mutate(t);
   };
 
   const q = search.trim().toLowerCase();
-  const filtered = items.filter((t) => !q || t.name.toLowerCase().includes(q));
+  const filtered = (items ?? []).filter((t) => !q || t.name.toLowerCase().includes(q));
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const paged = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
@@ -170,10 +159,10 @@ toast.success("Tiket dihapus.");
         <div className="flex items-center gap-2">
           <button
             type="submit"
-            disabled={busy}
+            disabled={save.isPending}
             className="inline-flex items-center gap-1.5 bg-secondary hover:bg-secondary/80 disabled:opacity-50 px-4 py-2 rounded-lg font-semibold text-white text-sm"
           >
-            {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+            {save.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
             {editingId ? "Simpan" : "Tambah"}
           </button>
           {editingId && (
@@ -199,7 +188,7 @@ toast.success("Tiket dihapus.");
         <div className="flex justify-center py-10">
           <Loader2 className="w-5 h-5 text-secondary animate-spin" />
         </div>
-      ) : items.length === 0 ? (
+      ) : (items ?? []).length === 0 ? (
         <p className="py-8 text-gray-500 text-sm text-center">Belum ada tiket.</p>
       ) : filtered.length === 0 ? (
         <p className="py-8 text-gray-500 text-sm text-center">Tidak ada tiket yang cocok dengan pencarian.</p>
@@ -215,7 +204,7 @@ toast.success("Tiket dihapus.");
                 <button onClick={() => startEdit(t)} className="hover:bg-gray-100 p-2 rounded-lg text-gray-400 hover:text-gray-700" title="Edit">
                   <Pencil className="w-4 h-4" />
                 </button>
-                <button onClick={() => remove(t)} className="hover:bg-red-50 p-2 rounded-lg text-gray-400 hover:text-red-600" title="Hapus">
+                <button onClick={() => removeClick(t)} className="hover:bg-red-50 p-2 rounded-lg text-gray-400 hover:text-red-600" title="Hapus">
                   <Trash2 className="w-4 h-4" />
                 </button>
               </div>
@@ -238,7 +227,7 @@ toast.success("Tiket dihapus.");
   );
 }
 
-// ── Registration fields ──
+// â”€â”€ Registration fields â”€â”€
 
 const EMPTY_FIELD = {
   field_key: "",
@@ -250,9 +239,6 @@ const EMPTY_FIELD = {
 };
 
 function FieldsPanel({ eventId }: { eventId: string }) {
-  const [items, setItems] = useState<RegistrationField[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [busy, setBusy] = useState(false);
   const [form, setForm] = useState({ ...EMPTY_FIELD });
   const [editingId, setEditingId] = useState<string | null>(null);
   const [condition, setCondition] = useState({
@@ -264,30 +250,13 @@ function FieldsPanel({ eventId }: { eventId: string }) {
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 10;
 
-  const load = async () => {
-    const res = await getEventRegistrationFields(eventId);
-    setItems(res.data ?? []);
-  };
+  const { data: items, isLoading: loading } = useApiQuery<RegistrationField[]>(
+    keys.regFields.list(eventId),
+    () => getEventRegistrationFields(eventId),
+  );
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await getEventRegistrationFields(eventId);
-        if (!cancelled) setItems(res.data ?? []);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [eventId]);
-
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setBusy(true);
-    try {
+  const save = useApiMutation(
+    () => {
       const payload = {
         field_key: form.field_key,
         label: form.label,
@@ -299,21 +268,27 @@ function FieldsPanel({ eventId }: { eventId: string }) {
           ? { field_key: condition.field_key, value: condition.value }
           : undefined,
       };
-      const res = editingId
-        ? await updateRegistrationField(editingId, payload)
-        : await createRegistrationField(eventId, payload);
-      if (!res.status) throw new Error();
-      toast.success(editingId ? "Field diperbarui." : "Field ditambahkan.");
-      setForm({ ...EMPTY_FIELD });
-      setCondition({ enabled: false, field_key: "", value: "" });
-      setEditingId(null);
-      setPage(1);
-      await load();
-    } catch {
-      toast.error("Gagal menyimpan field.");
-    } finally {
-      setBusy(false);
-    }
+      return editingId
+        ? updateRegistrationField(editingId, payload)
+        : createRegistrationField(eventId, payload);
+    },
+    {
+      invalidate: [keys.regFields.all(eventId)],
+      successMessage: editingId ? "Field diperbarui." : "Field ditambahkan.",
+      errorMessage: "Gagal menyimpan field.",
+      notify: toast,
+      onSuccess: () => {
+        setForm({ ...EMPTY_FIELD });
+        setCondition({ enabled: false, field_key: "", value: "" });
+        setEditingId(null);
+        setPage(1);
+      },
+    },
+  );
+
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault();
+    save.mutate();
   };
 
   const startEdit = (f: RegistrationField) => {
@@ -333,20 +308,21 @@ function FieldsPanel({ eventId }: { eventId: string }) {
     });
   };
 
-  const remove = async (f: RegistrationField) => {
+  const remove = useApiMutation((f: RegistrationField) => deleteRegistrationField(f.uuid), {
+    invalidate: [keys.regFields.all(eventId)],
+    successMessage: "Field dihapus.",
+    errorMessage: "Gagal menghapus field.",
+    notify: toast,
+    onSuccess: () => setPage(1),
+  });
+
+  const removeClick = (f: RegistrationField) => {
     if (!confirm(`Hapus field "${f.label}"?`)) return;
-    const res = await deleteRegistrationField(f.uuid);
-    if (!res.status) {
-      toast.error("Gagal menghapus field.");
-      return;
-    }
-    toast.success("Field dihapus.");
-    setPage(1);
-    await load();
+    remove.mutate(f);
   };
 
   const q = search.trim().toLowerCase();
-  const filtered = items.filter(
+  const filtered = (items ?? []).filter(
     (f) =>
       !q ||
       f.label.toLowerCase().includes(q) ||
@@ -410,7 +386,7 @@ function FieldsPanel({ eventId }: { eventId: string }) {
             </div>
           )}
         </div>
-        {/* A8 — conditional field */}
+        {/* A8 â€” conditional field */}
         <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
           <label className="flex items-center gap-2 text-gray-700 text-sm">
             <input
@@ -452,10 +428,10 @@ function FieldsPanel({ eventId }: { eventId: string }) {
         <div className="flex items-center gap-2">
           <button
             type="submit"
-            disabled={busy}
+            disabled={save.isPending}
             className="inline-flex items-center gap-1.5 bg-secondary hover:bg-secondary/80 disabled:opacity-50 px-4 py-2 rounded-lg font-semibold text-white text-sm"
           >
-            {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+            {save.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
             {editingId ? "Simpan" : "Tambah"}
           </button>
           {editingId && (
@@ -482,7 +458,7 @@ function FieldsPanel({ eventId }: { eventId: string }) {
         <div className="flex justify-center py-10">
           <Loader2 className="w-5 h-5 text-secondary animate-spin" />
         </div>
-      ) : items.length === 0 ? (
+      ) : (items ?? []).length === 0 ? (
         <p className="py-8 text-gray-500 text-sm text-center">
           Belum ada field. Tambahkan untuk mengumpulkan data tambahan saat registrasi.
         </p>
@@ -501,14 +477,14 @@ function FieldsPanel({ eventId }: { eventId: string }) {
                     {f.required && <span className="ml-1 text-red-500">*</span>}
                   </p>
                   <p className="text-gray-500 text-xs">
-                    {f.field_key} · {f.type}
-                    {f.type === "SELECT" && f.options && ` · ${f.options.join(", ")}`}
+                    {f.field_key} Â· {f.type}
+                    {f.type === "SELECT" && f.options && ` Â· ${f.options.join(", ")}`}
                   </p>
                 </div>
                 <button onClick={() => startEdit(f)} className="hover:bg-gray-100 p-2 rounded-lg text-gray-400 hover:text-gray-700" title="Edit">
                   <Pencil className="w-4 h-4" />
                 </button>
-                <button onClick={() => remove(f)} className="hover:bg-red-50 p-2 rounded-lg text-gray-400 hover:text-red-600" title="Hapus">
+                <button onClick={() => removeClick(f)} className="hover:bg-red-50 p-2 rounded-lg text-gray-400 hover:text-red-600" title="Hapus">
                   <Trash2 className="w-4 h-4" />
                 </button>
               </div>
@@ -530,3 +506,6 @@ function FieldsPanel({ eventId }: { eventId: string }) {
     </div>
   );
 }
+
+
+

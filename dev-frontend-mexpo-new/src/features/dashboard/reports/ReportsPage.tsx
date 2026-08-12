@@ -1,6 +1,6 @@
-"use client";
+﻿"use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import {
   Download,
@@ -24,6 +24,8 @@ import {
 } from "recharts";
 
 import { Event } from "@/entities/event/event.entity";
+import { useApiQuery } from "@/lib/hooks/useApi";
+import { keys } from "@/lib/query-keys";
 import {
   getBoothReport,
   getCategoryReport,
@@ -59,53 +61,56 @@ function toInputValue(d?: Date): string {
 export default function ReportsPage({ event }: { event: Event }) {
   const [from, setFrom] = useState<Date | null>(null);
   const [to, setTo] = useState<Date | null>(null);
-
-  const [boothRows, setBoothRows] = useState<BoothReportRow[]>([]);
-  const [categoryRows, setCategoryRows] = useState<CategoryReportRow[]>([]);
-  const [amountRows, setAmountRows] = useState<AmountReportRow[]>([]);
-  const [amountCategoryRows, setAmountCategoryRows] = useState<AmountCategoryRow[]>([]);
-  const [totalVisitors, setTotalVisitors] = useState(0);
-  const [totalAmount, setTotalAmount] = useState(0);
-  const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
 
-  const load = async (start?: Date, end?: Date) => {
-    setLoading(true);
-    try {
-      const [b, c, a, ac, v, am] = await Promise.all([
-        getBoothReport(event.uuid, start, end),
-        getCategoryReport(event.uuid, start, end),
-        getAmountBoothReport(event.uuid, start, end),
-        getAmountCategoryReport(event.uuid, start, end),
-        getVisitorReport(event.uuid, start, end),
-        getAmountReport(event.uuid, start, end),
-      ]);
-      setBoothRows(b.data ?? []);
-      setCategoryRows(c.data ?? []);
-      setAmountRows(a.data ?? []);
-      setAmountCategoryRows(ac.data ?? []);
-      setTotalVisitors((v.data as unknown as { counts?: number })?.counts ?? 0);
-      setTotalAmount((am.data as unknown as { amounts?: number })?.amounts ?? 0);
-    } catch {
-      toast.error("Gagal memuat laporan.");
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Date range is part of the query key â€” changing the filters refetches
+  // every report automatically (no manual load()/useEffect).
+  const rangeKey = keys.reports.range(
+    event.uuid,
+    from?.toISOString(),
+    to?.toISOString(),
+  );
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      if (cancelled) return;
-      await load(from ?? undefined, to ?? undefined);
-    })();
-    return () => {
-      cancelled = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [event.uuid, from, to]);
+  const { data: boothRows, isLoading: loading } = useApiQuery<BoothReportRow[]>(
+    [...rangeKey, "booth"],
+    () => getBoothReport(event.uuid, from ?? undefined, to ?? undefined),
+  );
+  const { data: categoryRows } = useApiQuery<CategoryReportRow[]>(
+    [...rangeKey, "category"],
+    () => getCategoryReport(event.uuid, from ?? undefined, to ?? undefined),
+  );
+  const { data: amountRows } = useApiQuery<AmountReportRow[]>(
+    [...rangeKey, "amount"],
+    () => getAmountBoothReport(event.uuid, from ?? undefined, to ?? undefined),
+  );
+  const { data: amountCategoryRows } = useApiQuery<AmountCategoryRow[]>(
+    [...rangeKey, "amount-category"],
+    () => getAmountCategoryReport(event.uuid, from ?? undefined, to ?? undefined),
+  );
+  const { data: visitorData } = useApiQuery<unknown>(
+    [...rangeKey, "visitor"],
+    () => getVisitorReport(event.uuid, from ?? undefined, to ?? undefined),
+  );
+  const { data: amountData } = useApiQuery<unknown>(
+    [...rangeKey, "amount-total"],
+    () => getAmountReport(event.uuid, from ?? undefined, to ?? undefined),
+  );
 
-  const totalTransactions = amountRows.reduce((s, r) => s + (r.count_transaction || 0), 0);
+  const totalVisitors =
+    (visitorData as { counts?: number } | null | undefined)?.counts ?? 0;
+  const totalAmount =
+    (amountData as { amounts?: number } | null | undefined)?.amounts ?? 0;
+
+  const totalTransactions = (amountRows ?? []).reduce(
+    (s, r) => s + (r.count_transaction || 0),
+    0,
+  );
+
+  // Normalize possibly-undefined query results for the JSX below.
+  const boothList = boothRows ?? [];
+  const categoryList = categoryRows ?? [];
+  const amountList = amountRows ?? [];
+  const amountCategoryList = amountCategoryRows ?? [];
 
   const handleExport = async () => {
     setExporting(true);
@@ -179,7 +184,7 @@ export default function ReportsPage({ event }: { event: Event }) {
         </div>
       ) : (
         <div className="space-y-10">
-          {/* ═══ Section 1 — Attendance ═══ */}
+          {/* â•â•â• Section 1 â€” Attendance â•â•â• */}
           <section>
             <h2 className="mb-4 flex items-center gap-2 text-lg font-bold text-gray-900">
               <Users className="h-5 w-5 text-secondary" /> Attendance
@@ -193,11 +198,11 @@ export default function ReportsPage({ event }: { event: Event }) {
               </div>
               <div className="rounded-xl border border-gray-100 bg-white p-5">
                 <p className="text-xs text-gray-500">Tenant dengan kunjungan</p>
-                <p className="mt-1 text-2xl font-semibold text-gray-900">{boothRows.length}</p>
+                <p className="mt-1 text-2xl font-semibold text-gray-900">{boothList.length}</p>
               </div>
               <div className="rounded-xl border border-gray-100 bg-white p-5">
                 <p className="text-xs text-gray-500">Kategori tenant</p>
-                <p className="mt-1 text-2xl font-semibold text-gray-900">{categoryRows.length}</p>
+                <p className="mt-1 text-2xl font-semibold text-gray-900">{categoryList.length}</p>
               </div>
             </div>
 
@@ -206,7 +211,7 @@ export default function ReportsPage({ event }: { event: Event }) {
               <div className="rounded-xl border border-gray-100 bg-white p-5">
                 <p className="mb-3 text-sm font-semibold text-gray-700">Attendance by Tenant</p>
                 <ResponsiveContainer width="100%" height={240}>
-                  <BarChart data={boothRows}>
+                  <BarChart data={boothList}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} />
                     <XAxis dataKey="name" tick={{ fontSize: 11 }} interval={0} angle={-20} textAnchor="end" height={60} />
                     <YAxis allowDecimals={false} />
@@ -221,7 +226,7 @@ export default function ReportsPage({ event }: { event: Event }) {
                 <ResponsiveContainer width="100%" height={240}>
                   <PieChart>
                     <Pie
-                      data={categoryRows}
+                      data={categoryList}
                       dataKey="count"
                       nameKey="name"
                       cx="50%"
@@ -229,7 +234,7 @@ export default function ReportsPage({ event }: { event: Event }) {
                       outerRadius={80}
                       label={(e) => e.name}
                     >
-                      {categoryRows.map((_, i) => (
+                      {categoryList.map((_, i) => (
                         <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
                       ))}
                     </Pie>
@@ -251,14 +256,14 @@ export default function ReportsPage({ event }: { event: Event }) {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
-                  {boothRows.length === 0 ? (
+                  {boothList.length === 0 ? (
                     <tr>
                       <td colSpan={3} className="px-5 py-6 text-center text-gray-500">
                         Belum ada data kunjungan booth.
                       </td>
                     </tr>
                   ) : (
-                    boothRows.map((r) => (
+                    boothList.map((r) => (
                       <tr key={r.uuid}>
                         <td className="px-5 py-2.5 font-medium text-gray-800">{r.name}</td>
                         <td className="px-5 py-2.5 text-gray-500">{r.booth_number || "-"}</td>
@@ -271,7 +276,7 @@ export default function ReportsPage({ event }: { event: Event }) {
             </div>
           </section>
 
-          {/* ═══ Section 2 — Transaction ═══ */}
+          {/* â•â•â• Section 2 â€” Transaction â•â•â• */}
           <section>
             <h2 className="mb-4 flex items-center gap-2 text-lg font-bold text-gray-900">
               <TrendingUp className="h-5 w-5 text-green-600" /> Transaksi
@@ -290,7 +295,7 @@ export default function ReportsPage({ event }: { event: Event }) {
               </div>
               <div className="rounded-xl border border-gray-100 bg-white p-5">
                 <p className="text-xs text-gray-500">Tenant bertransaksi</p>
-                <p className="mt-1 text-2xl font-semibold text-gray-900">{amountRows.length}</p>
+                <p className="mt-1 text-2xl font-semibold text-gray-900">{amountList.length}</p>
               </div>
             </div>
 
@@ -299,7 +304,7 @@ export default function ReportsPage({ event }: { event: Event }) {
               <div className="rounded-xl border border-gray-100 bg-white p-5">
                 <p className="mb-3 text-sm font-semibold text-gray-700">Transaction by Tenant</p>
                 <ResponsiveContainer width="100%" height={240}>
-                  <BarChart data={amountRows}>
+                  <BarChart data={amountList}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} />
                     <XAxis dataKey="name" tick={{ fontSize: 11 }} interval={0} angle={-20} textAnchor="end" height={60} />
                     <YAxis tickFormatter={(v) => (v / 1000).toFixed(0) + "k"} />
@@ -314,7 +319,7 @@ export default function ReportsPage({ event }: { event: Event }) {
                 <ResponsiveContainer width="100%" height={240}>
                   <PieChart>
                     <Pie
-                      data={amountCategoryRows}
+                      data={amountCategoryList}
                       dataKey="amount"
                       nameKey="name"
                       cx="50%"
@@ -322,7 +327,7 @@ export default function ReportsPage({ event }: { event: Event }) {
                       outerRadius={80}
                       label={(e) => e.name}
                     >
-                      {amountCategoryRows.map((_, i) => (
+                      {amountCategoryList.map((_, i) => (
                         <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
                       ))}
                     </Pie>
@@ -345,14 +350,14 @@ export default function ReportsPage({ event }: { event: Event }) {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
-                  {amountRows.length === 0 ? (
+                  {amountList.length === 0 ? (
                     <tr>
                       <td colSpan={4} className="px-5 py-6 text-center text-gray-500">
                         Belum ada transaksi.
                       </td>
                     </tr>
                   ) : (
-                    amountRows.map((r) => (
+                    amountList.map((r) => (
                       <tr key={r.uuid}>
                         <td className="px-5 py-2.5 font-medium text-gray-800">{r.name}</td>
                         <td className="px-5 py-2.5 text-gray-500">{r.booth_number || "-"}</td>
@@ -379,3 +384,4 @@ export default function ReportsPage({ event }: { event: Event }) {
     </div>
   );
 }
+

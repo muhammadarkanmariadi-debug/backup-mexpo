@@ -1,6 +1,6 @@
-"use client";
+﻿"use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import {
   Loader2,
@@ -33,8 +33,10 @@ import { DataPagination } from "@/shared/components/ui/DataPagination";
 import SortMenu from "@/shared/components/ui/SortMenu";
 import { Event } from "@/entities/event/event.entity";
 import { Tenant, TenantProduct } from "@/entities/event/tenant.entity";
+import { useApiMutation, useApiQuery } from "@/lib/hooks/useApi";
+import { keys } from "@/lib/query-keys";
 import { getMyTenants } from "@/services/event-data.service";
-import { getBoothReport, downloadTenantExport } from "@/services/report.service";
+import { getBoothReport, downloadTenantExport, BoothReportRow } from "@/services/report.service";
 import { resolveQr } from "@/services/qr.service";
 import { useList } from "@/features/dashboard/shared/useList";
 import {
@@ -74,24 +76,13 @@ const TABS: { key: Tab; label: string; icon: React.ElementType }[] = [
 ];
 
 export default function TenantPortal({ event }: { event: Event }) {
-  const [tenantId, setTenantId] = useState("");
-  const [loadingTenant, setLoadingTenant] = useState(true);
   const [tab, setTab] = useState<Tab>("profil");
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await getMyTenants(event.uuid);
-        if (!cancelled) setTenantId(res.data?.[0]?.uuid ?? "");
-      } finally {
-        if (!cancelled) setLoadingTenant(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [event.uuid]);
+  const { data: myTenants, isLoading: loadingTenant } = useApiQuery<Tenant[]>(
+    keys.tenants.mine({ event: event.uuid }),
+    () => getMyTenants(event.uuid),
+  );
+  const tenantId = myTenants?.[0]?.uuid ?? "";
 
   if (loadingTenant) {
     return (
@@ -140,12 +131,9 @@ export default function TenantPortal({ event }: { event: Event }) {
   );
 }
 
-// ───────────────────────── Profil ─────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ Profil â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function ProfileTab({ tenantId }: { tenantId: string }) {
-  const [tenant, setTenant] = useState<Tenant | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [busy, setBusy] = useState(false);
   const [logo, setLogo] = useState<File | null>(null);
   const [form, setForm] = useState<TenantProfilePayload>({
     name: "",
@@ -156,60 +144,38 @@ function ProfileTab({ tenantId }: { tenantId: string }) {
     booth_number: "",
   });
 
-  const load = async () => {
-    const res = await getTenantDetail(tenantId);
-    setTenant(res.data);
-    if (res.data) {
-      setForm({
-        name: res.data.name,
-        description: res.data.description,
-        phone: res.data.phone,
-        website: res.data.website,
-        email: res.data.email,
-        booth_number: res.data.booth_number,
-      });
-    }
-  };
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await getTenantDetail(tenantId);
-        if (cancelled) return;
-        setTenant(res.data);
-        if (res.data) {
+  const { data: tenant, isLoading: loading } = useApiQuery<Tenant | null>(
+    keys.tenants.detail(tenantId),
+    () => getTenantDetail(tenantId),
+    {
+      onSuccess: (data) => {
+        if (data) {
           setForm({
-            name: res.data.name,
-            description: res.data.description,
-            phone: res.data.phone,
-            website: res.data.website,
-            email: res.data.email,
-            booth_number: res.data.booth_number,
+            name: data.name,
+            description: data.description,
+            phone: data.phone,
+            website: data.website,
+            email: data.email,
+            booth_number: data.booth_number,
           });
         }
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [tenantId]);
+      },
+    },
+  );
 
-  const submit = async (e: React.FormEvent) => {
+  const update = useApiMutation(
+    () => updateTenant(tenantId, form, logo ?? undefined),
+    {
+      invalidate: [keys.tenants.detail(tenantId)],
+      successMessage: "Profil diperbarui.",
+      errorMessage: "Gagal menyimpan profil.",
+      notify: toast,
+    },
+  );
+
+  const submit = (e: React.FormEvent) => {
     e.preventDefault();
-    setBusy(true);
-    try {
-      const res = await updateTenant(tenantId, form, logo ?? undefined);
-      if (!res.status) throw new Error();
-      toast.success("Profil diperbarui.");
-      await load();
-    } catch {
-      toast.error("Gagal menyimpan profil.");
-    } finally {
-      setBusy(false);
-    }
+    update.mutate();
   };
 
   if (loading) return <Loader />;
@@ -232,14 +198,14 @@ function ProfileTab({ tenantId }: { tenantId: string }) {
         <Input label="Website" value={form.website} onChange={(e) => setForm({ ...form, website: e.target.value })} />
         <Input label="Email" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
       </div>
-      <button type="submit" disabled={busy} className="inline-flex items-center gap-1.5 bg-teal-600 hover:bg-teal-700 disabled:opacity-50 px-4 py-2 rounded-lg font-semibold text-white text-sm">
-        {busy && <Loader2 className="w-4 h-4 animate-spin" />} Simpan Profil
+      <button type="submit" disabled={update.isPending} className="inline-flex items-center gap-1.5 bg-teal-600 hover:bg-teal-700 disabled:opacity-50 px-4 py-2 rounded-lg font-semibold text-white text-sm">
+        {update.isPending && <Loader2 className="w-4 h-4 animate-spin" />} Simpan Profil
       </button>
     </form>
   );
 }
 
-// ───────────────────────── Produk ─────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ Produk â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function ProductsTab({ tenantId }: { tenantId: string }) {
   const [busy, setBusy] = useState(false);
@@ -356,10 +322,9 @@ function ProductsTab({ tenantId }: { tenantId: string }) {
   );
 }
 
-// ───────────────────────── Transaksi / POS ─────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ Transaksi / POS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function TransactionsTab({ tenantId }: { tenantId: string }) {
-  const [products, setProducts] = useState<TenantProduct[]>([]);
   const [busy, setBusy] = useState(false);
   const [lines, setLines] = useState<{ product_id: string; quantity: string }[]>([
     { product_id: "", quantity: "1" },
@@ -373,21 +338,11 @@ function TransactionsTab({ tenantId }: { tenantId: string }) {
 
   const list = useList<Transaction>((q) => getTransactions(tenantId, q), [tenantId]);
 
-  // Products are only needed for the POS line-item selects — fetch all once.
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await getProducts(tenantId);
-        if (!cancelled) setProducts(res.data ?? []);
-      } catch {
-        // ignore
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [tenantId]);
+  // Products are only needed for the POS line-item selects â€” fetch all once.
+  const { data: products } = useApiQuery<TenantProduct[]>(
+    keys.products.all(tenantId),
+    () => getProducts(tenantId),
+  );
 
   const handleVisitorScan = async (code?: string) => {
     const value = (code ?? visitorQr).trim();
@@ -408,7 +363,7 @@ function TransactionsTab({ tenantId }: { tenantId: string }) {
   };
 
   const total = lines.reduce((sum, l) => {
-    const p = products.find((x) => x.uuid === l.product_id);
+    const p = (products ?? []).find((x) => x.uuid === l.product_id);
     return sum + (p?.price ?? 0) * (Number(l.quantity) || 0);
   }, 0);
 
@@ -473,9 +428,9 @@ function TransactionsTab({ tenantId }: { tenantId: string }) {
               className="bg-white px-3 border border-gray-300 rounded-lg w-full h-11 text-sm"
             >
               <option value="">Pilih produk...</option>
-              {products.map((p) => (
+              {(products ?? []).map((p) => (
                 <option key={p.uuid} value={p.uuid}>
-                  {p.name} — Rp {p.price.toLocaleString("id-ID")}
+                  {p.name} â€” Rp {p.price.toLocaleString("id-ID")}
                 </option>
               ))}
             </select>
@@ -514,10 +469,10 @@ function TransactionsTab({ tenantId }: { tenantId: string }) {
           </label>
         </div>
 
-        {/* A5 — optional visitor QR scan */}
+        {/* A5 â€” optional visitor QR scan */}
         <div>
           <label className="mb-2 block font-medium text-gray-700 text-sm">
-            Visitor (opsional — scan QR)
+            Visitor (opsional â€” scan QR)
           </label>
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
             <input
@@ -538,7 +493,7 @@ function TransactionsTab({ tenantId }: { tenantId: string }) {
               <span className="inline-flex items-center gap-2 rounded-lg bg-teal-50 px-3 py-1.5 text-sm text-teal-700">
                 {visitorName}
                 <button type="button" onClick={() => { setVisitorId(""); setVisitorName(""); }} className="hover:text-red-600">
-                  ×
+                  Ã—
                 </button>
               </span>
             )}
@@ -595,7 +550,7 @@ function TransactionsTab({ tenantId }: { tenantId: string }) {
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold text-gray-900 text-sm">Rp {t.amount.toLocaleString("id-ID")}</p>
                     <p className="text-gray-500 text-xs">
-                      {new Date(t.transaction_date).toLocaleString("id-ID")} · {t.payment_method || "—"} ·{" "}
+                      {new Date(t.transaction_date).toLocaleString("id-ID")} Â· {t.payment_method || "â€”"} Â·{" "}
                       {t.paid ? "Lunas" : "Belum dibayar"}
                     </p>
                   </div>
@@ -654,7 +609,7 @@ function ReceiptModal({ tx, onClose }: { tx: Transaction; onClose: () => void })
             <span>Rp {tx.amount.toLocaleString("id-ID")}</span>
           </div>
           <p className="text-gray-500 text-xs">
-            Metode: {tx.payment_method || "—"} · Status: {tx.paid ? "Lunas" : "Belum dibayar"}
+            Metode: {tx.payment_method || "â€”"} Â· Status: {tx.paid ? "Lunas" : "Belum dibayar"}
           </p>
         </div>
         <div className="flex gap-2 mt-4">
@@ -670,74 +625,56 @@ function ReceiptModal({ tx, onClose }: { tx: Transaction; onClose: () => void })
   );
 }
 
-// ───────────────────────── Tim (A13) ─────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ Tim (A13) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function TeamTab({ tenantId }: { tenantId: string }) {
-  const [members, setMembers] = useState<TenantMember[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [busy, setBusy] = useState(false);
   const [email, setEmail] = useState("");
   const [search, setSearch] = useState("");
 
-  const load = async () => {
-    const res = await getTenantMembers(tenantId);
-    setMembers(res.data ?? []);
-  };
+  const { data: members, isLoading: loading } = useApiQuery<TenantMember[]>(
+    keys.tenants.all,
+    () => getTenantMembers(tenantId),
+  );
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await getTenantMembers(tenantId);
-        if (!cancelled) setMembers(res.data ?? []);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [tenantId]);
+  const invite = useApiMutation(
+    () => inviteTenantMember(tenantId, email.trim()),
+    {
+      invalidate: [keys.tenants.all],
+      successMessage: "Undangan dikirim.",
+      errorMessage: "Gagal mengundang anggota.",
+      notify: toast,
+      onSuccess: () => setEmail(""),
+    },
+  );
 
-  const invite = async (e: React.FormEvent) => {
+  const changeRole = useApiMutation(
+    (args: { uuid: string; role: "OWNER" | "STAFF" }) =>
+      changeTenantMemberRole(args.uuid, args.role),
+    {
+      invalidate: [keys.tenants.all],
+      successMessage: "Role diperbarui.",
+      errorMessage: "Gagal mengubah role.",
+      notify: toast,
+    },
+  );
+
+  const remove = useApiMutation(
+    (uuid: string) => removeTenantMember(uuid),
+    {
+      invalidate: [keys.tenants.all],
+      successMessage: "Anggota dihapus.",
+      errorMessage: "Gagal menghapus anggota.",
+      notify: toast,
+    },
+  );
+
+  const inviteSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setBusy(true);
-    try {
-      const res = await inviteTenantMember(tenantId, email.trim());
-      if (!res.status) throw new Error();
-      toast.success("Undangan dikirim.");
-      setEmail("");
-      await load();
-    } catch {
-      toast.error("Gagal mengundang anggota.");
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const changeRole = async (m: TenantMember, role: "OWNER" | "STAFF") => {
-    const res = await changeTenantMemberRole(m.uuid, role);
-    if (!res.status) {
-      toast.error("Gagal mengubah role.");
-      return;
-    }
-    toast.success("Role diperbarui.");
-    await load();
-  };
-
-  const remove = async (m: TenantMember) => {
-    if (!confirm(`Hapus anggota "${m.user?.full_name}"?`)) return;
-    const res = await removeTenantMember(m.uuid);
-    if (!res.status) {
-      toast.error("Gagal menghapus anggota.");
-      return;
-    }
-    toast.success("Anggota dihapus.");
-    await load();
+    invite.mutate();
   };
 
   const q = search.trim().toLowerCase();
-  const filtered = members.filter(
+  const list = (members ?? []).filter(
     (m) =>
       !q ||
       (m.user?.full_name ?? "").toLowerCase().includes(q) ||
@@ -746,16 +683,16 @@ function TeamTab({ tenantId }: { tenantId: string }) {
 
   return (
     <div className="space-y-5">
-      <form onSubmit={invite} className="flex sm:flex-row flex-col sm:items-end gap-3 bg-white p-5 border border-gray-100 rounded-xl">
+      <form onSubmit={inviteSubmit} className="flex sm:flex-row flex-col sm:items-end gap-3 bg-white p-5 border border-gray-100 rounded-xl">
         <div className="flex-1">
           <Input label="Email anggota" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="staff@example.com" />
         </div>
-        <button type="submit" disabled={busy} className="inline-flex items-center gap-1.5 bg-teal-600 hover:bg-teal-700 disabled:opacity-50 px-4 py-2.5 rounded-lg font-semibold text-white text-sm">
-          {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />} Undang
+        <button type="submit" disabled={invite.isPending} className="inline-flex items-center gap-1.5 bg-teal-600 hover:bg-teal-700 disabled:opacity-50 px-4 py-2.5 rounded-lg font-semibold text-white text-sm">
+          {invite.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />} Undang
         </button>
       </form>
 
-      {members.length > 1 && (
+      {(members ?? []).length > 1 && (
         <div className="rounded-xl border border-gray-100 bg-white p-3">
           <SearchBar search={search} setSearch={setSearch} placeholder="Cari anggota..." />
         </div>
@@ -763,13 +700,13 @@ function TeamTab({ tenantId }: { tenantId: string }) {
 
       {loading ? (
         <Loader />
-      ) : members.length === 0 ? (
+      ) : (members ?? []).length === 0 ? (
         <p className="py-8 text-gray-500 text-sm text-center">Belum ada anggota tim.</p>
-      ) : filtered.length === 0 ? (
+      ) : list.length === 0 ? (
         <p className="py-8 text-gray-500 text-sm text-center">Tidak ada anggota yang cocok dengan pencarian.</p>
       ) : (
         <div className="space-y-2">
-          {filtered.map((m) => (
+          {list.map((m) => (
             <div key={m.uuid} className="flex items-center gap-3 bg-white px-4 py-3 border border-gray-100 rounded-xl">
               {m.user?.photo ? (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -782,18 +719,18 @@ function TeamTab({ tenantId }: { tenantId: string }) {
               <div className="flex-1 min-w-0">
                 <p className="font-medium text-gray-900 text-sm">{m.user?.full_name}</p>
                 <p className="text-gray-500 text-xs">
-                  {m.user?.email} · {m.status} · <span className="font-medium">{m.role}</span>
+                  {m.user?.email} Â· {m.status} Â· <span className="font-medium">{m.role}</span>
                 </p>
               </div>
               <select
                 value={m.role}
-                onChange={(e) => changeRole(m, e.target.value as "OWNER" | "STAFF")}
+                onChange={(e) => changeRole.mutate({ uuid: m.uuid, role: e.target.value as "OWNER" | "STAFF" })}
                 className="px-2 py-1.5 border border-gray-200 rounded-lg text-gray-600 text-xs"
               >
                 <option value="STAFF">Staff</option>
                 <option value="OWNER">Owner</option>
               </select>
-              <button onClick={() => remove(m)} className="hover:bg-red-50 p-2 rounded-lg text-gray-400 hover:text-red-600" title="Hapus">
+              <button onClick={() => remove.mutate(m.uuid)} className="hover:bg-red-50 p-2 rounded-lg text-gray-400 hover:text-red-600" title="Hapus">
                 <Trash2 className="w-4 h-4" />
               </button>
             </div>
@@ -805,34 +742,22 @@ function TeamTab({ tenantId }: { tenantId: string }) {
 }
 
 function TenantReportsTab({ eventId, tenantId }: { eventId: string; tenantId: string }) {
-  const [boothVisits, setBoothVisits] = useState(0);
-  const [txns, setTxns] = useState<Transaction[]>([]);
-  const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const [bRes, tRes] = await Promise.all([
-          getBoothReport(eventId),
-          getTransactions(tenantId),
-        ]);
-        if (cancelled) return;
-        const myRow = (bRes.data ?? []).find((r) => r.uuid === tenantId);
-        setBoothVisits(myRow?.counts ?? 0);
-        setTxns(tRes.data ?? []);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [eventId, tenantId]);
+  const { data: boothData } = useApiQuery<BoothReportRow[]>(
+    keys.reports.all(eventId),
+    () => getBoothReport(eventId),
+  );
+  const { data: txns, isLoading: loading } = useApiQuery<Transaction[]>(
+    keys.transactions.all(tenantId),
+    () => getTransactions(tenantId),
+  );
 
-  const totalAmount = txns.reduce((s, t) => s + t.amount, 0);
-  const chartData = [...txns]
+  const boothVisits =
+    (boothData ?? []).find((r) => r.uuid === tenantId)?.counts ?? 0;
+
+  const totalAmount = (txns ?? []).reduce((s, t) => s + t.amount, 0);
+  const chartData = [...(txns ?? [])]
     .slice(0, 8)
     .reverse()
     .map((t) => ({
@@ -864,7 +789,7 @@ function TenantReportsTab({ eventId, tenantId }: { eventId: string; tenantId: st
           </div>
           <div className="rounded-xl border border-gray-100 bg-white p-5">
             <p className="text-xs text-gray-500">Transaksi</p>
-            <p className="mt-1 text-2xl font-semibold text-gray-900">{txns.length}</p>
+            <p className="mt-1 text-2xl font-semibold text-gray-900">{(txns ?? []).length}</p>
           </div>
           <div className="rounded-xl border border-gray-100 bg-white p-5">
             <p className="text-xs text-gray-500">Total (Rp)</p>
@@ -898,7 +823,7 @@ function TenantReportsTab({ eventId, tenantId }: { eventId: string; tenantId: st
         </div>
       )}
 
-      {txns.length === 0 && (
+      {(txns ?? []).length === 0 && (
         <p className="py-8 text-center text-sm text-gray-500">Belum ada transaksi.</p>
       )}
     </div>
@@ -912,3 +837,4 @@ function Loader() {
     </div>
   );
 }
+

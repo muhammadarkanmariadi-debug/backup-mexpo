@@ -1,136 +1,93 @@
 "use client";
 
 import { motion } from "framer-motion";
-import {
-  QrCode,
-  BarChart3,
-  Users,
-  Zap,
-  ShieldCheck,
-  Lightbulb,
-  Shield,
-  Bolt,
-  Heart,
-  ArrowRight,
-  TrendingUp,
-  CalendarCheck,
-  UserCheck,
-} from "lucide-react";
 
-
-import ContentTitle1 from "@/shared/components/ui/ContentTitle1";
 import Hero from "./content/Hero";
-import { StatCard } from "./content/StatCard";
+import AboutDescription from "./content/AboutDescription";
+import Gallery from "./content/Gallery";
 import { CoreFeature } from "./content/CoreFeature";
 import CoreValue from "./content/CoreValue";
-import CtaSection from "./content/CtaSection";
 
 
-const stats = [
-  {
-    id: 1,
-    value: 120,
-    suffix: "+",
-    title: "Events Managed",
-    icon: CalendarCheck,
-  },
-  {
-    id: 2,
-    value: 3500,
-    suffix: "+",
-    title: "Active Users",
-    icon: UserCheck,
-  },
-  {
-    id: 3,
-    value: 150,
-    suffix: "+",
-    title: "Daily Signups",
-    icon: TrendingUp,
-  },
-];
+import { QrCode, BarChart3, Users, Zap } from "lucide-react";
 
 const features = [
   {
     icon: <QrCode className="w-5 h-5" />,
     title: "QR Check-in",
     description:
-      "Replacing paper lists and slow queues with instant QR check-ins for seamless entry.",
+      "Menggantikan daftar kertas dan antrean lambat dengan check-in QR instan untuk pintu masuk yang mulus.",
   },
   {
     icon: <BarChart3 className="w-5 h-5" />,
-    title: "Analytics",
+    title: "Analitik Real-time",
     description:
-      "Real-time analytics that actually mean something in the moment to optimize flow.",
+      "Data kehadiran dan transaksi tampil langsung, membantu panitia mengoptimalkan jalannya acara.",
   },
   {
     icon: <Users className="w-5 h-5" />,
-    title: "Participant Management",
+    title: "Manajemen Peserta",
     description:
-      "Centralized database for all attendee information, preferences, and communication.",
+      "Database terpusat untuk seluruh informasi peserta, preferensi, dan komunikasi.",
   },
   {
     icon: <Zap className="w-5 h-5" />,
     title: "Setup Cepat",
     description:
-      "Rapid deployment capabilities allowing you to launch events in minutes, not days.",
+      "Peluncuran event dalam hitungan menit, bukan hari — siap dipakai tim mana pun.",
   },
 ];
 
 const coreValues = [
   {
-    icon: ShieldCheck,
-    title: "Reliability",
-    description: "Systems that stay up when the pressure is highest.",
+    icon: QrCode,
+    title: "Andal",
+    description: "Sistem yang tetap stabil saat tekanan tertinggi.",
   },
   {
-    icon: Lightbulb,
-    title: "Innovation",
-    description: "Constantly refining the logistics workflow.",
+    icon: BarChart3,
+    title: "Inovatif",
+    description: "Terus menyempurnakan alur kerja penyelenggaraan.",
   },
   {
-    icon: Shield,
-    title: "Security",
-    description: "Enterprise-grade protection for sensitive attendee data.",
+    icon: Users,
+    title: "Transparan",
+    description: "Data peserta terlindungi dan tercatat jelas.",
   },
   {
-    icon: Bolt,
-    title: "Efficiency",
-    description: "Minimizing clicks to maximize operational speed.",
+    icon: Zap,
+    title: "Efisien",
+    description: "Meminimalkan langkah untuk kecepatan operasional.",
   },
 ];
 
 const About = () => {
   return (
-    <div className="min-h-screen">
-      <div className="mx-auto px-4 py-8 max-w-6xl">
-
-        <ContentTitle1
-          title="About "
-          spanText="MEXPO"
-          description="We build professional-grade tools for organizers who demand precision, reliability, and sanity in high-pressure environments."
-        />
-
-        {/* ─── Our Story ─── */}
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.4 }}
+      className="min-h-screen"
+    >
+      <div className="mx-auto px-4 py-8 max-w-7xl">
+        {/* ─── 1. Hero banner full-width ─── */}
         <Hero />
 
-        {/* ─── Platform Statistics ─── */}
-        <StatCard stats={stats} />
+        {/* ─── 2. Deskripsi + panel statistik ─── */}
+        <AboutDescription />
 
-        {/* ─── Core Features ─── */}
+        {/* ─── 3. Galeri / showcase ─── */}
+        <Gallery />
+
+        {/* ─── Fitur inti ─── */}
         <CoreFeature feature={features} />
 
-        {/* ─── Core Values ─── */}
+        {/* ─── Nilai inti ─── */}
         <CoreValue coreValues={coreValues} />
 
-
-        {/* ─── Trusted by Professionals (CTA) ─── */}
-        <CtaSection />
-
-
-
+     
       </div>
-    </div>
+    </motion.div>
   );
 };
 

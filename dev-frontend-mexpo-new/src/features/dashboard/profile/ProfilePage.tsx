@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { Camera, Loader2, Save } from "lucide-react";
 
 import Input from "@/shared/components/form/Input";
 import { useAuthStore } from "@/stores/auth.store";
+import { useApiMutation, useApiQuery } from "@/lib/hooks/useApi";
+import { keys } from "@/lib/query-keys";
 import { getProfile, updateProfile } from "@/services/user.service";
 import BackLink from "@/features/dashboard/shared/BackLink";
 
@@ -17,53 +19,44 @@ export default function ProfilePage() {
     organization: user?.organization ?? "",
   });
   const [photo, setPhoto] = useState<File | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const profile = await getProfile();
-        if (cancelled) return;
-        setForm({
-          full_name: profile.full_name ?? "",
-          phone: profile.phone ?? "",
-          organization: profile.organization ?? "",
-        });
-      } catch {
-        // keep current store data
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  // Server-backed profile fetch (getProfile returns the raw User).
+  const { isLoading: loading } = useApiQuery(keys.profile.me, getProfile, {
+    onSuccess: (profile) => {
+      setForm({
+        full_name: profile.full_name ?? "",
+        phone: profile.phone ?? "",
+        organization: profile.organization ?? "",
+      });
+    },
+  });
 
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setBusy(true);
-    try {
-      const res = await updateProfile(
+  const update = useApiMutation(
+    async () =>
+      updateProfile(
         {
           full_name: form.full_name || undefined,
           phone: form.phone || undefined,
           organization: form.organization || undefined,
         },
         photo ?? undefined,
-      );
-      if (!res.status) throw new Error();
-      toast.success("Profil diperbarui.");
-      const fresh = await getProfile();
-      setUser(fresh);
-      setPhoto(null);
-    } catch {
-      toast.error("Gagal menyimpan profil.");
-    } finally {
-      setBusy(false);
-    }
+      ),
+    {
+      invalidate: [keys.profile.me],
+      successMessage: "Profil diperbarui.",
+      errorMessage: "Gagal menyimpan profil.",
+      notify: toast,
+      onSuccess: async () => {
+        // Refresh the zustand store so the navbar/avatar update immediately.
+        setUser(await getProfile());
+        setPhoto(null);
+      },
+    },
+  );
+
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault();
+    update.mutate();
   };
 
   if (loading) {
@@ -130,10 +123,10 @@ export default function ProfilePage() {
 
         <button
           type="submit"
-          disabled={busy}
+          disabled={update.isPending}
           className="inline-flex items-center gap-1.5 rounded-lg bg-secondary px-5 py-2.5 text-sm font-semibold text-white hover:bg-secondary/80 disabled:opacity-50"
         >
-          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+          {update.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
           Simpan Profil
         </button>
       </form>

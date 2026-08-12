@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { CheckCircle2, Loader2, Ticket as TicketIcon } from "lucide-react";
 
@@ -11,6 +12,7 @@ import {
   registerVisitor,
   RegisterVisitorPayload,
 } from "@/services/registration.service";
+import { useAuthStore } from "@/stores/auth.store";
 
 interface Props {
   event: Event;
@@ -23,17 +25,21 @@ const INPUT_CLS =
 const LABEL_CLS = "block mb-2 font-medium text-gray-700 text-sm";
 
 export default function RegistrationForm({ event, fields, ticketTypes }: Props) {
+  const router = useRouter();
+  const { user, isAuthenticated } = useAuthStore();
+  
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  const [form, setForm] = useState({
-    full_name: "",
-    email: "",
-    phone: "",
-    organization: "",
-  });
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [ticketTypeId, setTicketTypeId] = useState(ticketTypes[0]?.uuid ?? "");
   const [payment, setPayment] = useState({ payment_reference: "", payment_method: "CASH" });
+
+  useEffect(() => {
+    if (!isAuthenticated || !user) {
+      toast.error("Silakan login terlebih dahulu untuk mendaftar.");
+      router.push("/auth");
+    }
+  }, [isAuthenticated, user, router]);
 
   const isPaid = event.ticket_mode === "PAID";
 
@@ -48,13 +54,15 @@ export default function RegistrationForm({ event, fields, ticketTypes }: Props) 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user) return;
+    
     setSubmitting(true);
     try {
       const payload: RegisterVisitorPayload = {
-        full_name: form.full_name,
-        email: form.email,
-        phone: form.phone,
-        organization: form.organization || undefined,
+        full_name: user.full_name,
+        email: user.email,
+        phone: user.phone,
+        organization: user.organization || undefined,
         answers: visibleFields.map((f) => ({
           field_key: f.field_key,
           value: answers[f.field_key] ?? "",
@@ -74,6 +82,8 @@ export default function RegistrationForm({ event, fields, ticketTypes }: Props) 
       setSubmitting(false);
     }
   };
+
+  if (!user) return null;
 
   if (submitted) {
     return (
@@ -131,35 +141,6 @@ export default function RegistrationForm({ event, fields, ticketTypes }: Props) 
             <span>Event gratis — tiket otomatis diterbitkan setelah pendaftaran.</span>
           )}
         </div>
-
-        <Input
-          label="Nama Lengkap"
-          required
-          value={form.full_name}
-          onChange={(e) => setForm({ ...form, full_name: e.target.value })}
-          placeholder="Nama kamu"
-        />
-        <Input
-          label="Email"
-          type="email"
-          required
-          value={form.email}
-          onChange={(e) => setForm({ ...form, email: e.target.value })}
-          placeholder="email@example.com"
-        />
-        <Input
-          label="No. HP"
-          required
-          value={form.phone}
-          onChange={(e) => setForm({ ...form, phone: e.target.value })}
-          placeholder="08xxxxxxxxxx"
-        />
-        <Input
-          label="Instansi (opsional)"
-          value={form.organization}
-          onChange={(e) => setForm({ ...form, organization: e.target.value })}
-          placeholder="Sekolah / perusahaan"
-        />
 
         {isPaid && ticketTypes.length > 0 && (
           <div>

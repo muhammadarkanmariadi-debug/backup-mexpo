@@ -37,7 +37,7 @@
 | UI primitives | `radix-ui` (unified pkg) + shadcn-style components (`src/components/ui/`) | |
 | Forms | `react-hook-form` + `zod` v4 + `@hookform/resolvers` | |
 | State | `zustand` (single auth store, persisted to `sessionStorage`) | 5.x |
-| Server data | Server Actions + fetch wrapper (server-only) — **react-query installed but unused** | |
+| Server data | Server Actions + fetch wrapper (server-only, httpOnly-token auth) — **TanStack Query v5** on top: `useApiQuery` / `useApiMutation` / `useList` (see `dev-frontend-mexpo-new/docs/TANSTACK-QUERY.md`) | 5.x |
 | Icons | `@fortawesome` v7 + `lucide-react` | |
 | Animation | `framer-motion`, `embla-carousel` (+autoplay), `react-countup` | |
 | Maps | `leaflet` / `react-leaflet` (contact page) | |
@@ -154,6 +154,11 @@ src/
 │  ├─ components/                # button, Input, Checkbox, Card, Tabs, SearchBar, DataPagination, Gmaps...
 │  └─ utils/                     # http-client ("use server"), auth-token (Basic/Bearer/AES), cookies, http-meta, cn
 ├─ services/                     # auth.service, public.service, event.service, user.service, workshop.service, verify-email.service
+├─ lib/
+│  ├─ query-client.ts            # TanStack Query QueryClient global (staleTime:0, retry, dsb)
+│  ├─ query-keys.ts              # factory "alamat" cache untuk invalidasi (keys.*)
+│  ├─ hooks/useApi.ts            # useApiQuery + useApiMutation + ApiError (normalisasi status:false→throw)
+│  └─ providers/QueryProvider.tsx # pembungkus QueryClientProvider (dipasang di layout)
 ├─ stores/auth.store.ts          # zustand auth store (sessionStorage)
 ├─ templates/                    # PublicTemplate, AuthTemplate (+ MexpoCard, Toaster in AuthTemplate)
 ├─ widgets/                      # Navbar, Footer

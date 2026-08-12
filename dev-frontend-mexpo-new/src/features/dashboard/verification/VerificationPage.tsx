@@ -1,6 +1,5 @@
-"use client";
+﻿"use client";
 
-import { useState } from "react";
 import { toast } from "sonner";
 import { CheckCircle2, Loader2, XCircle } from "lucide-react";
 
@@ -8,6 +7,7 @@ import SearchBar from "@/shared/components/form/SearchBar";
 import { DataPagination } from "@/shared/components/ui/DataPagination";
 import { Event } from "@/entities/event/event.entity";
 import { Tenant, TenantStatus } from "@/entities/event/tenant.entity";
+import { useApiMutation } from "@/lib/hooks/useApi";
 import { getEventTenants } from "@/services/event-data.service";
 import { getEventUsers, verifyEventUser, EventUser } from "@/services/event-users.service";
 import { verifyTenant } from "@/services/tenant.service";
@@ -26,8 +26,6 @@ function tabLabel(tab: string) {
 }
 
 export default function VerificationPage({ event }: Props) {
-  const [busy, setBusy] = useState<string | null>(null);
-
   const requests = useList<EventUser>(
     (q) => getEventUsers(event.uuid, q),
     [event.uuid],
@@ -37,35 +35,41 @@ export default function VerificationPage({ event }: Props) {
     [event.uuid],
   );
 
-  const decideTenant = async (t: Tenant, status: TenantStatus) => {
-    setBusy(`t-${t.uuid}`);
-    try {
-      const res = await verifyTenant(t.uuid, status);
-      if (!res.status) throw new Error();
-      toast.success(status === "APPROVED" ? "Tenant disetujui." : "Tenant ditolak.");
-      tenants.refetch();
-      requests.refetch();
-    } catch {
-      toast.error("Gagal memperbarui status tenant.");
-    } finally {
-      setBusy(null);
-    }
-  };
+  const decideTenant = useApiMutation(
+    (args: { t: Tenant; status: TenantStatus }) =>
+      verifyTenant(args.t.uuid, args.status),
+    {
+      successMessage: "",
+      errorMessage: "",
+      notify: toast,
+      onSuccess: (_data, { t, status }) => {
+        toast.success(
+          status === "APPROVED" ? "Tenant disetujui." : "Tenant ditolak.",
+        );
+        tenants.refetch();
+        requests.refetch();
+      },
+      onError: () => toast.error("Gagal memperbarui status tenant."),
+    },
+  );
 
-  const decideUser = async (u: EventUser, status: "APPROVED" | "REJECTED") => {
-    setBusy(`u-${u.uuid}`);
-    try {
-      const res = await verifyEventUser(u.uuid, status);
-      if (!res.status) throw new Error();
-      toast.success(status === "APPROVED" ? "Permintaan disetujui." : "Permintaan ditolak.");
-      requests.refetch();
-      tenants.refetch();
-    } catch {
-      toast.error("Gagal memperbarui status.");
-    } finally {
-      setBusy(null);
-    }
-  };
+  const decideUser = useApiMutation(
+    (args: { u: EventUser; status: "APPROVED" | "REJECTED" }) =>
+      verifyEventUser(args.u.uuid, args.status),
+    {
+      successMessage: "",
+      errorMessage: "",
+      notify: toast,
+      onSuccess: (_data, { u, status }) => {
+        toast.success(
+          status === "APPROVED" ? "Permintaan disetujui." : "Permintaan ditolak.",
+        );
+        requests.refetch();
+        tenants.refetch();
+      },
+      onError: () => toast.error("Gagal memperbarui status."),
+    },
+  );
 
   return (
     <div className="mx-auto px-4 py-8 max-w-7xl">
@@ -73,7 +77,7 @@ export default function VerificationPage({ event }: Props) {
       <h1 className="mb-1 font-bold text-gray-900 text-2xl">Verifikasi</h1>
       <p className="mb-6 text-gray-500 text-sm">{event.name}</p>
 
-      {/* ── Tenant requests ── */}
+      {/* â”€â”€ Tenant requests â”€â”€ */}
       <h2 className="mb-3 font-semibold text-gray-400 text-sm uppercase tracking-wider">Tenant</h2>
       <div className="mb-3 flex flex-wrap items-center gap-2">
         {TENANT_TABS.map((t) => (
@@ -103,21 +107,21 @@ export default function VerificationPage({ event }: Props) {
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-gray-900 text-sm">{t.name}</p>
                   <p className="text-gray-500 text-xs">
-                    {t.email || "-"} · {t.status}
+                    {t.email || "-"} Â· {t.status}
                   </p>
                 </div>
                 {t.status === "PENDING" && (
                   <>
                     <button
-                      onClick={() => decideTenant(t, "APPROVED")}
-                      disabled={busy === `t-${t.uuid}`}
+                      onClick={() => decideTenant.mutate({ t, status: "APPROVED" })}
+                      disabled={decideTenant.isPending}
                       className="inline-flex items-center gap-1 bg-green-600 hover:bg-green-700 disabled:opacity-50 px-3 py-1.5 rounded-lg font-semibold text-white text-xs"
                     >
                       <CheckCircle2 className="w-3.5 h-3.5" /> Setujui
                     </button>
                     <button
-                      onClick={() => decideTenant(t, "REJECTED")}
-                      disabled={busy === `t-${t.uuid}`}
+                      onClick={() => decideTenant.mutate({ t, status: "REJECTED" })}
+                      disabled={decideTenant.isPending}
                       className="inline-flex items-center gap-1 bg-white hover:bg-red-50 disabled:opacity-50 px-3 py-1.5 border border-red-200 rounded-lg font-semibold text-red-600 text-xs"
                     >
                       <XCircle className="w-3.5 h-3.5" /> Tolak
@@ -140,7 +144,7 @@ export default function VerificationPage({ event }: Props) {
         </div>
       )}
 
-      {/* ── Committee/tenant requests ── */}
+      {/* â”€â”€ Committee/tenant requests â”€â”€ */}
       <h2 className="mb-3 font-semibold text-gray-400 text-sm uppercase tracking-wider">Permintaan committee/tenant</h2>
       <div className="mb-3 flex flex-wrap items-center gap-2">
         {REQUEST_TABS.map((t) => (
@@ -170,21 +174,21 @@ export default function VerificationPage({ event }: Props) {
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-gray-900 text-sm">{u.user?.full_name}</p>
                   <p className="text-gray-500 text-xs">
-                    {u.user?.email} · {u.role} · {u.status}
+                    {u.user?.email} Â· {u.role} Â· {u.status}
                   </p>
                 </div>
                 {u.status === "PENDING" && (
                   <>
                     <button
-                      onClick={() => decideUser(u, "APPROVED")}
-                      disabled={busy === `u-${u.uuid}`}
+                      onClick={() => decideUser.mutate({ u, status: "APPROVED" })}
+                      disabled={decideUser.isPending}
                       className="inline-flex items-center gap-1 bg-green-600 hover:bg-green-700 disabled:opacity-50 px-3 py-1.5 rounded-lg font-semibold text-white text-xs"
                     >
                       <CheckCircle2 className="w-3.5 h-3.5" /> Setujui
                     </button>
                     <button
-                      onClick={() => decideUser(u, "REJECTED")}
-                      disabled={busy === `u-${u.uuid}`}
+                      onClick={() => decideUser.mutate({ u, status: "REJECTED" })}
+                      disabled={decideUser.isPending}
                       className="inline-flex items-center gap-1 bg-white hover:bg-red-50 disabled:opacity-50 px-3 py-1.5 border border-red-200 rounded-lg font-semibold text-red-600 text-xs"
                     >
                       <XCircle className="w-3.5 h-3.5" /> Tolak

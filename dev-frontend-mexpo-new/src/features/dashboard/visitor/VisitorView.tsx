@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { CalendarDays, MapPin, Users, UserPlus, Loader2, Award, IdCard, User } from "lucide-react";
 import Link from "next/link";
 
 import { Event } from "@/entities/event/event.entity";
 import { dateFormat, formatDateRange } from "@/shared/utils/format";
+import { useApiQuery } from "@/lib/hooks/useApi";
+import { keys } from "@/lib/query-keys";
 import { getMyQr, MyQr } from "@/services/qr.service";
 import EventHero from "@/features/dashboard/shared/EventHero";
 
@@ -13,25 +14,14 @@ interface Props { event: Event }
 
 export default function VisitorView({ event }: Props) {
   const isOpen = new Date() < new Date(event.registration_deadline);
-  const [qr, setQr] = useState<MyQr | null>(null);
-  const [loadingQr, setLoadingQr] = useState(true);
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await getMyQr(event.uuid);
-        if (!cancelled && res.data) setQr(res.data);
-      } catch {
-        // ignore — QR may be unavailable for unregistered visitors
-      } finally {
-        if (!cancelled) setLoadingQr(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [event.uuid]);
+  // QR is unavailable (status:false) for unregistered visitors — treated as
+  // a normal "no QR yet" state via the fallback branch below.
+  const { data: qr, isLoading: loadingQr } = useApiQuery<MyQr | null>(
+    keys.qr.my(event.uuid),
+    () => getMyQr(event.uuid),
+    { retry: 0 },
+  );
 
   return (
     <div className="mx-auto px-4 py-10 max-w-7xl">
