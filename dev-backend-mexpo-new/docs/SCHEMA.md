@@ -431,7 +431,11 @@ Relations: `users_bio` (1:1), all audit FKs (`creator_*`/`editor_*` on ~20 table
 
 ## 4. Migrations
 
-- Migrations live in `dev-backend-mexpo-new/prisma/migrations/` (applied via `npx prisma migrate deploy`; `migrate dev` needs a shadow DB and is only for local dev).
+- **Hybrid DB (Option A):** the provider is chosen per environment from `DATABASE_URL` scheme (`mysql://` → MySQL, `postgresql://` → PostgreSQL) or forced via `DB_PROVIDER`. Before building/migrating, the schema datasource provider must match — run `npm run db:provider:mysql` / `npm run db:provider:postgres` (edits `prisma/schema.prisma` + regenerates the client).
+- Migration sets are per provider, selected in `prisma.config.ts`:
+  - `prisma/migrations/` → PostgreSQL (`migrate deploy` applied via CI).
+  - `prisma/migrations-mysql/` → MySQL (generated from the same portable schema).
+- The schema is portable: no provider-only native types (`@db.Text` is valid on both MySQL and Postgres; `Float` maps to `double` on both).
 - `prisma/seed.ts` upserts 7 demo visitor users (`pengunjung1..7@gmail.com`, fixed UUIDs) and 7 APPROVED VISITOR `user_event_roles` rows for hardcoded event UUID `b63146f1-93a5-4381-8ca8-62a03fa5684e`.
 - The CI deploy script runs `npx prisma migrate deploy` on the server (was `migrate dev --name init`, fixed).
-- Runtime connection uses `DATABASE_URL` (Supabase/Postgres) via `@prisma/adapter-pg` (`PrismaPg`); `prisma.config.ts` (CLI: migrate/generate/seed) uses the same `DATABASE_URL`. See `.env.example` for the Supabase pooler connection format.
+- Runtime connection picks the driver adapter from `DATABASE_URL`/`DB_PROVIDER` (`@prisma/adapter-pg` vs `@prisma/adapter-mariadb`); `prisma.config.ts` (CLI: migrate/generate/seed) uses the same `DATABASE_URL`. See `.env.example` for both connection formats.

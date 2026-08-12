@@ -14,7 +14,7 @@ Mexpo is a web platform for organizing events (currently oriented around an Expo
 
 | Layer | Where | Stack |
 |---|---|---|
-| Backend | `dev-backend-mexpo-new/` | NestJS 11, Prisma 7 (`prisma-client-js` + `@prisma/adapter-pg`), Supabase PostgreSQL (pooler), passport-jwt + bcrypt, class-validator, nodemailer, AWS SDK v3 vs **MinIO** (S3-compatible), multer |
+| Backend | `dev-backend-mexpo-new/` | NestJS 11, Prisma 7 (`prisma-client-js` + **hybrid DB**: `@prisma/adapter-pg` for PostgreSQL/Supabase or `@prisma/adapter-mariadb` for MySQL, chosen from `DATABASE_URL`/`DB_PROVIDER`), passport-jwt + bcrypt, class-validator, nodemailer, AWS SDK v3 vs **MinIO** (S3-compatible), multer |
 | Frontend | `dev-frontend-mexpo-new/` | Next.js **16.2.6 (custom build — see ⚠ below)**, React 19, Tailwind CSS **v4 (CSS-first, no tailwind.config.ts)**, radix-ui + shadcn-style components, react-hook-form + zod v4, zustand, server actions + fetch wrapper, lucide-react + fontawesome, framer-motion, leaflet |
 | Ports / URLs | — | Backend default port **3500**; dev API `http://localhost:3500`, prod API `https://mexpo-api.smktelkom-mlg.sch.id`. Backend runs as a **long-running NestJS process** (`node dist/src/main`) on VPS + PM2 via `.github/workflows/deploy.yml` or Render/Railway (`render.yaml`/`railway.json`); it ALSO deploys to **Vercel** via `api/index.js` → compiled `dist/src/serverless.js` (legacy `builds` config in `vercel.json` bypasses the NestJS framework preset, which breaks NestJS DI — see src imports note). Source uses **relative imports only** (no `src/...` baseUrl aliases) so it can be bundled anywhere. |
 

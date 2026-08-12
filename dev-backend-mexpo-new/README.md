@@ -25,6 +25,27 @@
 
 [Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
 
+## Database — hybrid (PostgreSQL or MySQL)
+
+The app can run against **PostgreSQL** (Supabase) **or** **MySQL/MariaDB** —
+you pick one per environment. Everything is driven by `DATABASE_URL`:
+
+- `postgresql://...` → `@prisma/adapter-pg` + migrations in `prisma/migrations`
+- `mysql://...` → `@prisma/adapter-mariadb` + migrations in `prisma/migrations-mysql`
+
+Because the generated Prisma client and migrations are provider-specific,
+switch the schema provider before building / migrating:
+
+```bash
+npm run db:provider:postgres   # or db:provider:mysql  (edits schema + prisma generate)
+npm run build
+npx prisma migrate deploy      # applies the matching migration set
+```
+
+`DB_PROVIDER=mysql|postgresql` can force the provider instead of inferring from
+the URL scheme. The schema must be portable — it uses no provider-only native
+types (`@db.Text` is valid on both; `Float` maps to `double` on both).
+
 ## Project setup
 
 ```bash

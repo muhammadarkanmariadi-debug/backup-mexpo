@@ -1,7 +1,9 @@
 import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
+import { PrismaMariaDb } from '@prisma/adapter-mariadb';
 import { ConfigService } from '@nestjs/config';
+import { isMysqlDatabase } from '../helper/db-provider';
 
 @Injectable()
 export class PrismaService
@@ -12,11 +14,17 @@ export class PrismaService
     const databaseUrl = configService.get<string>(`DATABASE_URL`);
     if (!databaseUrl) {
       throw new Error(
-        `DATABASE_URL is not set. Add a Supabase (postgresql://) connection string to .env`,
+        `DATABASE_URL is not set. Add a connection string (mysql:// or postgresql://) to .env`,
       );
     }
+    const isMysql = isMysqlDatabase(
+      databaseUrl,
+      configService.get<string>(`DB_PROVIDER`),
+    );
     super({
-      adapter: new PrismaPg({ connectionString: databaseUrl }),
+      adapter: isMysql
+        ? new PrismaMariaDb(databaseUrl)
+        : new PrismaPg({ connectionString: databaseUrl }),
     });
   }
   async onModuleInit() {

@@ -1,9 +1,19 @@
 import { PrismaPg } from "@prisma/adapter-pg";
+import { PrismaMariaDb } from "@prisma/adapter-mariadb";
 import { PrismaClient } from "@prisma/client";
 import "dotenv/config";
+import { isMysqlDatabase } from "../src/helper/db-provider";
+
+const databaseUrl = process.env.DATABASE_URL;
+if (!databaseUrl) {
+    throw new Error("DATABASE_URL is not set. Add a connection string (mysql:// or postgresql://) to .env");
+}
+const isMysql = isMysqlDatabase(databaseUrl, process.env.DB_PROVIDER);
 
 const prisma = new PrismaClient({
-    adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
+    adapter: isMysql
+        ? new PrismaMariaDb(databaseUrl)
+        : new PrismaPg({ connectionString: databaseUrl }),
 });
 
 const main = async () => {

@@ -4,12 +4,24 @@
 // Usage: npx ts-node --compiler-options {"module":"CommonJS"} prisma/backfill-slugs.ts
 
 import { PrismaPg } from "@prisma/adapter-pg";
+import { PrismaMariaDb } from "@prisma/adapter-mariadb";
 import { PrismaClient } from "@prisma/client";
 import "dotenv/config";
+import { isMysqlDatabase } from "../src/helper/db-provider";
 import { uniqueSlug } from "../src/helper/slug";
 
+const databaseUrl = process.env.DATABASE_URL;
+if (!databaseUrl) {
+  throw new Error(
+    "DATABASE_URL is not set. Add a connection string (mysql:// or postgresql://) to .env",
+  );
+}
+const isMysql = isMysqlDatabase(databaseUrl, process.env.DB_PROVIDER);
+
 const prisma = new PrismaClient({
-  adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
+  adapter: isMysql
+    ? new PrismaMariaDb(databaseUrl)
+    : new PrismaPg({ connectionString: databaseUrl }),
 });
 
 async function backfill<

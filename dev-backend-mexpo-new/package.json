@@ -10,6 +10,9 @@
   },
   "scripts": {
     "build": "npx prisma generate && nest build",
+    "db:provider": "node scripts/set-db-provider.mjs",
+    "db:provider:mysql": "node scripts/set-db-provider.mjs mysql",
+    "db:provider:postgres": "node scripts/set-db-provider.mjs postgresql",
     "vercel-build": "npm run build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
@@ -40,6 +43,7 @@
     "@nestjs/platform-express": "^11.0.1",
     "@nestjs/swagger": "^11.4.6",
     "@nestjs/websockets": "^11.1.29",
+    "@prisma/adapter-mariadb": "^7.8.0",
     "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.8.0",
     "bcryptjs": "^3.0.3",
