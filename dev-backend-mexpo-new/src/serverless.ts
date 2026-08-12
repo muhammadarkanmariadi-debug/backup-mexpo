@@ -20,6 +20,7 @@ import { ExpressAdapter } from '@nestjs/platform-express';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { prismaModelsToOpenApiSchemas } from './helper/swagger-schema';
+import { setupSwaggerUi } from './helper/swagger-ui';
 import express from 'express';
 import type { Request, Response } from 'express';
 
@@ -88,9 +89,11 @@ design & user-flow docs.`,
       },
     } as never;
 
-    SwaggerModule.setup('docs', app, document, {
-      swaggerOptions: { persistAuthorization: true },
-    });
+    // NOTE: do not use SwaggerModule.setup for the UI — swagger-ui-express
+    // serves static assets from node_modules which are not bundled in the
+    // serverless function (blank /docs page). setupSwaggerUi serves a
+    // self-contained CDN-based page + /docs-json instead.
+    setupSwaggerUi(app, document);
 
     await app.init();
     appReady = true;
