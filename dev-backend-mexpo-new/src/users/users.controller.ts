@@ -72,6 +72,13 @@ export class UsersController {
     return this.usersService.verifyResetPassword(resetPassword);
   }
 
+  @Post(`resend-verification`)
+  @UseGuards(BasicGuard)
+  @UsePipes(new ValidationPipe({ exceptionFactory: FormatValidation }))
+  resendVerification(@Body() sendReset: ResetPasswordDto) {
+    return this.usersService.resendVerificationEmail(sendReset.email);
+  }
+
   @Get()
   @UseGuards(AuthGuard(`jwt`), RoleGuard)
   @Roles(`SUPERADMIN`)

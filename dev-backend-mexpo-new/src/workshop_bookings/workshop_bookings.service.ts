@@ -152,7 +152,7 @@ export class WorkshopBookingsService {
           ],
         },
         include: {
-          user: true,
+          user: { omit: { password: true } },
           workshop: true,
           creator: { select: { full_name: true } },
           editor: { select: { full_name: true } },
@@ -179,7 +179,7 @@ export class WorkshopBookingsService {
         {
           where: { uuid: id },
           include: {
-            user: true,
+            user: { omit: { password: true } },
             workshop: true,
             creator: { select: { full_name: true } },
             editor: { select: { full_name: true } },

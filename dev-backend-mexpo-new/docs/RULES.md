@@ -25,14 +25,14 @@
 
 | Rule | Source | Status |
 |---|---|---|
-| Owner can define **custom rule combinations** (e.g. `{ minVisitedBooth: 5, minTransaction: 100000, joinedSeminar: true }`) | [DOCX] Souvenir Rules System | `[DONE]` (Sprint 6/A5) — `events.souvenir_rules` supports `minVisitedBooth`, `joinedSeminar`, `requireAll` (AND/ANY); evaluated by `evaluateSouvenirEligibility()`. `minTransaction` accepted but **deferred** (schema gap) |
-| Eligibility requires **≥ X booth visits** | [DOCX] example | `[DONE]` — configurable per-event via `souvenir_rules.minVisitedBooth` (default **5**) |
-| Eligibility can require **minimum transaction amount** | [DOCX] example | `[DEFERRED]` — blocked by schema (transactions have no visitor link); follow-up |
+| Owner can define **custom rule combinations** (e.g. `{ minVisitedBooth: 5, minTransaction: 100000, joinedSeminar: true }`) | [DOCX] Souvenir Rules System | `[DONE]` (Sprint 6/A5) — `events.souvenir_rules` supports `minVisitedBooth`, `minTransaction`, `joinedSeminar`, `requireAll` (AND/ANY); evaluated by `evaluateSouvenirEligibility()`. **`minTransaction` is now evaluated** (POS transactions carry `visitor_id` via the visitor-QR scan) |
+| Eligibility requires **≥ X booth visits** | [DOCX] example | `[DONE]` — configurable per-event via `souvenir_rules.minVisitedBooth`. **Only enforced when explicitly configured** (no invisible default rule; an event without `minVisitedBooth` does not require booth visits) |
+| Eligibility can require **minimum transaction amount** | [DOCX] example | `[DONE]` (FIX: 2026-08) — evaluated against `tenant_transactions` where `visitor_id` is set via the POS visitor scan; see `souvenir-rules.ts` |
 | Eligibility can require **joining a seminar** | [DOCX] example | `[DONE]` — `souvenir_rules.joinedSeminar` (non-cancelled workshop booking) |
 | A visitor who already claimed cannot claim again | [DOCX] Visitor Flow | `[DONE]` — one `souvenirs` row per `(event_id, user_id)` |
 | Redemption must be **rule-validated at scan time** | [DOCX] Visitor Flow | `[DONE]` (Sprint 6/A6+B7) — souvenir counter UI scans QR → `POST /souvenirs/check/:event_id` (rules + already-claimed) → grant; server re-validates |
 
-> ⚠️ **CONTRADICTION (resolved):** docx = configurable rule-based engine; the engine now exists (A5). `minTransaction` remains the only docx rule not evaluated — blocked by schema (POS transactions are not tied to a scanned visitor).
+> ⚠️ **CONTRADICTION (resolved):** docx = configurable rule-based engine; the engine now exists (A5) and **all three rules** (`minVisitedBooth`, `minTransaction`, `joinedSeminar`) are evaluated. The booth rule is only active when explicitly configured, so owners can fully opt out of it. `souvenir-rules.dto.ts`'s self-comment ("minTransaction accepted but NOT evaluated") is **stale** — it IS evaluated now.
 
 ### 1.3 Attendance & QR
 
@@ -48,7 +48,7 @@
 |---|---|---|
 | Committee has near-owner access but permissions **can be limited** | [DOCX] Committee Flow | `[IN PROGRESS]` — no per-committee permission configuration exists; in practice COMMITTEE ≈ OWNER for most mutations |
 | Committee **cannot delete owner**, cannot **transfer ownership** | [DOCX] Committee Flow | `[DONE]` — `DELETE /events/:id` and `DELETE /event-users/:id` are OWNER-only. (Transfer-ownership feature does not exist at all — trivially satisfied.) |
-| Tenant team has **owner** and **staff** roles | [DOCX] Tenant Flow | `[BLOCKED]` — `tenant_members` has no role column; all APPROVED members are equal |
+| Tenant team has **owner** and **staff** roles | [DOCX] Tenant Flow | `[DONE]` (FIX) — `tenant_members.role` = `OWNER\|STAFF`; creator becomes OWNER; invites are STAFF; delete/role-change guarded by `assertTenantManager()` (see AGENT.md §6.21) |
 | Owner can **override/edit speaker bio** | [DOCX] Speaker Flow | `[DONE]` — `PUT /event-speakers/:id` (OWNER/COMMITTEE) |
 | Super admin approves publish requests | [DOCX] Event Lifecycle | `[BLOCKED]` — see §1.1 |
 
@@ -175,10 +175,10 @@ All backend DTOs use **class-validator + class-transformer** (no Zod on backend)
 - Registration window (`registration_start`/`registration_deadline`) is **enforced** since FIX-14 — `event-users/visitor` and `public-api/registration` reject outside the window.
 
 ### 3.3 Event Roles
-- Visitor self-registration to event (`POST /event-users/visitor/:event_id`) enforces `events.quota` — if quota reached, registration is rejected.
+- Visitor self-registration to event (`POST /event-users/visitor/:event_id`) **and** the public flow (`POST /public-api/registration/:event_id`) both enforce `events.quota` (`quota > 0` = limited) — if quota reached, registration is rejected (FIX 2026-08 closed the public-path bypass).
 - Committee assignment with email → APPROVED immediately; without email → self-request `PENDING`.
 - Tenant self-request → `PENDING`.
-- `PUT /event-users/:id` with `status = REJECTED` **deletes the role row** (and syncs `tenant_members`). ⚠️ Destructive on rejection.
+- `PUT /event-users/:id` with `status = REJECTED` **deletes the role row** (and syncs `tenant_members`). ⚠️ Destructive on rejection; inconsistent with the tenant verification path which keeps the row with `REJECTED` status (FIX-03).
 
 ### 3.4 Attendance (all `[CODE]` — docx rules differ)
 - **Event check-in** (`POST /attendances/event/:event_id`): recorder must be APPROVED COMMITTEE/OWNER; target must be APPROVED VISITOR (COMMITTEE/OWNER/TENANT excluded); **once per calendar day** per user per event.
@@ -216,7 +216,7 @@ Status: `[FIXED]` = resolved in the Sprint 0/1 execution · `[OPEN]` = still lat
 | B7 | JWT secret fallbacks differ (`'default_secret_key'` vs `'secret-word'`) and role is read from the token without DB re-check | `helper/jwt.strategy.ts`, `auth/auth.module.ts` | `[FIXED]` (FIX-08) — secret unified + **fail-fast** if `JWT_SECRET` unset. Role re-validation on each request remains an open decision |
 | B8 | `.env` missing `MAIL_*` and `MINIO_*` variables | repo `.env` | `[PARTIAL]` (F9/FIX-10) — `.env.example` files created with all vars documented; operator must fill real values |
 | B9 | e2e test expects `'Hello World!'` but app returns a different string | `test/app.e2e-spec.ts` | `[FIXED]` (FIX-12) — test aligned with actual response |
-| B10 | Frontend `proxy.ts` imports a `"use server"` module inside the proxy; matcher vs check mismatch | `dev-frontend-mexpo-new/proxy.ts` | `[FIXED]` (FIX-07) — reads `request.cookies`, covers `/dashboard/:path*` + `/organizer/:path*` |
+| B10 | Frontend `proxy.ts` imports a `"use server"` module inside the proxy; matcher vs check mismatch | `dev-frontend-mexpo-new/src/proxy.ts` | `[FIXED]` (FIX-07 + 2026-08) — reads `request.cookies`; **must live in `src/`** (Next 16 only scans the dir containing `app/`). A root-level `proxy.ts` is silently ignored → empty `middleware-manifest.json` + 221-byte stub `middleware.js`. Covers `/dashboard/:path*` + `/profile` |
 | B11 | Frontend does not type-check (`npx tsc --noEmit` fails) | `dev-frontend-mexpo-new/src` | `[FIXED]` (FIX-06) — broken imports fixed; orphaned `Testimonial.tsx` removed |
 | B12 | `toaster` only mounted in `AuthTemplate`; public/dashboard toasts dropped | frontend templates | `[FIXED]` (FIX-15) — global `<Toaster/>` in root layout; duplicate `AuthProvider` removed |
 | B13 | Souvenir threshold hardcoded (`booth_visits >= 5`) | `souvenirs.service.ts` | `[FIXED]` (FIX-11) — configurable per-event `souvenir_rules.minVisitedBooth`, default 5 |
@@ -228,6 +228,14 @@ Status: `[FIXED]` = resolved in the Sprint 0/1 execution · `[OPEN]` = still lat
 | B19 | Event detail pages cached with `force-cache` → stale after publish/delete | `public.service.ts`, `event.service.ts` | `[FIXED]` (FIX-21) — `META_ISR(60)` / `META_DYNAMIC` |
 | B20 | Duplicate `cn()` implementations | `src/lib/utils.ts` + `src/shared/utils/cn.ts` | `[FIXED]` (FIX-22) — `src/lib/utils.ts` is now a re-export shim |
 | B21 | Unused deps (`react-query`, `toaster`) + dead config (`site.config.ts`, `env.config.ts`) | frontend | `[FIXED]` (FIX-23) — removed; `exceljs` intentionally kept for A16 |
+| B22 | `GET /tenant-transactions/:tenant_id?search=` crashed with `PrismaClientValidationError` (`payment_reference` is a `tickets` column, not on `tenant_transactions`) | `tenant-transactions.service.ts` | `[FIXED]` (2026-08) — search now uses `payment_method` OR product name |
+| B23 | Attendance & workshop-booking reads returned **bcrypt password hashes** (`include: { user: true }` without `omit`) | `attendances.service.ts`, `workshop_bookings.service.ts` | `[FIXED]` (2026-08) — `user: { omit: { password: true } }` on every user include |
+| B24 | Public registration (`POST /public-api/registration/:event_id`) **bypassed the quota** (only `event-users/visitor` enforced it) | `public-api.service.ts` | `[FIXED]` (2026-08) — counts APPROVED VISITOR roles and rejects once `events.quota` is reached |
+| B25 | Souvenir rule `minVisitedBooth` was **always enforced** with an invisible default of 5 — owners could never opt out of the booth rule | `souvenirs/souvenir-rules.ts` | `[FIXED]` (2026-08) — booth rule only participates when explicitly configured; `checks.length === 0` → eligible |
+| B26 | Registration answers were **write-only**: committee/owner had no endpoint to read a visitor's custom-form values | `event-users.service.ts` | `[FIXED]` (2026-08) — `GET /event-users/:event_id` now attaches `registrationAnswers[]` (with human labels resolved from `event_registration_fields`) per user |
+| B27 | `Resend verification email` was a **fake frontend stub** (hardcoded `isEmailSent = true`, no backend call) | frontend `VerificationBox.tsx`, backend `users.*` | `[FIXED]` (2026-08) — new `POST /users/resend-verification` (Basic) + real frontend wiring with an email input |
+| B28 | Frontend event form silently **dropped** `souvenir_rules` and `ticket_mode` (`buildEventFormData` never appended them) — the "Aturan Souvenir" UI had zero effect and PAID events were uncreatable from the UI | `dev-frontend/.../event.service.ts`, `EventForm.tsx` | `[FIXED]` (2026-08) — both fields now serialized; `ticket_mode` derived from the `paidTicket` feature toggle |
+| B29 | `next start` failed with `Error: You cannot use different slug names for the same dynamic path ('slug' !== 'uuid')` — the apply pages lived under `dashboard/[uuid]/apply/*` while every other dashboard route used `[slug]` | `dev-frontend/.../dashboard/[uuid]/apply/*` | `[FIXED]` (2026-08) — moved to `[slug]/apply/*` and updated the `params` type; route table is now all-`[slug]`. The VisitorView links already pointed at `[slug]/apply/*` |
 
 ---
 

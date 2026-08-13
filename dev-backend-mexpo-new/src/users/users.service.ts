@@ -419,6 +419,57 @@ export class UsersService {
     }
   }
 
+  async resendVerificationEmail(email: string) {
+    try {
+      const findEmail = await this.prisma.users.findFirst({
+        where: { email },
+      });
+      if (!findEmail) {
+        throw new NotFoundException(`Email is not registered`);
+      }
+      if (findEmail.verify_at) {
+        throw new ConflictException(`Email is already verified`);
+      }
+
+      // Invalidate any previous, unexpired verification links for this user.
+      await this.prisma.email_verification.deleteMany({
+        where: { user_id: findEmail.uuid },
+      });
+
+      const newVerification = await this.prisma.email_verification.create({
+        data: {
+          user_id: findEmail.uuid,
+          expiresAt: new Date(Date.now() + 72 * 60 * 60 * 1000), // 72 hours
+        },
+      });
+
+      const link = `${this.configService.get<string>(`PUBLIC_FRONTEND_URL`)}/verify-email?token=${newVerification.uuid}`;
+
+      this.mailer
+        .sendMail(
+          email,
+          'Expo Website - Resend Verification Email',
+          this.verificationEmailTemplate(findEmail.full_name, link),
+        )
+        .then(() => {
+          console.log('Verification email resent successfully.');
+        })
+        .catch((error) => {
+          console.error('Error resending verification email:', error);
+        });
+
+      return {
+        success: true,
+        message: `Verification email has been sent to ${email}`,
+      };
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error; // rethrow NestJS exceptions
+      }
+      throw new InternalServerErrorException(`Something were wrong. ${error}`);
+    }
+  }
+
   async verifyEmail(code: string) {
     try {
       const findVerificationRecord =

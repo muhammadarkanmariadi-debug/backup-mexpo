@@ -3,10 +3,7 @@ import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaMariaDb } from '@prisma/adapter-mariadb';
 import { ConfigService } from '@nestjs/config';
-import {
-  getDatabaseUrl,
-  isMysqlDatabase,
-} from '../helper/db-provider';
+import { getDatabaseUrl, isMysqlDatabase } from '../helper/db-provider';
 
 @Injectable()
 export class PrismaService

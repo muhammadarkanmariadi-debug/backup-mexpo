@@ -1,5 +1,6 @@
 import { Type } from 'class-transformer';
-import { IsNumber, IsOptional, IsString } from 'class-validator';
+import { IsNumber, IsOptional, IsString, IsEnum } from 'class-validator';
+import { SpeakerStatus } from '@prisma/client';
 
 export class QueryEventSpeakerDto {
   @IsOptional()
@@ -15,4 +16,8 @@ export class QueryEventSpeakerDto {
   @IsOptional()
   @IsString()
   search?: string;
+
+  @IsOptional()
+  @IsEnum(SpeakerStatus)
+  status?: SpeakerStatus;
 }

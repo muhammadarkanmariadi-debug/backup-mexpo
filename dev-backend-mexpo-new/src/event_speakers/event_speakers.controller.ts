@@ -23,6 +23,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { imageFileFilter } from '../helper/upload.format';
 import * as authType from '../auth/auth.types';
 import { QueryEventSpeakerDto } from './dto/query-event-speaker.dto';
+import { VerifySpeakerDto } from './dto/verify-speaker.dto';
 import { UserRole } from '@prisma/client';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 
@@ -48,6 +49,23 @@ export class EventSpeakersController {
       request.user.uuid,
       file,
       request.user.role as UserRole,
+    );
+  }
+
+  @Post(`apply/:event_id`)
+  @UsePipes(new ValidationPipe({ exceptionFactory: FormatValidation }))
+  @UseInterceptors(FileInterceptor(`file`, imageFileFilter))
+  apply(
+    @Param(`event_id`) event_id: string,
+    @Body() createEventSpeakerDto: CreateEventSpeakerDto,
+    @Request() request: authType.AuthRequest,
+    @UploadedFile() file?: Express.Multer.File,
+  ) {
+    return this.eventSpeakersService.apply(
+      event_id,
+      createEventSpeakerDto,
+      request.user.uuid,
+      file,
     );
   }
 
@@ -85,6 +103,21 @@ export class EventSpeakersController {
       updateEventSpeakerDto,
       request.user.uuid,
       file,
+      request.user.role as UserRole,
+    );
+  }
+
+  @Put('verify/:id')
+  @UsePipes(new ValidationPipe({ exceptionFactory: FormatValidation }))
+  verify(
+    @Param('id') id: string,
+    @Body() verifySpeakerDto: VerifySpeakerDto,
+    @Request() request: authType.AuthRequest,
+  ) {
+    return this.eventSpeakersService.verify(
+      id,
+      verifySpeakerDto,
+      request.user.uuid,
       request.user.role as UserRole,
     );
   }

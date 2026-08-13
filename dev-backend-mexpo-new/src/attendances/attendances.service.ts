@@ -287,7 +287,7 @@ export class AttendancesService {
           OR: [{ user: { full_name: { contains: search || '' } } }],
         },
         include: {
-          user: true,
+          user: { omit: { password: true } },
         },
       });
 
@@ -348,7 +348,7 @@ export class AttendancesService {
               : undefined,
           OR: [{ user: { full_name: { contains: search || '' } } }],
         },
-        include: { user: true },
+        include: { user: { omit: { password: true } } },
       });
 
       return {
@@ -403,7 +403,7 @@ export class AttendancesService {
               : undefined,
           OR: [{ user: { full_name: { contains: search || '' } } }],
         },
-        include: { user: true },
+        include: { user: { omit: { password: true } } },
       });
 
       return {

@@ -23,7 +23,7 @@ export default defineConfig({
   schema: "prisma/schema.prisma",
   migrations: {
     path: provider === "mysql" ? "prisma/migrations-mysql" : "prisma/migrations",
-    seed: "prisma/seed.ts",
+    seed: 'ts-node prisma/seed.ts',
   },
   datasource: {
     url: databaseUrl,

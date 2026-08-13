@@ -12,6 +12,7 @@ import { S3Service } from '../s3/s3.service';
 import { ConfigService } from '@nestjs/config';
 import { QueryEventSpeakerDto } from './dto/query-event-speaker.dto';
 import { UserRole } from '@prisma/client';
+import { VerifySpeakerDto } from './dto/verify-speaker.dto';
 
 @Injectable()
 export class EventSpeakersService {
@@ -86,6 +87,59 @@ export class EventSpeakersService {
     }
   }
 
+  async apply(
+    event_id: string,
+    createEventSpeakerDto: CreateEventSpeakerDto,
+    userId: string,
+    file?: Express.Multer.File,
+  ) {
+    try {
+      const findEvent = await this.prisma.events.findFirst({
+        where: { uuid: event_id },
+      });
+      if (!findEvent) {
+        throw new NotFoundException(`Event doesn't exists`);
+      }
+
+      const { name, bio } = createEventSpeakerDto;
+      let photo = ``;
+      if (file) {
+        const filename = `${new Date().getTime().toString()}-${file.originalname}`;
+        photo = `${this.configService.get<string>(`MINIO_ENDPOINT`)}/expo-project-speaker/${filename}`;
+        await this.s3Service.upload(
+          `expo-project-speaker`,
+          filename,
+          file.buffer,
+          file.mimetype,
+        );
+      }
+
+      const newSpeaker = await this.prisma.event_speakers.create({
+        data: {
+          name,
+          bio,
+          photo,
+          event_id,
+          status: 'PENDING',
+          created_by: userId,
+          updated_by: userId,
+        },
+      });
+
+      return {
+        success: true,
+        message: `Speaker application for ${findEvent.name} has been submitted`,
+        data: newSpeaker,
+      };
+    } catch (error) {
+      console.log(error);
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      throw new InternalServerErrorException(`Something were wrong. ${error}`);
+    }
+  }
+
   async findAll(
     event_id: string,
     query: QueryEventSpeakerDto,
@@ -116,13 +170,14 @@ export class EventSpeakersService {
         );
       }
 
-      const { page, quantity, search } = query;
+      const { page, quantity, search, status } = query;
       const take = quantity || undefined;
       const skip = page && quantity ? (page - 1) * quantity : undefined;
 
       const counts = await this.prisma.event_speakers.count({
         where: {
           event_id,
+          ...(status ? { status } : {}),
           OR: [
             { name: { contains: search ?? `` } },
             { bio: { contains: search ?? `` } },
@@ -140,6 +195,7 @@ export class EventSpeakersService {
         },
         where: {
           event_id,
+          ...(status ? { status } : {}),
           OR: [
             { name: { contains: search ?? `` } },
             { bio: { contains: search ?? `` } },
@@ -260,6 +316,59 @@ export class EventSpeakersService {
       console.log(error);
       if (error instanceof HttpException) {
         throw error; // rethrow NestJS exceptions
+      }
+      throw new InternalServerErrorException(`Something were wrong. ${error}`);
+    }
+  }
+
+  async verify(
+    id: string,
+    verifySpeakerDto: VerifySpeakerDto,
+    userId: string,
+    role?: UserRole,
+  ) {
+    try {
+      const findSpeaker = await this.prisma.event_speakers.findFirst({
+        where: { uuid: id },
+        include: {
+          event: true,
+        },
+      });
+
+      if (!findSpeaker) {
+        throw new NotFoundException(`Speaker doesn't exists`);
+      }
+
+      const findEventUser = await this.prisma.user_event_roles.findFirst({
+        where: {
+          event_id: findSpeaker.event_id,
+          user_id: userId,
+          role: { in: [`COMMITTEE`, `OWNER`] },
+        },
+      });
+      if (!findEventUser && role !== `SUPERADMIN`) {
+        throw new ForbiddenException(
+          `Sorry, you can't verify speaker for ${findSpeaker.event.name}`,
+        );
+      }
+
+      const updateSpeaker = await this.prisma.event_speakers.update({
+        where: { uuid: id },
+        data: {
+          status: verifySpeakerDto.status,
+          updated_by: userId,
+        },
+      });
+
+      return {
+        success: true,
+        message: `Speaker has been verified as ${verifySpeakerDto.status}`,
+        data: updateSpeaker,
+      };
+    } catch (error) {
+      console.log(error);
+      if (error instanceof HttpException) {
+        throw error;
       }
       throw new InternalServerErrorException(`Something were wrong. ${error}`);
     }

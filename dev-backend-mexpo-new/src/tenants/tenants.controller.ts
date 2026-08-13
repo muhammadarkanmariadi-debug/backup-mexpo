@@ -69,6 +69,23 @@ export class TenantsController {
     );
   }
 
+  @Post(`apply/:event_id`)
+  @UsePipes(new ValidationPipe({ exceptionFactory: FormatValidation }))
+  @UseInterceptors(FileInterceptor(`file`, imageFileFilter))
+  apply(
+    @Param(`event_id`) event_id: string,
+    @Body() createTenantDto: CreateTenantDto,
+    @Request() request: authType.AuthRequest,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    return this.tenantsService.apply(
+      event_id,
+      createTenantDto,
+      request.user.uuid,
+      file,
+    );
+  }
+
   @Get(`mine/:event_id`)
   @UsePipes(new ValidationPipe({ exceptionFactory: FormatValidation }))
   findAllMyTenant(

@@ -56,14 +56,18 @@ async function bootstrap(): Promise<void> {
           `and redeploy. See .env.example for the full list.`,
       );
     }
-    const app = await NestFactory.create(AppModule, new ExpressAdapter(server), {
-      // CRITICAL for serverless: the default `abortOnError: true` calls
-      // process.exit(1) on any DI/bootstrap failure, which instantly kills
-      // the Lambda container -> Vercel "Serverless Function has crashed."
-      // With `false`, bootstrap throws instead, so our try/catch can surface
-      // a readable 500 JSON to the caller.
-      abortOnError: false,
-    });
+    const app = await NestFactory.create(
+      AppModule,
+      new ExpressAdapter(server),
+      {
+        // CRITICAL for serverless: the default `abortOnError: true` calls
+        // process.exit(1) on any DI/bootstrap failure, which instantly kills
+        // the Lambda container -> Vercel "Serverless Function has crashed."
+        // With `false`, bootstrap throws instead, so our try/catch can surface
+        // a readable 500 JSON to the caller.
+        abortOnError: false,
+      },
+    );
     app.enableCors();
 
     // ── Swagger / OpenAPI docs ─────────────────────────────────────────────
@@ -144,7 +148,7 @@ function sendError(res: Response, status: number, message: string) {
     res.end(body);
     return;
   }
-  (res as Response).status(status).json({ status: false, message });
+  res.status(status).json({ status: false, message });
 }
 
 function bootErrorMessage(): string | null {
@@ -194,7 +198,11 @@ export default async function handler(req: Request, res: Response) {
           bootTimeoutErr instanceof Error
             ? bootTimeoutErr
             : new Error(String(bootTimeoutErr));
-        sendError(res, 500, `Server failed to initialize: ${bootError.message}`);
+        sendError(
+          res,
+          500,
+          `Server failed to initialize: ${bootError.message}`,
+        );
         return;
       }
       if (!appReady) {

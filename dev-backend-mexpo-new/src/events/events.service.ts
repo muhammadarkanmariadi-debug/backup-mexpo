@@ -219,6 +219,20 @@ export class EventsService {
             where: { user_id: userId },
             select: { role: true },
           },
+          workshops: {
+            include: {
+              workshopBookings: true,
+              workshopSpeakers: { include: { event_speaker: true } },
+            },
+          },
+          eventContacts: true,
+          eventRundowns: { include: { eventRundownSpeakers: true } },
+          eventSpeakers: { where: { status: `APPROVED` } },
+          eventSponsors: true,
+          tenants: {
+            where: { status: `APPROVED` },
+            include: { tenantProducts: true, category: true },
+          },
         },
       });
       if (!findExistingEvent) {

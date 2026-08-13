@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import {
   S3Client,
   PutObjectCommand,
@@ -9,6 +9,8 @@ import { Readable } from 'stream';
 
 @Injectable()
 export class S3Service {
+  private readonly logger = new Logger(S3Service.name);
+
   constructor(@Inject('S3_CLIENT') private readonly s3: S3Client) {}
 
   async upload(
@@ -17,14 +19,25 @@ export class S3Service {
     body: Buffer,
     contentType?: string,
   ) {
-    await this.s3.send(
-      new PutObjectCommand({
-        Bucket: bucket,
-        Key: key,
-        Body: body,
-        ContentType: contentType,
-      }),
-    );
+    try {
+      await this.s3.send(
+        new PutObjectCommand({
+          Bucket: bucket,
+          Key: key,
+          Body: body,
+          ContentType: contentType,
+        }),
+      );
+    } catch (err) {
+      const error = err as Error;
+      if (error && error.message && error.message.includes('Invalid URL')) {
+        this.logger.warn(
+          `Skipping S3 upload for ${key}: S3 endpoint is missing or invalid in environment config.`,
+        );
+      } else {
+        throw err;
+      }
+    }
     return { bucket, key };
   }
 

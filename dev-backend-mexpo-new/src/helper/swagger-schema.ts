@@ -104,9 +104,9 @@ export function prismaModelsToOpenApiSchemas(): Record<string, unknown> {
   // Try multiple paths: __dirname-relative (works in serverless/Vercel),
   // then process.cwd()-relative (works in traditional deploys).
   const candidates = [
-    resolve(__dirname, '..', '..', '..', 'prisma', 'schema.prisma'),  // dist/src/helper -> project root
-    resolve(__dirname, '..', '..', 'prisma', 'schema.prisma'),         // fallback
-    resolve(process.cwd(), 'prisma', 'schema.prisma'),                 // traditional CWD
+    resolve(__dirname, '..', '..', '..', 'prisma', 'schema.prisma'), // dist/src/helper -> project root
+    resolve(__dirname, '..', '..', 'prisma', 'schema.prisma'), // fallback
+    resolve(process.cwd(), 'prisma', 'schema.prisma'), // traditional CWD
   ];
   let text: string | null = null;
   for (const file of candidates) {

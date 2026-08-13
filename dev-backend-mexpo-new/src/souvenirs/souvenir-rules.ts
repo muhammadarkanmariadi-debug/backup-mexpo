@@ -36,16 +36,21 @@ export async function evaluateSouvenirEligibility(
   const rules = (event.souvenir_rules ?? {}) as SouvenirRules;
   const reasons: string[] = [];
   const checks: boolean[] = [];
+  let boothVisits = 0;
 
-  // Rule 1 — minimum booth visits (default 5 for backward compatibility).
-  const minVisitedBooth = rules.minVisitedBooth ?? 5;
-  const boothVisits = await prisma.booth_visits.count({
-    where: { user_id: userId, event_id: event.uuid },
-  });
-  const boothOk = boothVisits >= minVisitedBooth;
-  checks.push(boothOk);
-  if (!boothOk) {
-    reasons.push(`Kunjungan booth ${boothVisits}/${minVisitedBooth}`);
+  // Rule 1 — minimum booth visits. Only enforced when explicitly configured;
+  // an event with no `souvenir_rules` (or without minVisitedBooth) does not
+  // inherit an invisible default rule (FIX: allow full opt-out).
+  if (rules.minVisitedBooth !== undefined) {
+    const minVisitedBooth = rules.minVisitedBooth;
+    boothVisits = await prisma.booth_visits.count({
+      where: { user_id: userId, event_id: event.uuid },
+    });
+    const boothOk = boothVisits >= minVisitedBooth;
+    checks.push(boothOk);
+    if (!boothOk) {
+      reasons.push(`Kunjungan booth ${boothVisits}/${minVisitedBooth}`);
+    }
   }
 
   // Rule 2 — minimum total transaction amount.

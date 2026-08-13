@@ -9,7 +9,7 @@ generator client {
 }
 
 datasource db {
-  provider = "mysql"
+  provider = "postgresql"
 }
 
 model users {
@@ -258,6 +258,12 @@ enum USER_EVENT_STATUS {
   REJECTED
 }
 
+enum SpeakerStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 enum EventRole {
   OWNER
   COMMITTEE
@@ -304,6 +310,7 @@ model event_speakers {
   name                 String                  @default("")
   bio                  String                  @db.Text
   photo                String                  @default("")
+  status               SpeakerStatus           @default(APPROVED)
   created_by           String                  @default("")
   creator              users                   @relation("creator_event_speakers", fields: [created_by], references: [uuid])
   updated_by           String                  @default("")

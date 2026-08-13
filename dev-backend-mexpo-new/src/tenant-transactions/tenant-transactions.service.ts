@@ -170,11 +170,11 @@ export class TenantTransactionsService {
           : {}),
       };
       const whereDate = Object.keys(created_at).length ? created_at : undefined;
-      // Search by payment reference or product name (nested detail).
+      // Search by payment method or product name (nested detail).
       const whereSearch = search
         ? {
             OR: [
-              { payment_reference: { contains: search } },
+              { payment_method: { contains: search } },
               {
                 tenantTransactionDetails: {
                   some: { product: { name: { contains: search } } },

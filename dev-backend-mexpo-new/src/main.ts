@@ -114,7 +114,7 @@ function sendError(res: Response, status: number, message: string) {
     res.end(body);
     return;
   }
-  (res as Response).status(status).json({ status: false, message });
+  res.status(status).json({ status: false, message });
 }
 
 function bootErrorMessage(): string | null {

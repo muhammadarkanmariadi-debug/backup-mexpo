@@ -269,10 +269,50 @@ export class EventUsersService {
         },
       });
 
+      // A8 — attach dynamic registration answers (keyed by event_id + user_id)
+      // so committee/owner can view the custom-form values each visitor filled.
+      // Labels are resolved from `event_registration_fields` so the UI can show
+      // human-readable field names instead of raw `field_key`s.
+      const fieldDefs = await this.prisma.event_registration_fields.findMany({
+        where: { event_id },
+        select: { field_key: true, label: true },
+      });
+      const labelByKey = new Map(
+        fieldDefs.map((f) => [f.field_key, f.label ?? f.field_key]),
+      );
+      const userAnswers = await this.prisma.registration_answers.findMany({
+        where: {
+          event_id,
+          user_id: { in: users.map((u) => u.user_id) },
+        },
+        select: {
+          user_id: true,
+          field_key: true,
+          value: true,
+        },
+      });
+      const answerMap = new Map<
+        string,
+        { field_key: string; label: string; value: string }[]
+      >();
+      for (const a of userAnswers) {
+        const list = answerMap.get(a.user_id) ?? [];
+        list.push({
+          field_key: a.field_key,
+          label: labelByKey.get(a.field_key) ?? a.field_key,
+          value: a.value,
+        });
+        answerMap.set(a.user_id, list);
+      }
+      const usersWithAnswers = users.map((u) => ({
+        ...u,
+        registrationAnswers: answerMap.get(u.user_id) ?? [],
+      }));
+
       return {
         success: true,
         message: `Event user has retrieved`,
-        data: users,
+        data: usersWithAnswers,
         meta: { page, quantity, counts },
       };
     } catch (error) {

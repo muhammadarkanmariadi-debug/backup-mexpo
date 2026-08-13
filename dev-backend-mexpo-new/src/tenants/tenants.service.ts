@@ -290,6 +290,96 @@ export class TenantsService {
     }
   }
 
+  async apply(
+    event_id: string,
+    createTenantDto: CreateTenantDto,
+    userId: string,
+    file?: Express.Multer.File,
+  ) {
+    try {
+      const findEvent = await this.prisma.events.findFirst({
+        where: { uuid: event_id },
+      });
+      if (!findEvent) throw new NotFoundException(`Event doesn't exists`);
+      await assertEventFeature(this.prisma, event_id, 'tenant');
+
+      const { description, name, phone, website, email, category_id } =
+        createTenantDto;
+      const findCategory = await this.prisma.tenant_categories.findFirst({
+        where: { uuid: category_id },
+      });
+      if (!findCategory)
+        throw new NotFoundException(`Tenant category doesn't exists`);
+
+      let logo: string = ``;
+      if (file) {
+        const filename = `${new Date().getTime().toString()}-${file.originalname}`;
+        logo = `${this.configService.get<string>(`MINIO_ENDPOINT`)}/expo-project-tenants/${filename}`;
+        await this.s3Service.upload(
+          `expo-project-tenants`,
+          filename,
+          file.buffer,
+          file.mimetype,
+        );
+      }
+
+      // Check if user already has a pending or approved TENANT role
+      let userEventRole = await this.prisma.user_event_roles.findFirst({
+        where: { user_id: userId, event_id, role: `TENANT` },
+      });
+
+      if (!userEventRole) {
+        userEventRole = await this.prisma.user_event_roles.create({
+          data: {
+            user_id: userId,
+            event_id,
+            role: `TENANT`,
+            status: `PENDING`,
+            created_by: userId,
+            updated_by: userId,
+          },
+        });
+      }
+
+      const newTenant = await this.prisma.tenants.create({
+        data: {
+          event_id,
+          slug: await uniqueSlug(name ?? `tenant`, (s) =>
+            this.prisma.tenants.findFirst({ where: { slug: s } }).then(Boolean),
+          ),
+          name,
+          description,
+          website,
+          phone,
+          logo,
+          email,
+          category_id,
+          status: 'PENDING',
+          created_by: userId,
+          updated_by: userId,
+          tenantMembers: {
+            create: {
+              user_id: userId,
+              created_by: userId,
+              updated_by: userId,
+              status: `PENDING`,
+              role: `OWNER`,
+            },
+          },
+        },
+      });
+
+      return {
+        success: true,
+        message: `Tenant application for ${findEvent.name} has been submitted`,
+        data: newTenant,
+      };
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
+      throw new InternalServerErrorException(`Something were wrong: ${error}`);
+    }
+  }
+
   /** not recommended */
   async askToBeTenantMember(tenant_id: string, userId: string) {
     try {
@@ -902,6 +992,28 @@ export class TenantsService {
         where: { uuid: tenant_id },
         data: { status, updated_by: userId },
       });
+
+      if (status === 'APPROVED') {
+        const owners = await this.prisma.tenant_members.findMany({
+          where: { tenant_id, role: 'OWNER' },
+        });
+
+        await this.prisma.tenant_members.updateMany({
+          where: { tenant_id, role: 'OWNER' },
+          data: { status: 'APPROVED', updated_by: userId },
+        });
+
+        for (const owner of owners) {
+          await this.prisma.user_event_roles.updateMany({
+            where: {
+              user_id: owner.user_id,
+              event_id: findTenant.event_id,
+              role: 'TENANT',
+            },
+            data: { status: 'APPROVED', updated_by: userId },
+          });
+        }
+      }
       return {
         success: true,
         message: `Tenant status has updated`,

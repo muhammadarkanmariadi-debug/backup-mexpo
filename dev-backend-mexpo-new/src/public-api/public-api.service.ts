@@ -404,6 +404,24 @@ export class PublicApiService {
         );
       }
 
+      // Quota enforcement (E5) — mirror the visitor self-registration path:
+      // registration is rejected once the event's APPROVED VISITOR count
+      // reaches `events.quota` (quota 0 = unlimited).
+      if (findEvent.quota && findEvent.quota > 0) {
+        const registeredCount = await this.prisma.user_event_roles.count({
+          where: {
+            event_id,
+            role: `VISITOR`,
+            status: `APPROVED`,
+          },
+        });
+        if (registeredCount >= findEvent.quota) {
+          throw new ConflictException(
+            `Registration for ${findEvent.name} has reached its quota`,
+          );
+        }
+      }
+
       const findSuperAdmin = await this.prisma.users.findFirst({
         where: { role: `SUPERADMIN` },
       });
@@ -633,6 +651,7 @@ export class PublicApiService {
           data: {
             event_id,
             user_id: visitorUserId,
+            ticket_type_id: null,
             status: `PAID`,
             created_by: findSuperAdmin.uuid,
             updated_by: findSuperAdmin.uuid,
