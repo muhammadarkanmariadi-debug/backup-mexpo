@@ -13,26 +13,30 @@ import {
   EventVisibility,
 } from "@/entities/event/event.entity";
 import { createEvent, updateEvent } from "@/services/event.service";
+import {
+  EVENT_TYPE_LABELS,
+  EVENT_FEATURE_LABELS,
+} from "@/shared/data/labels";
 
 const EVENT_TYPES: { value: EventType; label: string }[] = [
-  { value: "EXPO", label: "Expo" },
-  { value: "CAREER_FAIR", label: "Career Fair" },
-  { value: "SEMINAR", label: "Seminar" },
-  { value: "GRADUATION", label: "Graduation" },
-  { value: "EXHIBITION", label: "Exhibition" },
-  { value: "MARKETPLACE", label: "Marketplace" },
-  { value: "GOVERNMENT", label: "Government" },
-  { value: "CAMPUS_SCHOOL", label: "Campus/School" },
-  { value: "OTHER", label: "Other" },
+  { value: "EXPO", label: EVENT_TYPE_LABELS.EXPO },
+  { value: "CAREER_FAIR", label: EVENT_TYPE_LABELS.CAREER_FAIR },
+  { value: "SEMINAR", label: EVENT_TYPE_LABELS.SEMINAR },
+  { value: "GRADUATION", label: EVENT_TYPE_LABELS.GRADUATION },
+  { value: "EXHIBITION", label: EVENT_TYPE_LABELS.EXHIBITION },
+  { value: "MARKETPLACE", label: EVENT_TYPE_LABELS.MARKETPLACE },
+  { value: "GOVERNMENT", label: EVENT_TYPE_LABELS.GOVERNMENT },
+  { value: "CAMPUS_SCHOOL", label: EVENT_TYPE_LABELS.CAMPUS_SCHOOL },
+  { value: "OTHER", label: EVENT_TYPE_LABELS.OTHER },
 ];
 
 const FEATURE_KEYS: { key: keyof EventFeatures; label: string }[] = [
-  { key: "tenant", label: "Tenant / Booth" },
-  { key: "seminar", label: "Seminar / Workshop" },
-  { key: "souvenir", label: "Souvenir" },
-  { key: "product", label: "Product" },
-  { key: "pos", label: "POS" },
-  { key: "paidTicket", label: "Paid Ticket" },
+  { key: "tenant", label: EVENT_FEATURE_LABELS.tenant },
+  { key: "seminar", label: EVENT_FEATURE_LABELS.seminar },
+  { key: "souvenir", label: EVENT_FEATURE_LABELS.souvenir },
+  { key: "product", label: EVENT_FEATURE_LABELS.product },
+  { key: "pos", label: EVENT_FEATURE_LABELS.pos },
+  { key: "paidTicket", label: EVENT_FEATURE_LABELS.paidTicket },
 ];
 
 /** Convert an ISO date string to `datetime-local` input value (local time). */
@@ -293,7 +297,7 @@ export default function EventForm({ event }: Props) {
                     : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
                     }`}
                 >
-                  {v === "PUBLIC" ? "Public" : "Private"}
+                  {v === "PUBLIC" ? "Publik" : "Pribadi"}
                 </button>
               ))}
             </div>

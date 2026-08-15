@@ -52,14 +52,14 @@ const ContentTitle2 = ({
           <button
             onClick={prevSlide}
             className={`flex justify-center items-center rounded-xl w-10 sm:w-11 h-10 sm:h-11 transition-all duration-300 ${variantStyles[variant]}`}
-            aria-label="Previous slide"
+            aria-label="Slide sebelumnya"
           >
             <ChevronLeft className="w-5 h-5" />
           </button>
           <button
             onClick={nextSlide}
             className={`flex justify-center items-center rounded-xl w-10 sm:w-11 h-10 sm:h-11 transition-all duration-300 ${variantStyles[variant]}`}
-            aria-label="Next slide"
+            aria-label="Slide berikutnya"
           >
             <ChevronRight className="w-5 h-5" />
           </button>

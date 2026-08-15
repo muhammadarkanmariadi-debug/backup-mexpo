@@ -15,7 +15,7 @@ export default function DashboardLogoutButton() {
       className="flex items-center gap-1.5 text-sm font-medium text-gray-600 hover:text-red-600 transition-colors"
     >
       <LogOut className="w-4 h-4" />
-      Logout
+      Keluar
     </button>
   );
 }

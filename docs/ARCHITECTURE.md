@@ -41,7 +41,7 @@
 | Icons | `@fortawesome` v7 + `lucide-react` | |
 | Animation | `framer-motion`, `embla-carousel` (+autoplay), `react-countup` | |
 | Maps | `leaflet` / `react-leaflet` (contact page) | |
-| Encryption (client) | `crypto-js` (AES — see §5 caveat) | |
+| Encryption (client) | ~~crypto-js AES~~ — removed (corrupted non-ASCII); payloads sent plain JSON/FormData | |
 | Toasts | `sonner` | |
 
 ---
@@ -146,34 +146,37 @@ src/
 │  ├─ (public)/                  # group: / , /event/[slug], /about, /contact, /faq
 │  ├─ (auth)/                    # group: /auth, /verify-email
 │  └─ (dashboard)/               # group: /dashboard, /dashboard/[slug]
-├─ components/ui/                # shadcn-style primitives (button, select, pagination)
-├─ context/                      # AuthContext, ThemeContext (ThemeProvider never mounted)
+├─ components/ui/                # pagination only (self-contained shadcn-style) — ui/button & ui/select retired
+├─ context/                      # AuthContext, ThemeContext (opt-in dark mode, mounted in root layout)
 ├─ entities/event/               # event entity + role dispatch helpers
 ├─ features/public/              # feature folders (events, About, contact, faq) + Hooks/
 ├─ shared/
-│  ├─ components/                # button, Input, Checkbox, Card, Tabs, SearchBar, DataPagination, Gmaps...
-│  └─ utils/                     # http-client ("use server"), auth-token (Basic/Bearer/AES), cookies, http-meta, cn
-├─ services/                     # auth.service, public.service, event.service, user.service, workshop.service, verify-email.service
+│  ├─ components/                # button, PageHeader, HeroBanner, QrScanPanel, Input, Checkbox, Card, Tabs, SearchBar, DataPagination, Gmaps...
+│  ├─ hooks/                     # useQrScanner, usePagination...
+│  ├─ data/                      # chart-colors (chart palette token source)
+│  └─ utils/                     # http-client ("use server"), auth-token (Basic/Bearer), cookies, http-meta, cn
+├─ services/                     # auth, public, event, event-data, user, workshop, qr, souvenir, report, tenant, product, ticket, transaction, verify-email...
 ├─ lib/
 │  ├─ query-client.ts            # TanStack Query QueryClient global (staleTime:0, retry, dsb)
 │  ├─ query-keys.ts              # factory "alamat" cache untuk invalidasi (keys.*)
 │  ├─ hooks/useApi.ts            # useApiQuery + useApiMutation + ApiError (normalisasi status:false→throw)
+│  ├─ hooks/useResolveQr.ts      # resolveQr sebagai TanStack mutation (QR scan/check-in/souvenir)
 │  └─ providers/QueryProvider.tsx # pembungkus QueryClientProvider (dipasang di layout)
 ├─ stores/auth.store.ts          # zustand auth store (sessionStorage)
-├─ templates/                    # PublicTemplate, AuthTemplate (+ MexpoCard, Toaster in AuthTemplate)
-├─ widgets/                      # Navbar, Footer
+├─ templates/                    # PublicTemplate, AuthTemplate (+ MexpoCard)
+├─ widgets/                      # Navbar (incl. theme toggle), Footer
 ├─ global.ts                     # BASE_DOMAIN / BASE_API_URL / auth creds / token key
 ├─ env.config.ts                 # ⚠ dead code (Supabase/Resend refs, unused)
-└─ lib/utils.ts                  # cn() (duplicate of shared/utils/cn)
-proxy.ts                         # ⚠ broken route protection (see RULES.md B10)
+└─ lib/utils.ts                  # cn() (legacy shim → re-export of shared/utils/cn)
+proxy.ts                         # ✅ route protection — src/proxy.ts (Next 16 proxy, token cookie guard)
 ```
 
-Route map (only 7 reachable routes exist):
-`/`, `/event/[slug]`, `/about`, `/contact`, `/faq`, `/auth`, `/verify-email`, `/dashboard`, `/dashboard/[slug]`
+Route map (reachable today):
+`/`, `/event/[slug]` (+ `/event/[slug]/register`), `/about`, `/contact`, `/faq`, `/privacy-policy`, `/terms`, `/auth`, `/verify-email`, `/forgot-passwords` (+ `/reset-password`), `/profile`, `/dashboard`, `/dashboard/create`, `/dashboard/approvals`, `/dashboard/users`, `/dashboard/tenant-categories`, `/dashboard/[slug]`, `/dashboard/[slug]/apply/{speaker,tenant}`, `/dashboard/[slug]/badge`, `/dashboard/[slug]/certificates`, `/dashboard/[slug]/booth-checkin`.
 
-`/dashboard/[slug]` dispatches by `userEventRoles[0].role`: `OwnerView | CommitteeView | TenantView | VisitorView` (all read-only event detail; publish/delete for owner/committee).
+`/dashboard/[slug]` dispatches by `getEventRole` (the flattened role from `user_event_roles`): `OwnerView | CommitteeView | TenantView | VisitorView`. Each role view is tab-driven (Info, Laporan, Kelola, Registrasi, Check-in, Souvenir, Tenant, Verifikasi, Tim, Attendance, Workshop).
 
-> ⚠️ Many nav targets referenced in code/UI are **dead links** (404): `/onsite-register/[slug]`, `/dashboard/[slug]/register`, `/dashboard/[slug]/tenant-list`, `/dashboard/[slug]/edit`, `/dashboard/[slug]/rundown`, `/events/committee/create`, `/profile`, `/forgot-passwords`, `/organizer/*`. See DESIGN.md §4.
+> ⚠️ Remaining **dead links** (referenced in UI, no route): `/onsite-register/[slug]`, `/dashboard/[slug]/tenant-list`, `/dashboard/[slug]/edit`, `/dashboard/[slug]/rundown`, `/events/committee/create`, `/organizer/*`. See DESIGN.md §4.
 
 ---
 
@@ -214,7 +217,7 @@ Route map (only 7 reachable routes exist):
   - Client-side: `NEXT_PUBLIC_BASE_URL_PRODUCTION` (default `https://mexpo-api.smktelkom-mlg.sch.id`)
   - ⚠ The branch flips by `typeof window` — so SSR renders hit dev while browser calls hit prod in a production build. **Verify intended behavior.**
 - `httpRequest()` (`"use server"`) → `httpGet/httpPost/httpPut/httpDelete/httpLogin`; the login path writes JWT into an **httpOnly cookie** via `next/headers` cookies.
-- Payload encryption: `crypto-js` AES with `NEXT_PUBLIC_ENCRYPT_SECRET`. ⚠ This env var is **not set** in `.env` → AES runs with an **empty key**. Treat as obfuscation, not security. Same for `NEXT_PUBLIC_TOKEN_KEY` (unset).
+- Payloads are sent as **plain JSON / FormData** — the `crypto-js` AES encrypt/decrypt round-trip was **removed** from `http-client.ts` because it corrupted non-ASCII (Indonesian) characters (`Malformed UTF-8`). Responses are decoded leniently (`TextDecoder` `fatal:false`). Do **not** reintroduce payload encryption or `response.json()`-only parsing. (`NEXT_PUBLIC_ENCRYPT_SECRET` / `NEXT_PUBLIC_TOKEN_KEY` remain referenced but unused.)
 - Public endpoints (`public-api`, verification) require Basic credentials, which are shipped in the Next.js env (`NEXT_PUBLIC_BASIC_AUTH_*`). ⚠ Basic creds in client-side env are exposed to the browser.
 
 ---

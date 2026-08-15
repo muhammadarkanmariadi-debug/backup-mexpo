@@ -11,8 +11,9 @@ import { Event } from "@/entities/event/event.entity";
 import { formatDateRange } from "@/shared/utils/format";
 import { useApiMutation } from "@/lib/hooks/useApi";
 import { getApprovalQueue, approveEvent } from "@/services/event.service";
-import BackLink from "@/features/dashboard/shared/BackLink";
-import { useList } from "@/features/dashboard/shared/useList";
+import { useList } from "@/shared/hooks/useList";
+import PageHeader from "@/shared/components/ui/PageHeader";
+import PageShell from "@/shared/components/ui/PageShell";
 
 export default function ApprovalQueue() {
   const router = useRouter();
@@ -54,21 +55,17 @@ export default function ApprovalQueue() {
 
   if (!isSuperAdmin) {
     return (
-      <div className="mx-auto px-4 py-12 max-w-7xl text-center">
+      <PageShell className="py-12 text-center">
         <p className="text-gray-500">
           Halaman ini khusus Super Admin. Anda tidak memiliki akses.
         </p>
-      </div>
+      </PageShell>
     );
   }
 
   return (
-    <div className="mx-auto px-4 py-10 max-w-7xl">
-      <BackLink href="/dashboard" />
-      <h1 className="mb-1 font-bold text-gray-900 text-2xl">Persetujuan Publikasi</h1>
-      <p className="mb-8 text-gray-500 text-sm">
-        Tinjau event yang menunggu approval dari owner.
-      </p>
+    <PageShell className="py-10">
+      <PageHeader title="Persetujuan Publikasi" subtitle="Tinjau event yang menunggu persetujuan dari pemilik." />
 
       <div className="mb-4 rounded-xl border border-gray-100 bg-white p-4">
         <SearchBar search={list.search} setSearch={list.applySearch} placeholder="Cari event..." />
@@ -100,7 +97,7 @@ export default function ApprovalQueue() {
                           : "bg-red-50 text-red-700"
                       }`}
                     >
-                      {event.status === "PENDING" ? "Pending" : "Rejected"}
+                      {event.status === "PENDING" ? "Menunggu" : "Ditolak"}
                     </span>
                   </div>
                   <p className="text-gray-500 text-xs">
@@ -122,14 +119,14 @@ export default function ApprovalQueue() {
                         disabled={decide.isPending}
                         className="inline-flex items-center gap-1.5 bg-green-600 hover:bg-green-700 disabled:opacity-50 px-3 py-1.5 rounded-lg font-semibold text-white text-xs transition-colors"
                       >
-                        <CheckCircle2 className="w-3.5 h-3.5" /> Approve
+                        <CheckCircle2 className="w-3.5 h-3.5" /> Setujui
                       </button>
                       <button
                         onClick={() => handleReject(event)}
                         disabled={decide.isPending}
                         className="inline-flex items-center gap-1.5 bg-white hover:bg-red-50 disabled:opacity-50 px-3 py-1.5 border border-red-200 rounded-lg font-semibold text-red-600 text-xs transition-colors"
                       >
-                        <XCircle className="w-3.5 h-3.5" /> Reject
+                        <XCircle className="w-3.5 h-3.5" /> Tolak
                       </button>
                     </>
                   )}
@@ -149,6 +146,6 @@ export default function ApprovalQueue() {
           </div>
         </>
       )}
-    </div>
+    </PageShell>
   );
 }

@@ -11,11 +11,15 @@ export interface SouvenirCheckResult {
 
 /** A6/B7 — check a visitor's souvenir eligibility (no grant). */
 export async function checkSouvenir(eventId: string, userId: string) {
-  return await httpPost(
+  return (await httpPost(
     `souvenirs/check/${eventId}`,
     JSON.stringify({ user_id: userId }),
     "token",
-  );
+  )) as unknown as {
+    data: SouvenirCheckResult;
+    status: boolean;
+    message?: string | null;
+  };
 }
 
 /** A6 — grant a souvenir to a visitor (validates rules server-side). */

@@ -29,5 +29,13 @@ export async function getMyQr(eventId: string) {
 
 /** A4 — resolve a scanned QR code to the participant identity. */
 export async function resolveQr(codeData: string) {
-  return await httpPost("qr-codes/resolve", JSON.stringify({ code_data: codeData }), "token");
+  return (await httpPost(
+    "qr-codes/resolve",
+    JSON.stringify({ code_data: codeData }),
+    "token",
+  )) as unknown as {
+    data: ResolvedQr;
+    status: boolean;
+    message?: string | null;
+  };
 }

@@ -47,9 +47,10 @@ const HorizontalEventCard = ({ event, variant }: HorizontalEventCardProps) => {
 
   const isPrimary = variant === 'primary'
 
-  const CTA = ({ fullWidth = false }: { fullWidth?: boolean }) => {
-    const primaryBtn = `${btnBase} bg-secondary group-hover:bg-white text-white group-hover:text-secondary`
-    const secondaryBtn = `${btnBase} bg-white group-hover:bg-secondary text-secondary group-hover:text-white`
+  const primaryBtn = `${btnBase} bg-secondary group-hover:bg-white text-white group-hover:text-secondary`
+  const secondaryBtn = `${btnBase} bg-white group-hover:bg-secondary text-secondary group-hover:text-white`
+
+  const renderCta = (fullWidth = false) => {
     const cls = fullWidth ? 'flex justify-center w-full' : ''
 
     if (!registrationStatus.canRegister && eventCategory !== 'Past') {
@@ -76,7 +77,7 @@ const HorizontalEventCard = ({ event, variant }: HorizontalEventCardProps) => {
       </Link>
     ) : (
       <span className={`${btnDisabled} ${cls}`}>
-        Coming Soon
+        Segera Hadir
       </span>
     )
   }
@@ -150,13 +151,13 @@ const HorizontalEventCard = ({ event, variant }: HorizontalEventCardProps) => {
 
         {/* Mobile CTA */}
         <div className='sm:hidden mt-3 w-full'>
-          <CTA fullWidth />
+          {renderCta(true)}
         </div>
       </div>
 
       {/* Desktop CTA */}
       <div className='hidden sm:flex flex-shrink-0'>
-        <CTA />
+        {renderCta()}
       </div>
     </motion.div>
   )

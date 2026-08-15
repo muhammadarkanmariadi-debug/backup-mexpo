@@ -1,10 +1,9 @@
-import ContentTitle2 from "@/shared/components/ui/ContentTitle2";
 import { EventSponsor } from "@/entities/event/sponsor.entity";
 import React, { useState } from "react";
 import { usePagination } from "@/shared/hooks/usePagination";
 import { DataPagination } from "@/shared/components/ui/DataPagination";
 import { SponsorCard } from "../cards/SponsorCard";
-import SearchBar from "@/shared/components/form/SearchBar";
+import TabListShell from "./TabListShell";
 
 const SponsorsTab = ({ sponsors }: { sponsors: EventSponsor[] }) => {
   const {
@@ -30,16 +29,13 @@ const SponsorsTab = ({ sponsors }: { sponsors: EventSponsor[] }) => {
   const paginatedSponsors = paginate(filteredSponsors);
 
   return (
-    <div className="mx-auto px-2 sm:px-4 md:px-6 lg:px-0 w-full max-w-7xl">
-      <div className="flex flex-col flex-col mb-5">
-        <ContentTitle2
-          category="Sponsors"
-          title="Meet Our Sponsors"
-        />
-
-        <SearchBar search={search} setSearch={setSearch} placeholder="Search Sponsors..." />
-
-      </div>
+    <TabListShell
+      category="Sponsor"
+      title="Sponsor Kami"
+      searchPlaceholder="Cari Sponsor..."
+      search={search}
+      setSearch={setSearch}
+    >
       {/* Grid Container */}
       {filteredSponsors.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
@@ -50,7 +46,7 @@ const SponsorsTab = ({ sponsors }: { sponsors: EventSponsor[] }) => {
           ))}
         </div>
       ) : (
-        <div className="text-center text-gray-500">No sponsors found</div>
+        <div className="text-center text-gray-500">Tidak ada sponsor ditemukan</div>
       )}
 
 
@@ -66,7 +62,7 @@ const SponsorsTab = ({ sponsors }: { sponsors: EventSponsor[] }) => {
           pageSizeOptions={[4, 8, 12, 16]}
         />
       )}
-    </div>
+    </TabListShell>
   );
 };
 

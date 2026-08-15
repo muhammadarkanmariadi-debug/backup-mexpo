@@ -10,12 +10,12 @@ type ErrorPageProps = {
 }
 
 const STATUS_META: Record<ErrorPageProps['code'], { color: string; badge: string, description: string }> = {
-  400: { color: '#D85A30', badge: '#FAECE7', description: 'Permintaan tidak valid atau tidak dapat diproses.' },
-  401: { color: '#BA7517', badge: '#FAEEDA', description: 'Anda tidak memiliki akses atau sesi login telah berakhir.' },
-  403: { color: '#D85A30', badge: '#FAECE7', description: 'Akses ke sumber daya ini ditolak.' },
-  404: { color: '#378ADD', badge: '#E6F1FB', description: 'Halaman atau data yang Anda cari tidak ditemukan.' },
-  500: { color: '#E24B4A', badge: '#FCEBEB', description: 'Terjadi kesalahan pada server. Silakan coba lagi beberapa saat lagi.' },
-  503: { color: '#E24B4A', badge: '#FCEBEB', description: 'Layanan tidak tersedia sementara waktu. Silakan coba lagi.' },
+  400: { color: 'text-orange-600', badge: 'bg-orange-50', description: 'Permintaan tidak valid atau tidak dapat diproses.' },
+  401: { color: 'text-yellow-600', badge: 'bg-yellow-50', description: 'Anda tidak memiliki akses atau sesi login telah berakhir.' },
+  403: { color: 'text-orange-600', badge: 'bg-orange-50', description: 'Akses ke sumber daya ini ditolak.' },
+  404: { color: 'text-secondary', badge: 'bg-brand-50', description: 'Halaman atau data yang Anda cari tidak ditemukan.' },
+  500: { color: 'text-red-600', badge: 'bg-red-50', description: 'Terjadi kesalahan pada server. Silakan coba lagi beberapa saat lagi.' },
+  503: { color: 'text-red-600', badge: 'bg-red-50', description: 'Layanan tidak tersedia sementara waktu. Silakan coba lagi.' },
 }
 
 export const ErrorPage = ({
@@ -25,21 +25,19 @@ export const ErrorPage = ({
   primaryAction,
   onRetry,
 }: ErrorPageProps) => {
-  const meta = STATUS_META[code] || { color: '#E24B4A', badge: '#FCEBEB', description: 'Terjadi kesalahan tidak terduga.' }
+  const meta = STATUS_META[code] || { color: 'text-red-600', badge: 'bg-red-50', description: 'Terjadi kesalahan tidak terduga.' }
   const { color, badge, description } = meta
 
   return (
     <div className='flex flex-col items-center justify-center min-h-[60vh] px-6 text-center gap-4'>
       <span
-        className='text-xs font-semibold px-3 py-1 rounded-full tracking-wide'
-        style={{ background: badge, color }}
+        className={`text-xs font-semibold px-3 py-1 rounded-full tracking-wide ${badge} ${color}`}
       >
         {code}
       </span>
 
       <p
-        className='text-6xl sm:text-7xl font-semibold leading-none'
-        style={{ color }}
+        className={`text-6xl sm:text-7xl font-semibold leading-none ${color}`}
       >
         {code}
       </p>
@@ -63,8 +61,7 @@ export const ErrorPage = ({
         {onRetry && (
           <button
             onClick={onRetry}
-            className='px-5 py-2 rounded-xl text-sm font-semibold text-white transition-all duration-300'
-            style={{ background: color }}
+            className='px-5 py-2 rounded-xl text-sm font-semibold border border-transparent bg-gray-900 text-white hover:bg-gray-800 transition-all duration-300'
           >
             Coba Lagi
           </button>
@@ -73,8 +70,7 @@ export const ErrorPage = ({
         {primaryAction && (
           <Link
             href={primaryAction.href}
-            className='px-5 py-2 rounded-xl text-sm font-semibold text-white transition-all duration-300'
-            style={{ background: color }}
+            className='px-5 py-2 rounded-xl text-sm font-semibold border border-transparent bg-gray-900 text-white hover:bg-gray-800 transition-all duration-300'
           >
             {primaryAction.label}
           </Link>

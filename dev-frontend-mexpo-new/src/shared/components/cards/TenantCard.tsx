@@ -6,11 +6,10 @@ import Link from 'next/link'
 export const TenantCard = ({
   tenant,
   onSeeProduct,
-  categoryName
 }: {
   tenant: Tenant
   onSeeProduct: (tenant: Tenant) => void
-  categoryName: string
+  categoryName?: string
 }) => {
   return (
     <div className='slide-in-from-bottom-2 flex sm:flex-row flex-col items-center sm:items-start gap-6 bg-blue-50/30 hover:shadow-lg p-6 border border-blue-200 rounded-2xl transition-shadow animate-in duration-500 fade-in'>
@@ -24,7 +23,7 @@ export const TenantCard = ({
             className='max-w-full max-h-full object-contain'
           />
         ) : (
-          <div className='font-bold text-gray-300'>No Logo</div>
+          <div className='font-bold text-gray-300'>Belum Ada Logo</div>
         )}
       </div>
 
@@ -32,8 +31,8 @@ export const TenantCard = ({
         <h3 className='mb-1 font-bold text-secondary text-2xl sm:text-3xl'>
           {tenant.name}
         </h3>
-        <p className='font-medium text-blue-500'>
-          {tenant.category?.name || 'No Category'}
+        <p className='font-medium text-secondary'>
+          {tenant.category?.name || 'Tanpa Kategori'}
         </p>
         <p className='mb-6 text-gray-500 text-sm'>{tenant.description}</p>
       </div>
@@ -41,21 +40,21 @@ export const TenantCard = ({
       <div className='flex flex-col gap-3 w-full sm:w-auto min-w-[150px]'>
         <button
           onClick={() => onSeeProduct(tenant)}
-          className='flex justify-center items-center gap-2 bg-secondary hover:bg-blue-600 px-4 py-2 rounded-full w-full font-bold text-white text-sm transition-colors'
+          className='flex justify-center items-center gap-2 bg-secondary hover:bg-secondary/80 px-4 py-2 rounded-full w-full font-bold text-white text-sm transition-colors'
         >
-          <Eye className='w-4 h-4' /> See Product
+          <Eye className='w-4 h-4' /> Lihat Produk
         </button>
         <Link
           href={`mailto:${tenant.email}`}
           className='flex justify-center items-center gap-2 bg-white hover:bg-blue-50 px-4 py-2 border border-secondary rounded-full w-full font-bold text-secondary text-sm transition-colors'
         >
-          <Mail className='w-4 h-4' /> Email
+          <Mail className='w-4 h-4' /> Surel
         </Link>
         <Link
           href={`tel:${tenant.phone}`}
           className='flex justify-center items-center gap-2 bg-white hover:bg-blue-50 px-4 py-2 border border-secondary rounded-full w-full font-bold text-secondary text-sm transition-colors'
         >
-          <Phone className='w-4 h-4' /> Telephone
+          <Phone className='w-4 h-4' /> Telepon
         </Link>
       </div>
     </div>

@@ -4,8 +4,6 @@ import EventDetail from "./content/EventDetail";
 import RegistrationFlow from "./content/RegistrationFlow";
 import Hero from "./content/Hero";
 import { Event } from "@/entities/event/event.entity";
-import { AddToCalendarButton } from "./button/AddToCalendarButton";
-import { ShareButton } from "./button/ShareButton";
 
 
 

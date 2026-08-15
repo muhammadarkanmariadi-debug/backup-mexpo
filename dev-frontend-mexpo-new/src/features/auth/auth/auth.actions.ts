@@ -20,15 +20,15 @@ export async function loginAction(data: LoginFormData): Promise<AuthActionResult
 
 
   if (!data.email || !data.password) {
-    return { success: false, message: 'Email dan password wajib diisi', data: null };
+    return { success: false, message: 'Email dan kata sandi wajib diisi', data: null };
   }
 
   try {
     const result = await login(data);
     if (!result.status) {
-      return { success: false, message: result.message || "Gagal Login", data: null };
+      return { success: false, message: result.message || "Gagal masuk", data: null };
     }
-    return { success: result.status, message: result.message || "Login Sukses", data: result.token };
+    return { success: result.status, message: result.message || "Berhasil masuk", data: result.token };
   } catch {
     return { success: false, message: "Terjadi kesalahan server", data: null };
   }
@@ -43,7 +43,7 @@ export async function registerAction(data: RegisterFormData): Promise<AuthAction
 
 
   if (!email || !password || !name || !phone) {
-    return { success: false, message: 'Field wajib diisi', data: null };
+    return { success: false, message: 'Kolom wajib diisi', data: null };
   }
 
   try {

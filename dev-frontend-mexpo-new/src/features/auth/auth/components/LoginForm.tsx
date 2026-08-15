@@ -76,10 +76,10 @@ export function LoginForm() {
         {/* Header */}
         <div className="flex flex-col gap-2">
           <h1 className="font-extrabold text-secondary text-5xl sm:text-6xl leading-tight">
-            Sign In
+            Masuk
           </h1>
           <p className="font-medium text-gray-500 text-sm sm:text-base">
-            Enter your email and password to continue
+            Masukkan email dan kata sandi Anda untuk melanjutkan
           </p>
         </div>
 
@@ -100,8 +100,8 @@ export function LoginForm() {
                 {...field}
                 type="email"
                 id="email"
-                placeholder="Enter your email"
-                label="Email"
+                placeholder="Masukkan email Anda"
+                label="Surel"
                 error={!!errors.email}
                 hint={errors.email?.message}
               />
@@ -116,8 +116,8 @@ export function LoginForm() {
                 {...field}
                 id="password"
                 type="password"
-                placeholder="Enter your password"
-                label="Password"
+                placeholder="Masukkan kata sandi Anda"
+                label="Kata Sandi"
                 error={!!errors.password}
                 hint={errors.password?.message}
               />
@@ -130,13 +130,13 @@ export function LoginForm() {
               onChange={() => setIsChecked(!isChecked)}
               id="rememberMe"
               checked={isChecked}
-              label="Remember me"
+              label="Ingat saya"
             />
             <Link
               href="/forgot-passwords"
               className="text-secondary hover:underline shrink-0"
             >
-              Forgot password?
+              Lupa kata sandi?
             </Link>
           </div>
 
@@ -148,7 +148,7 @@ export function LoginForm() {
               disabled={isSubmitting}
               className="w-full font-semibold"
             >
-              {isSubmitting ? 'Signing In...' : 'Sign In'}
+              {isSubmitting ? 'Masuk...' : 'Masuk'}
             </Button>
           </div>
 

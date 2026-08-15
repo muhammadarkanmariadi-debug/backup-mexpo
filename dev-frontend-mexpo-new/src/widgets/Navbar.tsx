@@ -6,9 +6,10 @@ import { usePathname } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faBars, faChevronDown, faTimes } from '@fortawesome/free-solid-svg-icons'
-import { UserCircle, LogOut, User, ShieldCheck } from 'lucide-react'
+import { UserCircle, LogOut, User, ShieldCheck, Sun, Moon } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAuthStore } from '@/stores/auth.store'
+import { useTheme } from '@/context/ThemeContext'
 import Button from '@/shared/components/button/Button'
 import { cn } from '@/shared/utils/cn'
 import { logoutAction } from '@/features/auth/auth'
@@ -42,7 +43,8 @@ export default function Navbar() {
   const dropdownRef = useRef<HTMLDivElement>(null)
 
   const pathname = usePathname()
-  const { user, clearUser } = useAuthStore()
+  const { user } = useAuthStore()
+  const { theme, toggleTheme } = useTheme()
 
   const username = user?.full_name
   const userPhoto = user?.photo
@@ -75,6 +77,7 @@ export default function Navbar() {
   }, [])
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- close mobile menu on navigation
     setIsMobileOpen(false)
     setMobileDropdown(null)
   }, [pathname])
@@ -213,6 +216,7 @@ export default function Navbar() {
 
         {/* Right side — user / login */}
         <div className="hidden xl:flex items-center gap-3 xl:mt-9 shrink-0" ref={userMenuRef}>
+     
           {username ? (
             <div className="relative">
               <button
@@ -290,14 +294,14 @@ export default function Navbar() {
                       className="flex items-center gap-2.5 hover:bg-secondary/5 dark:hover:bg-secondary/10 px-4 py-2.5 text-gray-700 dark:text-gray-300 hover:text-secondary text-sm transition-colors"
                     >
                       <User size={15} />
-                      Profile
+                      Profil
                     </Link>
                     <button
                       onClick={handleLogout}
                       className="flex items-center gap-2.5 hover:bg-red-50 dark:hover:bg-red-500/10 px-4 py-2.5 w-full text-red-500 text-sm transition-colors"
                     >
                       <LogOut size={15} />
-                      Logout
+                      Keluar
                     </button>
                   </motion.div>
                 )}
@@ -309,19 +313,28 @@ export default function Navbar() {
               variant="primary"
               className="px-5 py-2 text-sm"
             >
-              Login
+              Masuk
             </Button>
           )}
         </div>
 
-        {/* Hamburger — mobile only */}
-        <button
-          className="xl:hidden flex justify-center items-center border border-neutral-200 dark:border-gray-700 hover:border-secondary/40 rounded-full w-9 h-9 text-gray-600 dark:text-gray-300 bg-white dark:bg-gray-800 transition-all"
-          onClick={() => setIsMobileOpen(!isMobileOpen)}
-          aria-label="Toggle menu"
-        >
-          <FontAwesomeIcon icon={isMobileOpen ? faTimes : faBars} className="text-sm" />
-        </button>
+        {/* Toggle + Hamburger — mobile only */}
+        <div className="xl:hidden flex items-center gap-2">
+          <button
+            onClick={toggleTheme}
+            aria-label={theme === 'dark' ? 'Ubah ke mode terang' : 'Ubah ke mode gelap'}
+            className="flex justify-center items-center border border-neutral-200 dark:border-gray-700 hover:border-secondary/40 rounded-full w-9 h-9 text-gray-600 dark:text-gray-300 bg-white dark:bg-gray-800 transition-all"
+          >
+            {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+          </button>
+          <button
+            className="xl:hidden flex justify-center items-center border border-neutral-200 dark:border-gray-700 hover:border-secondary/40 rounded-full w-9 h-9 text-gray-600 dark:text-gray-300 bg-white dark:bg-gray-800 transition-all"
+            onClick={() => setIsMobileOpen(!isMobileOpen)}
+            aria-label="Toggle menu"
+          >
+            <FontAwesomeIcon icon={isMobileOpen ? faTimes : faBars} className="text-sm" />
+          </button>
+        </div>
       </div>
 
       {/* ── Mobile Menu ── */}
@@ -335,8 +348,6 @@ export default function Navbar() {
             className="xl:hidden bg-white dark:bg-gray-900 shadow-lg border-t border-neutral-100 dark:border-gray-800 overflow-hidden"
           >
             <div className="space-y-1 px-5 py-4">
-              =
-
               {/* User info / Login */}
               {username ? (
                 <div className="bg-gradient-to-r from-secondary/10 to-secondary/5 dark:from-secondary/15 dark:to-secondary/5 mb-4 p-3 border border-secondary/20 dark:border-secondary/30 rounded-2xl">
@@ -368,19 +379,19 @@ export default function Navbar() {
                       onClick={() => setIsMobileOpen(false)}
                       className="flex flex-1 justify-center items-center gap-1.5 bg-white dark:bg-gray-800 hover:bg-secondary/5 dark:hover:bg-secondary/10 px-3 py-1.5 border border-secondary/30 rounded-full font-semibold text-secondary text-xs transition-colors"
                     >
-                      <User size={12} /> Profile
+                      <User size={12} /> Profil
                     </Link>
                     <button
                       onClick={handleLogout}
                       className="flex flex-1 justify-center items-center gap-1.5 bg-white dark:bg-gray-800 hover:bg-red-50 dark:hover:bg-red-500/10 px-3 py-1.5 border border-red-200 dark:border-red-500/30 rounded-full font-semibold text-red-500 text-xs transition-colors"
                     >
-                      <LogOut size={12} /> Logout
+                      <LogOut size={12} /> Keluar
                     </button>
                   </div>
                 </div>
               ) : (
                 <Button href="/auth" variant="primary" className="mb-4 py-2.5 w-full text-sm">
-                  Login
+                  Masuk
                 </Button>
               )}
 

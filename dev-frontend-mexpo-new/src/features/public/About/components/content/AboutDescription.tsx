@@ -16,7 +16,7 @@ import { CalendarCheck2, UserCheck, QrCode, BarChart3 } from "lucide-react";
 const stats = [
   { value: 120, suffix: "+", label: "Event & Expo", icon: CalendarCheck2 },
   { value: 3500, suffix: "+", label: "Pengguna Aktif", icon: UserCheck },
-  { value: 50000, suffix: "+", label: "Scan QR Check-in", icon: QrCode },
+  { value: 50000, suffix: "+", label: "Pindai QR Check-in", icon: QrCode },
   { value: 15, suffix: "+", label: "Modul & Fitur", icon: BarChart3 },
 ];
 

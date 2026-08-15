@@ -8,23 +8,23 @@ const AdditionalInfo = () => {
   const AdditionalInfo = [
     {
       id: 1,
-      title: "Customer Support",
+      title: "Dukungan Pelanggan",
       description:
-        "Aliquam erat volutpat. Integer malesuada turpis id fringilla suscipit. Maecenas ultrices.",
+        "Tim kami siap membantu Anda kapan saja, dari persiapan hingga hari pelaksanaan acara.",
       icon: <Phone className="w-5 h-5 sm:w-6 sm:h-6 font-semibold text-white" />,
     },
     {
       id: 2,
-      title: "Best Price Guarantted",
+      title: "Harga Terbaik Dijamin",
       description:
-        "Aliquam erat volutpat. Integer malesuada turpis id fringilla suscipit. Maecenas ultrices.",
+        "Solusi penyelenggaraan event yang terjangkau tanpa mengorbankan kualitas fitur.",
       icon: <TagIcon className="w-5 h-5 sm:w-6 sm:h-6 font-semibold text-white" />,
     },
     {
       id: 3,
-      title: "Many Locations",
+      title: "Banyak Lokasi",
       description:
-        "Aliquam erat volutpat. Integer malesuada turpis id fringilla suscipit. Maecenas ultrices.",
+        "Mendukung berbagai lokasi acara dan jenis penyelenggaraan, dari expo hingga seminar.",
       icon: <MapIcon className="w-5 h-5 sm:w-6 sm:h-6 font-semibold text-white" />,
     },
   ];
@@ -32,15 +32,15 @@ const AdditionalInfo = () => {
     <section className="bg-white py-10 sm:py-14 md:py-16 lg:py-20">
       <div className="mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
         <ContentTitle1
-          title="Exhibition"
-          spanText="Registration System"
-          description="A centralized platform for managing exhibition access, booth visits, seminars, and workshops using a single QR code.  "
+          title="Sistem"
+          spanText="Registrasi Pameran"
+          description="Platform terpusat untuk mengelola akses pameran, kunjungan booth, seminar, dan lokakarya hanya dengan satu QR code."
         />
         <div className="items-center gap-6 sm:gap-8 md:gap-10 lg:gap-12 grid grid-cols-1 md:grid-cols-2">
           <div className="bg-secondary rounded-2xl w-full max-w-full aspect-square sm:aspect-auto sm:h-72 md:h-80 lg:h-[32rem] xl:h-[32rem]">
             <Image
               src={"/images/carousel/carousel-01.png"}
-              alt="pattern"
+              alt="Ilustrasi pola"
               width={600}
               height={200}
               className="rounded-2xl w-full h-full object-cover"

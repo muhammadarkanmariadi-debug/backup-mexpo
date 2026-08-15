@@ -36,15 +36,17 @@ Tailwind **v4 CSS-first** — there is **no `tailwind.config.ts`**. Tokens are C
 | `--gray-*` (25→950) | full scale | text, borders, surfaces |
 | `--brand-*` (25→950) | full scale | brand tints |
 | `--success` / `--error` / `--warning` / `--orange` / `--blue-light` | scales | status/feedback |
+| `--teal-50/100/600/700` | scales | **tenant / booth identity accents** (deliberate, tokenized) |
+| `--fuchsia-50/100/600/700` | scales | **souvenir / gift accents** (deliberate, tokenized) |
 | shadcn vars | `--background/--foreground/--card/--primary/--secondary/--radius/--sidebar-*` | base tokens |
 
 > Verified values: `--color-primary: #ffffff`, `--color-secondary: #3c85f3`, `--color-brand-500: #3c85f3`, `--color-brand-600: #3641f5`.
 
 ### 2.2 Typography
-- **Declared but NOT loaded:** `--font-outfit: Outfit, sans-serif` — `<body>` uses `font-outfit` but Outfit is never imported → silently falls back to `sans-serif`. ⚠️
-- **Loaded via Google Fonts `@import`:** `Plus Jakarta Sans` and `Public Sans`.
-- ⚠️ Mismatch: `--font-jakarta: "Jakarta Sans"` references a family that is **not** the imported `Plus Jakarta Sans`; the `font-jakarta` utility won't match the loaded font.
-- **Root layout** loads `Geist` + `Geist_Mono` via `next/font` (CSS vars) — effectively unused for body text.
+- **Outfit** (`--font-outfit`) is loaded via Google Fonts `@import` and applied to `<body>` (`@apply … font-outfit`) — it is the brand/body font. Outfit is **not** loaded via `next/font`, but the CSS @import makes it available.
+- **Loaded via Google Fonts `@import`:** `Plus Jakarta Sans`, `Public Sans`, and `Outfit`.
+- `--font-jakarta: "Plus Jakarta Sans"` — correctly named and matches the loaded family (used for secondary text, e.g. agenda subtitles).
+- **Root layout** also loads `Geist` + `Geist_Mono` via `next/font` (CSS vars) — effectively unused for body text.
 - Custom text scale in `@theme`: `--text-title-2xl: 72px` down to `--text-theme-xs: 12px` (template-derived names like `title-*`, `theme-*`).
 
 ### 2.3 Breakpoints (custom)
@@ -57,8 +59,10 @@ shadcn `--radius` token present; `tw-animate-css` enables animation utilities; `
 `--shadow-theme-*` scale; custom `@utility` classes: `menu-item*`, `menu-dropdown-*`, `no-scrollbar`, `custom-scrollbar`.
 
 ### 2.6 Dark Mode
-- `ThemeContext` (light/dark/system) exists but is **never mounted**; root layout imports `ThemeProvider`/`useTheme` without using them; navbar `ThemeSwitcherIcon` is commented out.
-- → **Dark mode is dead code.** The `.dark` CSS block is not reachable at runtime.
+- `ThemeProvider` (`src/context/ThemeContext.tsx`) is **mounted in the root layout** and persists the choice to `localStorage`.
+- **Opt-in, defaults to light** — the theme is never auto-selected from the OS, so existing light styling is unchanged until the user toggles.
+- Toggle buttons live in the `Navbar` (desktop right-side cluster + mobile bar).
+- The `.dark` token block and the pervasive `dark:*` utilities in `globals.css` are now reachable at runtime via the `.dark` class on `<html>` (`@custom-variant dark`).
 
 ### 2.7 Legacy CSS
 `globals.css` (951 lines) also contains styling for **flatpickr, FullCalendar (.fc), Swiper, jVectorMap, ApexCharts** — none of which are dependencies. This is leftover TailAdmin-style template CSS; **do not assume those libraries are available**.
@@ -68,14 +72,17 @@ shadcn `--radius` token present; `tw-animate-css` enables animation utilities; `
 ## 3. Component Library & Reusable UI Patterns
 
 ### 3.1 Primitives (`src/components/ui/`)
-- `button.tsx` — shadcn-style, `class-variance-authority` variants + `radix-ui` `Slot.Root` (asChild)
-- `select.tsx` — full Radix Select primitive
-- `pagination.tsx` — wraps `Button`
+- `pagination.tsx` — self-contained shadcn-style pagination (no longer depends on `ui/button`).
+- **Retired primitives:** `button.tsx` and `select.tsx` were removed — there is exactly **one button primitive** (`src/shared/components/button/Button`) and selects use native `<select>` (including the page-size picker inside `DataPagination`).
 
 > ⚠️ No `components.json`, no shadcn CLI registry. Missing common shadcn primitives (Dialog, AlertDialog, Badge, Skeleton, Card, Input) are **not** present — the codebase uses its own shared components instead.
 
 ### 3.2 Shared components (`src/shared/components/`)
-- `button/Button.tsx` — primary/secondary/ghost variants; renders `<a>` when `href` given
+- `button/Button.tsx` — primary/secondary/ghost/outline/danger/success variants, sizes `xs`/`sm`/`md`; renders `<a>` when `href` given
+- `ui/PageHeader` — standardized dashboard page header (title/subtitle/icon/action/align); replaces the hand-rolled `<h1>` blocks
+- `ui/HeroBanner` — shared hero (image + centered overlay) used by `EventHero` and the dashboard `Eventlist`
+- `qr/QrScanPanel` + `hooks/useQrScanner` + `lib/hooks/useResolveQr` — shared QR scan/search panel for check-in, booth, souvenir (and `resolveQr` via TanStack mutation)
+- `data/chart-colors` — single chart palette source (`CHART_COLORS`, `CHART_PRIMARY`, `CHART_SUCCESS`) as CSS-var tokens
 - `Input` (with password toggle + textarea), `Checkbox`, `SearchBar`, `Card`
 - `ContentTitle1` / `ContentTitle2` — section headings
 - `Tabs`, `LoadingSpinner`, `DashboardCard`
@@ -92,7 +99,7 @@ shadcn `--radius` token present; `tw-animate-css` enables animation utilities; `
 1. **Server components for data pages** — pages call service functions directly (e.g. `getEvents`, `getEventByUuid`) with fetch cache presets (`META_DYNAMIC/ISR/STATIC/TAGGED` in `http-meta.ts`).
 2. **Client components for interaction** — `"use client"` + hooks; form validation via `react-hook-form` + zod resolver.
 3. **Error fallback pattern** — `ErrorPage` component keyed on `status`/`code`.
-4. **Toasts** via `sonner` (⚠ only mounted in `AuthTemplate` today).
+4. **Toasts** via `sonner` — `<Toaster/>` is mounted **once in the root layout** (not per template); every flow may `toast.` freely.
 5. **Icons** — lucide-react primarily; fontawesome only in Navbar/SearchBar/Hero.
 6. **Animation** — `framer-motion` for hero/section reveals; `embla-carousel` for event carousels (autoplay via `useCarousel.ts`).
 
@@ -105,16 +112,25 @@ shadcn `--radius` token present; `tw-animate-css` enables animation utilities; `
 |---|---|
 | `/` | Hero + category filter + Upcoming/OnGoing/Past carousels (`Events.tsx`) |
 | `/event/[uuid]` | Hero + static "Registration Flow" + tabs: Info/Agenda/Speakers/Sponsors/Contact/Workshop/Tenant |
-| `/about` | Marketing page (⚠ currently fails type-check — broken imports) |
+| `/about` | Marketing page |
 | `/contact` | Static form (fake submit) + leaflet map |
 | `/faq` | Accordion from `faq.data.ts` |
 | `/auth` | Login/Register tabs, `MexpoCard` brand panel |
 | `/verify-email` | Token auto-verify on mount |
-| `/dashboard` | My Events list + search + pagination |
-| `/dashboard/[uuid]` | Role-dispatched view (Owner/Committee/Tenant/Visitor) — read-only event detail |
+| `/dashboard` | My Events list + server search/pagination + client status/type/sort |
+| `/dashboard/[uuid]` | Role-dispatched view (Owner/Committee/Tenant/Visitor) — tab-driven (Overview, Kelola, Registrasi, Check-in, Souvenir, Tenant, Verifikasi, Tim, Attendance, Workshop, Laporan) |
+| `/dashboard/[uuid]/badge` | Printable ID badge (QR) |
+| `/dashboard/[uuid]/certificates` | My workshop certificates |
+| `/dashboard/[uuid]/booth-checkin` | Tenant booth QR scan |
+| `/dashboard/[uuid]/apply/speaker` , `/apply/tenant` | Speaker / tenant application forms |
+| `/dashboard/create` | Create event form |
+| `/dashboard/approvals` , `/dashboard/users` , `/dashboard/tenant-categories` | Super-admin pages |
+| `/profile` | Profile edit (Navbar dropdown) |
+| `/forgot-passwords` (+ `/reset-password`) | Password reset |
+| `/privacy-policy` , `/terms` | Legal pages (public) |
 
 ### Dead links (referenced in code/UI, route does not exist — all 404)
-`/onsite-register/[uuid]`, `/dashboard/[uuid]/register`, `/dashboard/[uuid]/tenant-list`, `/dashboard/[uuid]/edit`, `/dashboard/[uuid]/rundown`, `/events/committee/create`, `/profile`, `/forgot-passwords`, `/organizer/*`, `/privacy-policy`, `/terms`, `/report`, `/dashboard/qr-code`, `/dashboard/certificates`.
+`/onsite-register/[uuid]`, `/events/committee/create`, `/organizer/*`, `/dashboard/[uuid]/rundown`, `/dashboard/[uuid]/edit`, `/dashboard/[uuid]/tenant-list`, `/dashboard/qr-code`, `/report`.
 
 > These are the UI affordances for the **unbuilt** flows (registration, tenant portal, check-in, QR, certificates). Do not add routes blindly — they imply backend features that are `[PLANNED]` (see PRD §7).
 
@@ -129,17 +145,19 @@ shadcn `--radius` token present; `tw-animate-css` enables animation utilities; `
 
 ## 6. Inconsistencies & Risks (`> ⚠️`)
 
-> ⚠️ **CONTRADICTION (fonts):** the design intends `Outfit` as the body font (`--font-outfit`, applied on `<body>`), but Outfit is never loaded — users see `sans-serif` fallback. `--font-jakarta` is named wrong for the imported `Plus Jakarta Sans`.
+> ✅ **RESOLVED (fonts):** Outfit is loaded via Google Fonts `@import` and applied on `<body>` (`font-outfit`); `--font-jakarta: "Plus Jakarta Sans"` matches the loaded family.
 
-> ⚠️ **CONTRADICTION (dark mode):** a full theme system exists (context + CSS) but is not wired into any layout or toggle. Any dark-mode work starts from dead code.
+> ✅ **RESOLVED (dark mode):** `ThemeProvider` is mounted in the root layout (opt-in, light default) with Navbar toggles; the `.dark` tokens/utilities are live.
 
-> ⚠️ **CONTRADICTION (dashboard layout):** `(dashboard)/layout.tsx` renders `PublicTemplate` (public navbar + footer), not a dashboard shell — there is no sidebar. The "dashboard" currently looks like the public site.
+> ⚠️ **NOTE (dashboard layout):** `(dashboard)/layout.tsx` is a **server component with an auth guard** (reads the httpOnly `token` cookie, redirects to `/auth`) that deliberately re-renders the public `Navbar` + `Footer` on a white surface. It intentionally does **not** reuse `PublicTemplate` (different text color + main padding). There is still no dashboard sidebar — acceptable for the current read-only dashboard stage.
 
-> ⚠️ **CONTRADICTION (toasts):** `sonner` is used throughout but `<Toaster/>` is mounted only in `AuthTemplate`; toasts on public + dashboard pages are dropped silently.
+> ✅ **RESOLVED (toasts):** `<Toaster/>` is mounted once in the root layout (`src/app/layout.tsx`).
 
-> ⚠️ **Type-check failure:** the repo does not compile (`npx tsc --noEmit` fails in `About/StatCard`, `About/Testimonial`, `chunkArray`). Fix these before any `next build`.
+> ✅ **Type-check:** `npx tsc --noEmit` passes with 0 errors (FIX-06) — verified on every change.
 
-> ⚠️ **Stale data:** `getEventByUuid` / `getEventByUuidByMe` use `force-cache`; `router.refresh()` after publish/delete may not bust the fetch cache.
+> ⚠️ **Cache:** the public detail fetcher uses `META_ISR(60)` (FIX-21); mutation handlers call `router.refresh()` / `list.refetch()` (`useList`) — no `force-cache` on user-owned lists.
+
+> ⚠️ **Known:** `Eventlist` filters status/type and sorts **client-side** because `GET /events/me` only supports `page`/`quantity`/`search` (see TANSTACK-QUERY.md §3.6).
 
 ---
 
@@ -149,7 +167,7 @@ shadcn `--radius` token present; `tw-animate-css` enables animation utilities; `
 2. **Keep the server/client split** — pages are server components; interactive bits are client components; forms = RHF + zod.
 3. **Reuse shared components** (`src/shared/components/`) before adding new shadcn primitives; there is no `components.json`.
 4. **Respect the widget-driven direction (docx)** — for new public-page work, prefer small composable section components over monolithic pages so a future config-driven registry can consume them.
-5. **Do not mount a second `<AuthProvider>`** — it's already mounted in root layout (and duplicated in `PublicTemplate` — fix the duplication rather than adding more).
-6. **Wire toasts globally** (e.g. mount `<Toaster/>` once in root layout) before building UX that relies on them.
-7. **Fonts:** if the design intends Outfit, load it (next/font or Google) — don't rely on the declared-but-unloaded var.
+5. **Do not mount a second `<AuthProvider>`** — it's mounted in the root layout.
+6. **Toasts are global** — `<Toaster/>` lives in the root layout; `toast.` anywhere is fine.
+7. **Fonts:** body font is `font-outfit` (Outfit via Google Fonts `@import`); don't rely on `next/font` Geist for body text.
 8. **Every new route needs a real backend contract first** — see `docs/RULES.md` and `docs/ARCHITECTURE.md` §4 before scaffolding pages.

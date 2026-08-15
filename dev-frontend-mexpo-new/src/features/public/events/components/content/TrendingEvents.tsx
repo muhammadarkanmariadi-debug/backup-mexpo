@@ -46,7 +46,7 @@ export default function TrendingEvents({ events }: TrendingEventsProps) {
   return (
     <section className="mt-16 mb-8 px-4 sm:px-6 md:px-8 mx-auto max-w-7xl">
       <ContentTitle2 
-        category="TRENDING"
+        category="TERLARIS"
         title="Mungkin Kamu Sukai"
       />
 

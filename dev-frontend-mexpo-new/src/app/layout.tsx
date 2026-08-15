@@ -5,6 +5,7 @@ import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
 import { AuthProvider } from '@/context/AuthContext';
+import { ThemeProvider } from '@/context/ThemeContext';
 import QueryProvider from '@/lib/providers/QueryProvider';
 import { Toaster } from 'sonner';
 
@@ -40,9 +41,11 @@ export default function RootLayout({
       <QueryProvider>
         <AuthProvider>
           <body className="flex flex-col min-h-full">
-            {children}
-            {/* Global toasts (FIX-15) — mounted once here, not per template. */}
-            <Toaster richColors position="top-left" />
+            <ThemeProvider>
+              {children}
+              {/* Global toasts (FIX-15) — mounted once here, not per template. */}
+              <Toaster richColors position="top-left" />
+            </ThemeProvider>
           </body>
         </AuthProvider>
       </QueryProvider>

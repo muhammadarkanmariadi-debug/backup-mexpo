@@ -8,7 +8,9 @@ import { useApiQuery } from "@/lib/hooks/useApi";
 import { keys } from "@/lib/query-keys";
 import { getMyQr, MyQr } from "@/services/qr.service";
 import { dateFormat } from "@/shared/utils/format";
-import BackLink from "@/features/dashboard/shared/BackLink";
+import PageHeader from "@/shared/components/ui/PageHeader";
+import PageShell from "@/shared/components/ui/PageShell";
+import { labelFor, ROLE_LABELS } from "@/shared/data/labels";
 
 export default function BadgePage({ event }: { event: Event }) {
   const { user } = useAuthStore();
@@ -21,12 +23,8 @@ export default function BadgePage({ event }: { event: Event }) {
   const role = user?.role === "SUPERADMIN" ? "SUPERADMIN" : "VISITOR";
 
   return (
-    <div className="mx-auto max-w-md px-4 py-8">
-      <BackLink href={`/dashboard/${event.slug ?? event.uuid}`} />
-      <div className="mb-6 text-center">
-        <h1 className="text-xl font-bold text-gray-900">ID Badge</h1>
-        <p className="text-sm text-gray-500">{event.name}</p>
-      </div>
+    <PageShell className="py-8">
+      <PageHeader title="ID Badge" subtitle={event.name} align="center" />
 
       {loading ? (
         <div className="flex justify-center py-16">
@@ -57,7 +55,7 @@ export default function BadgePage({ event }: { event: Event }) {
             <p className="mt-3 text-lg font-bold text-gray-900">{user?.full_name}</p>
             <p className="text-xs text-gray-500">{user?.email}</p>
             <span className="mt-2 rounded-full bg-brand-50 px-3 py-0.5 text-xs font-semibold uppercase text-brand-600">
-              {role}
+              {labelFor(ROLE_LABELS, role, role)}
             </span>
             {qr && (
               // eslint-disable-next-line @next/next/no-img-element
@@ -73,6 +71,6 @@ export default function BadgePage({ event }: { event: Event }) {
       >
         <Printer className="h-4 w-4" /> Cetak Badge
       </button>
-    </div>
+    </PageShell>
   );
 }

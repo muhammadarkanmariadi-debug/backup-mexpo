@@ -34,7 +34,7 @@ const Hero = () => {
         </div>
 
         {/* Content - relative to dictate height */}
-        <div className="relative flex flex-col justify-center gap-4 sm:gap-5 px-5 sm:px-8 lg:px-14 py-12 md:py-16 lg:py-20 max-w-3xl text-left text-white min-h-[320px] md:min-h-[384px]">
+        <div className="relative flex flex-col justify-center gap-4 sm:gap-5 px-5 sm:px-8 lg:px-14 py-12 md:py-16 lg:py-20 max-w-7xl text-left text-white min-h-[320px] md:min-h-[384px]">
           <p className="font-jakarta text-xs sm:text-sm md:text-base text-white/85">
             Platform Manajemen Event &amp; Expo
           </p>

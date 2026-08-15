@@ -1,22 +1,19 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
-import { motion } from "framer-motion";
 import { Frown, Loader2, Plus, ShieldCheck, Users } from "lucide-react";
 
 import { useAuthStore } from "@/stores/auth.store";
-import { useApiQuery } from "@/lib/hooks/useApi";
-import { keys } from "@/lib/query-keys";
-import { queryClient } from "@/lib/query-client";
-
+import { useList } from "@/shared/hooks/useList";
 import { DataPagination } from "@/shared/components/ui/DataPagination";
 import SearchBar from "@/shared/components/form/SearchBar";
+import HeroBanner from "@/shared/components/ui/HeroBanner";
 
 import { Event, EventStatus, EventType } from "@/entities/event/event.entity";
 import { getMyEvents } from "@/services/public.service";
 import DashboardCard from "@/shared/components/cards/DashboardCard";
+import { EVENT_STATUS_LABELS, EVENT_TYPE_LABELS, labelFor } from "@/shared/data/labels";
 
 const EVENT_STATUS_FILTERS: Array<EventStatus | "ALL"> = [
   "ALL",
@@ -43,128 +40,89 @@ export default function EventList() {
   const user = useAuthStore((s) => s.user);
   const isSuperAdmin = user?.role === "SUPERADMIN";
 
-  const [search, setSearch] = useState("");
+  // Server-backed list: page / quantity / search go to the backend
+  // (GET /events/me supports page, quantity, search). Status, type and sort
+  // are NOT backend query params, so they stay as client-side refinements.
+  const list = useList<Event>((q) => getMyEvents(q), []);
+
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const [typeFilter, setTypeFilter] = useState<string>("ALL");
   const [sortBy, setSortBy] = useState<"latest" | "name_asc" | "name_desc">("latest");
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
 
-  // TanStack Query — server-backed fetch with automatic cache + refetch.
-  const { data: events, isLoading: loading } = useApiQuery<Event[]>(
-    keys.events.my({}),
-    () => getMyEvents(),
-  );
-
-  const filtered = useMemo(
-    () =>
-      (events ?? []).filter((e) => {
-        const matchSearch = e.name.toLowerCase().includes(search.toLowerCase());
-        const matchStatus = statusFilter === "ALL" || e.status === statusFilter;
-        const matchType = typeFilter === "ALL" || e.event_type === typeFilter;
-        return matchSearch && matchStatus && matchType;
-      }),
-    [events, search, statusFilter, typeFilter],
-  );
-
-  const sorted = useMemo(() => {
-    const next = [...filtered];
-    if (sortBy === "name_asc") return next.sort((a, b) => a.name.localeCompare(b.name));
-    if (sortBy === "name_desc") return next.sort((a, b) => b.name.localeCompare(a.name));
-    return next.sort((a, b) => (b.created_at ?? "").localeCompare(a.created_at ?? "")); // latest first
-  }, [filtered, sortBy]);
-
-  const totalPages = Math.ceil(sorted.length / itemsPerPage);
-  const paginated = sorted.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
+  const visible = useMemo(() => {
+    const filtered = (list.items ?? []).filter((e) => {
+      const matchStatus = statusFilter === "ALL" || e.status === statusFilter;
+      const matchType = typeFilter === "ALL" || e.event_type === typeFilter;
+      return matchStatus && matchType;
+    });
+    if (sortBy === "name_asc") return [...filtered].sort((a, b) => a.name.localeCompare(b.name));
+    if (sortBy === "name_desc") return [...filtered].sort((a, b) => b.name.localeCompare(a.name));
+    return [...filtered].sort((a, b) => (b.created_at ?? "").localeCompare(a.created_at ?? "")); // latest first
+  }, [list.items, statusFilter, typeFilter, sortBy]);
 
   // Refresh after a DashboardCard photo update (data mutation → refetch).
-  const handlePhotoUpdated = () =>
-    queryClient.invalidateQueries({ queryKey: keys.events.my({}) });
+  const handlePhotoUpdated = () => list.refetch();
 
   return (
     <div className="pb-20">
-      {/* ── Hero banner ── */}
-      <motion.div
-        className="relative mb-12 mt-0 lg:mt-10"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-      >
-        <Image
-          src="/images/cards/card-e.png"
-          alt="Events banner"
-          width={1800}
-          height={1000}
-          loading="eager"
-          className="w-full h-100 md:h-80 object-cover rounded-2xl"
-        />
-     
+      {/* ── Hero ── */}
+      <HeroBanner>
+        <h1 className="font-extrabold text-4xl sm:text-5xl md:text-6xl leading-tight">
+          Event Saya
+        </h1>
+        {/* Tombol create untuk semua user yang sudah login */}
+        <Link
+          href="/dashboard/create"
+          className="inline-flex items-center gap-2 bg-white text-secondary font-semibold text-sm px-5 py-2.5 rounded-xl hover:scale-[1.02] active:scale-95 transition-all duration-200 shadow-md"
+        >
+          <Plus className="w-4 h-4" />
+          Buat Event
+        </Link>
 
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-5 px-4 text-white text-center">
-          <h1 className="font-extrabold text-4xl sm:text-5xl md:text-6xl leading-tight">
-            My Events
-          </h1>
-          {/* Tombol create untuk semua user yang sudah login */}
-          <Link
-            href="/dashboard/create"
-            className="inline-flex items-center gap-2 bg-white text-blue-600 font-semibold text-sm px-5 py-2.5 rounded-xl hover:scale-[1.02] active:scale-95 transition-all duration-200 shadow-md"
-          >
-            <Plus className="w-4 h-4" />
-            Create Event
-          </Link>
-
-          {/* Link admin hanya untuk SUPERADMIN */}
-          {isSuperAdmin && (
-            <div className="flex flex-wrap items-center justify-center gap-3">
-              <Link
-                href="/dashboard/approvals"
-                className="inline-flex items-center gap-2 bg-white/95 text-blue-600 font-semibold text-sm px-5 py-2.5 rounded-xl hover:scale-[1.02] active:scale-95 transition-all duration-200 shadow-md"
-              >
-                <ShieldCheck className="w-4 h-4" />
-                Approvals
-              </Link>
-              <Link
-                href="/dashboard/users"
-                className="inline-flex items-center gap-2 bg-white/95 text-blue-600 font-semibold text-sm px-5 py-2.5 rounded-xl hover:scale-[1.02] active:scale-95 transition-all duration-200 shadow-md"
-              >
-                <Users className="w-4 h-4" />
-                User Management
-              </Link>
-            </div>
-          )}
-        </div>
-      </motion.div>
+        {/* Link admin hanya untuk SUPERADMIN */}
+        {isSuperAdmin && (
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            <Link
+              href="/dashboard/approvals"
+              className="inline-flex items-center gap-2 bg-white/95 text-secondary font-semibold text-sm px-5 py-2.5 rounded-xl hover:scale-[1.02] active:scale-95 transition-all duration-200 shadow-md"
+            >
+              <ShieldCheck className="w-4 h-4" />
+              Persetujuan
+            </Link>
+            <Link
+              href="/dashboard/users"
+              className="inline-flex items-center gap-2 bg-white/95 text-secondary font-semibold text-sm px-5 py-2.5 rounded-xl hover:scale-[1.02] active:scale-95 transition-all duration-200 shadow-md"
+            >
+              <Users className="w-4 h-4" />
+              Manajemen Pengguna
+            </Link>
+          </div>
+        )}
+      </HeroBanner>
 
       {/* ── Content ── */}
       <div className="bg-white rounded-2xl px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
-          <h2 className="text-xl font-semibold text-gray-900">Event Dashboard</h2>
+          <h2 className="text-xl font-semibold text-gray-900">Dasbor Event</h2>
           <p className="text-sm text-gray-500 mt-1">
-            Manage and track all your events in one place
+            Kelola dan pantau semua event Anda dalam satu tempat
           </p>
         </div>
 
-        {!loading && (events ?? []).length > 0 && (
+        {!list.loading && (list.items ?? []).length > 0 && (
           <div className="space-y-3">
             <div className="flex flex-wrap items-center gap-3">
               <div className="min-w-[200px] flex-1">
                 <SearchBar
-                  search={search}
-                  setSearch={(val) => {
-                    setSearch(val);
-                    setCurrentPage(1);
-                  }}
-                  placeholder="Search events..."
+                  search={list.search}
+                  setSearch={list.applySearch}
+                  placeholder="Cari event..."
                 />
               </div>
               <select
                 value={sortBy}
                 onChange={(e) => {
                   setSortBy(e.target.value as typeof sortBy);
-                  setCurrentPage(1);
                 }}
                 className="h-10 rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-700"
               >
@@ -179,31 +137,25 @@ export default function EventList() {
               {EVENT_STATUS_FILTERS.map((s) => (
                 <button
                   key={s}
-                  onClick={() => {
-                    setStatusFilter(s);
-                    setCurrentPage(1);
-                  }}
+                  onClick={() => setStatusFilter(s)}
                   className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
                     statusFilter === s
                       ? "bg-secondary text-white"
                       : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                   }`}
                 >
-                  {s === "ALL" ? "Semua" : s}
+                  {s === "ALL" ? "Semua" : labelFor(EVENT_STATUS_LABELS, s, s)}
                 </button>
               ))}
               <select
                 value={typeFilter}
-                onChange={(e) => {
-                  setTypeFilter(e.target.value);
-                  setCurrentPage(1);
-                }}
+                onChange={(e) => setTypeFilter(e.target.value)}
                 className="ml-auto h-9 rounded-lg border border-gray-200 bg-white px-3 text-xs text-gray-600"
               >
                 <option value="ALL">Semua Tipe Event</option>
                 {EVENT_TYPE_FILTERS.map((t) => (
                   <option key={t} value={t}>
-                    {t.replace(/_/g, " ")}
+                    {labelFor(EVENT_TYPE_LABELS, t, t)}
                   </option>
                 ))}
               </select>
@@ -212,14 +164,14 @@ export default function EventList() {
         )}
 
         <div className="mt-6 flex flex-col gap-2">
-          {loading ? (
+          {list.loading ? (
             <div className="flex flex-col items-center justify-center py-24 text-gray-400">
               <Loader2 className="w-7 h-7 animate-spin mb-3" />
-              <p className="text-sm">Loading events...</p>
+              <p className="text-sm">Memuat event...</p>
             </div>
-          ) : paginated.length > 0 ? (
+          ) : visible.length > 0 ? (
             <>
-              {paginated.map((item) => (
+              {visible.map((item) => (
                 <DashboardCard
                   key={item.uuid}
                   data={item}
@@ -228,14 +180,14 @@ export default function EventList() {
               ))}
               <div className="mt-4">
                 <DataPagination
-                  currentPage={currentPage}
-                  totalPages={totalPages}
-                  itemsPerPage={itemsPerPage}
-                  totalItems={filtered.length}
-                  onPageChange={setCurrentPage}
+                  currentPage={list.page}
+                  totalPages={list.totalPages}
+                  itemsPerPage={list.pageSize}
+                  totalItems={list.total}
+                  onPageChange={list.setPage}
                   onItemsPerPageChange={(size) => {
-                    setItemsPerPage(size);
-                    setCurrentPage(1);
+                    list.setPageSize(size);
+                    list.setPage(1);
                   }}
                 />
               </div>
@@ -244,7 +196,7 @@ export default function EventList() {
             <div className="flex flex-col items-center justify-center py-24 text-gray-400">
               <Frown className="w-10 h-10 mb-3" />
               <p className="text-sm">
-                {search
+                {list.search || statusFilter !== "ALL" || typeFilter !== "ALL"
                   ? "Tidak ada event yang cocok dengan pencarianmu."
                   : "Belum ada event."}
               </p>

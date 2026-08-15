@@ -60,7 +60,8 @@ const Checkbox: React.FC<CheckboxProps> = ({
           >
             <path
               d="M11.6666 3.5L5.24992 9.91667L2.33325 7"
-              stroke="#E4E7EC"
+              stroke="currentColor"
+              className="text-gray-200"
               strokeWidth="2.33333"
               strokeLinecap="round"
               strokeLinejoin="round"

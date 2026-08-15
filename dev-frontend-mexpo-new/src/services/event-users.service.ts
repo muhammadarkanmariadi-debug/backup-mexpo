@@ -7,6 +7,8 @@ export interface EventUser {
   role: "OWNER" | "COMMITTEE" | "TENANT" | "VISITOR";
   status: "PENDING" | "APPROVED" | "REJECTED";
   user: { uuid: string; full_name: string; email: string; photo: string };
+  /** A8 — dynamic custom-form answers for this user on this event (VISITOR only). */
+  registrationAnswers?: { field_key: string; label: string; value: string }[];
 }
 
 export async function getEventUsers(

@@ -23,7 +23,7 @@ export default function SortMenu({
   sortBy,
   sortDir,
   onChange,
-  defaultLabel = "Sort",
+  defaultLabel = "Urutkan",
 }: Props) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);

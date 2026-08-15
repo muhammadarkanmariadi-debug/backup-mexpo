@@ -33,6 +33,7 @@
 | **Sprint 5** | Tenant & POS | B4, A13, A14, B5 |
 | **Sprint 6** | Souvenir & Engagement | A5, A6, A9, A10 |
 | **Sprint 7** | Reporting & Monetization | A16, A17, A15, A11, A12, A19, A20 |
+| **Sprint 8** | Frontend Consistency & Modularity Refactor | REF-01…REF-07 (below) |
 
 > Ordering rationale: blockers first (Sprint 0), then fix bugs in already-implemented features (Sprint 1 — do this before building new features on top of broken foundations), then event core (config/lifecycle) because almost everything else depends on it; then visitor journey; then on-site tooling (QR/POS); monetization last.
 
@@ -773,4 +774,74 @@ A story is **Done** only when **all** of these hold:
 - **Tenant reports/export:** new **"Laporan"** tab in the tenant portal (my booth visitors / transactions / amount + recharts bar) + **tenant-scoped export** `GET /reports/export/:event_id/tenant/:tenant_id` (only that tenant's rows).
 - **A5 `minTransaction`:** migration `add_transaction_visitor` (`tenant_transactions.visitor_id` FK); POS tab now has an **optional visitor QR scan**; `souvenir-rules.ts` evaluates `minTransaction` (sum of the visitor's transactions); **EventForm now exposes souvenir rules** (minVisitedBooth, minTransaction, joinedSeminar, requireAll).
 - **A8 Conditional fields:** migration `add_registration_field_condition` (`event_registration_fields.condition` = `{field_key, value}` show-if); public registration renders/hides fields by condition and skips their required check when hidden; RegistrationManager has condition inputs.
+
+---
+
+# Sprint 8 — Frontend Consistency & Modularity Refactor (REF-01…REF-07)
+
+> **Theme:** kill the AI-slop copy-paste in the role dashboard — one overview component, one action primitive, one segmented tab control, one client-list hook — then fill the remaining list UX gaps (search/sort/pagination) that `useList` already covers elsewhere.
+>
+> **Sides:** `[PARTIAL] FE` only. No backend schema/API changes (endpoints already accept `page/quantity/search`).
+
+### REF-01 — Unified `EventOverview` across the 4 role views
+- **Priority:** P1 · **Effort:** M · **Status:** ✅ done
+- **User story:** *As a user, I want the event overview (stats, details, description) to look identical across Owner/Committee/Tenant/Visitor views so the dashboard feels like one product.*
+- **Acceptance criteria:**
+  - [x] `EventOverview` + `DescriptionCard` shared components created (`features/dashboard/shared/`); `EVENT_TYPE_LABELS` centralized there (was duplicated in OwnerView + CommitteeView)
+  - [x] Owner/Committee use `<EventOverview showStats />`; Tenant/Visitor use `<EventOverview />`; the local `Row` helpers (TenantView, VisitorView) deleted
+  - [x] `npx tsc --noEmit` = 0 errors; `npm run lint` = 0 errors
+
+### REF-02 — Role badges, `ViewAction`, and token cleanup
+- **Priority:** P1 · **Effort:** S · **Status:** ✅ done
+- **User story:** *As a user, I want the action buttons (publish, finish, reopen, register, badge, certificates) and role pills to use one visual language in every role view.*
+- **Acceptance criteria:**
+  - [x] COMMITTEE role badge fixed from off-token `bg-blue-50` to `bg-brand-50 text-brand-700` (`src/shared/utils/role-badge.ts`)
+  - [x] `ViewAction` gained a `warning` variant; Owner/Committee status actions + Visitor links migrated to `ViewAction` (replaces raw `<button>`/`<Link>`); Visitor links keep `href`
+  - [x] Rejection banner (Owner/Committee) uses error tokens (`bg-error-50 border-error-200 text-error-700`)
+  - [x] `DashboardTabs` off-token `hover:bg-blue-50` / `text-blue-100` → `hover:bg-brand-50` / `text-brand-100`
+
+### REF-03 — Reusable `SegmentedTabs`
+- **Priority:** P1 · **Effort:** S · **Status:** ✅ done (partial — see note)
+- **User story:** *As a developer, I want one segmented-control primitive so mode/tab switchers look and behave identically.*
+- **Acceptance criteria:**
+  - [x] `SegmentedTabs` created (`src/shared/components/ui/SegmentedTabs.tsx`)
+  - [x] Migrated: EventManager content tabs, RegistrationManager (Tiket / Form Pendaftaran), CheckInPage venue/workshop mode
+  - [ ] **Not migrated (intentional):** VerificationPage/`verification/lists/*` status *pills* are filter chips (`rounded-full`), not segmented tabs — converting them would change their visual pattern; left as pills
+  - [x] Dead `src/shared/components/ui/Tabs.tsx` deleted (zero importers, verified)
+
+### REF-04 — Tenant portal dedup + orphaned-module removal
+- **Priority:** P0 · **Effort:** S · **Status:** ✅ done
+- **User story:** *As a developer, I want no dead 879-line duplicate and no 4× redundant tenant queries so the portal is easy to reason about.*
+- **Acceptance criteria:**
+  - [x] `getMyTenants` hoisted into `TenantView` (fetched once; tabs render from the shared `tenantId`) — previously each `TenantPortalWrapper` instance queried independently
+  - [x] `TenantPortalWrapper` replaced by presentational `TenantTabContent` (no data fetching)
+  - [x] Orphaned `src/features/dashboard/portal/TenantPortal.tsx` deleted (verified zero external importers; tenant UI served by `portal/tabs/*`)
+
+### REF-05 — Reusable list primitives (`useClientList`, `EmptyState`, `SectionTitle`)
+- **Priority:** P1 · **Effort:** M · **Status:** ✅ done
+- **User story:** *As a developer, I want one client-side list hook + shared empty/section components so fetch-all lists don't each re-implement search/slice/paging.*
+- **Acceptance criteria:**
+  - [x] `useClientList` created (`features/dashboard/shared/useClientList.ts`) — search + optional sort + pagination, `useList`-like API (`search/applySearch/sortBy/sortDir/applySort/page/setPage/total/totalPages`)
+  - [x] `EmptyState` (`icon/title/subtitle`) + `SectionTitle` (`title/action`) shared components created
+  - [x] RegistrationManager `TicketTypesPanel` + `FieldsPanel` migrated to `useClientList` + `SectionTitle` + `EmptyState` (killed the duplicated `filter`/`slice` logic)
+
+### REF-06 — Reports table sort/pagination + searchable check-in selects
+- **Priority:** P2 · **Effort:** M · **Status:** ✅ done
+- **User story:** *As an owner, I want the reports tenant table sortable/paginated and long check-in select lists searchable.*
+- **Acceptance criteria:**
+  - [x] ReportsPage Attendance "Tenant" table: client sort (name/visits via `SortMenu` + `useClientList`) + `DataPagination`; charts keep the full dataset
+  - [x] `SearchableSelect` created (`src/shared/components/form/SearchableSelect.tsx`) — native combobox with inline search
+  - [x] CheckInPage workshop selector + BoothCheckInPage tenant selector → `SearchableSelect`
+
+### REF-07 — Public events paging param + bounded home loading
+- **Priority:** P2 · **Effort:** S · **Status:** ✅ done
+- **User story:** *As a visitor, I want the home page to load a bounded catalog and let me browse more.*
+- **Acceptance criteria:**
+  - [x] `getEvents` now sends `quantity`/`page`/`search`/`event_type` (was sending `limit`, which the public-api DTO ignores) and returns `meta.counts`
+  - [x] Home page fetches `{ quantity: "24" }` instead of the entire catalog
+  - [x] Events component reveals 12 at a time via "Muat Lebih Banyak" (resets on search/category/type change); carousels unchanged
+
+**Verification:** `npx tsc --noEmit` = 0 errors · `npm run lint` = 0 errors after the full Sprint 8 pass.
+**Deliberately out of scope (note):** VerificationPage status pills left as pill filters (see REF-03); the transaction table in ReportsPage left as-is (the tenant/attendance table was the target); public home stays a server-component fetch (no TanStack conversion for this SSR page).
+
 

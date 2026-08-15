@@ -1,8 +1,16 @@
 import { motion } from "framer-motion";
+import { ReactNode } from "react";
+
+interface FeatureItem {
+  title: string;
+  description: string;
+  icon: ReactNode;
+}
+
 export const CoreFeature = ({
   feature,
 }: {
-  feature: any;
+  feature: FeatureItem[];
 }) => (
   <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -12,13 +20,13 @@ export const CoreFeature = ({
           className="mb-16"
         >
           <h2 className="mb-2 font-public-sans font-bold text-center text-gray-900 text-xl sm:text-2xl md:text-3xl">
-            Core <span className="text-secondary">Features</span>
+            Fitur <span className="text-secondary">Inti</span>
           </h2>
           <p className="mx-auto mb-8 max-w-2xl font-jakarta text-center text-gray-600 text-sm sm:text-base">
-            Everything you need to run professional events seamlessly
+            Semua yang Anda butuhkan untuk menjalankan event profesional dengan lancar
           </p>
           <div className="gap-4 grid grid-cols-1 sm:grid-cols-2">
-            {feature.map((f : any, index :any) => (
+            {feature.map((f: FeatureItem, index: number) => (
               <motion.div
                 key={f.title}
                 initial={{ opacity: 0, y: 20 }}

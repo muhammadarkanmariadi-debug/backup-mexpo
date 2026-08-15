@@ -1,4 +1,4 @@
-// src/proxy.ts (Next.js 16: Middleware was renamed to Proxy — see node_modules/next/dist/docs/01-app/01-getting-started/16-proxy.md)
+// src/proxy.ts (Next.js 16: Middleware renamed to Proxy)
 // Proteksi route berdasarkan sesi login.
 // MUST live in src/ (same level as src/app) — Next only scans the directory that
 // contains app/, i.e. <root>/src for this project. A root-level proxy.ts is ignored.

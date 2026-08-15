@@ -1,7 +1,13 @@
 import React from 'react'
 import { motion } from 'framer-motion'
 
-const CoreValue = ({coreValues}: {coreValues: any}) => {
+interface CoreValueItem {
+  title: string;
+  description: string;
+  icon: React.ElementType;
+}
+
+const CoreValue = ({coreValues}: {coreValues: CoreValueItem[]}) => {
   return (
     <motion.div
     initial={{ opacity: 0, y: 20 }}
@@ -11,13 +17,13 @@ const CoreValue = ({coreValues}: {coreValues: any}) => {
     className="mb-16"
 >
     <h2 className="mb-2 font-public-sans font-bold text-center text-gray-900 text-xl sm:text-2xl md:text-3xl">
-        Our Core <span className="text-secondary">Values</span>
+        Nilai Inti <span className="text-secondary">Kami</span>
     </h2>
     <p className="mx-auto mb-8 max-w-2xl font-jakarta text-center text-gray-600 text-sm sm:text-base">
-        The principles that guide every decision we make
+        Prinsip yang memandu setiap keputusan yang kami ambil
     </p>
     <div className="gap-4 sm:gap-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-        {coreValues.map((value : any, index : any) => (
+        {coreValues.map((value: CoreValueItem, index: number) => (
             <motion.div
                 key={value.title}
                 initial={{ opacity: 0, y: 20 }}

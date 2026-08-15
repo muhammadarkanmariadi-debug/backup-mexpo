@@ -8,16 +8,22 @@ import {
   Phone,
   Mic,
   Plus,
-  Pencil,
-  Trash2,
   Loader2,
-  X,
-  Save,
 } from "lucide-react";
 
 import Input from "@/shared/components/form/Input";
 import SearchBar from "@/shared/components/form/SearchBar";
 import { DataPagination } from "@/shared/components/ui/DataPagination";
+import PageHeader from "@/shared/components/ui/PageHeader";
+import SegmentedTabs from "@/shared/components/ui/SegmentedTabs";
+import PageShell from "@/shared/components/ui/PageShell";
+import SectionTitle from "@/shared/components/ui/SectionTitle";
+import EmptyState from "@/shared/components/ui/EmptyState";
+import { LoadingSpinner } from "@/shared/components/ui/LoadingSpinner";
+import RowActions, { editAction, deleteAction } from "@/shared/components/ui/RowActions";
+import FormActions from "@/shared/components/ui/FormActions";
+import Badge from "@/shared/components/ui/Badge";
+import { useConfirm } from "@/shared/components/ui/ConfirmDialog";
 import { Event } from "@/entities/event/event.entity";
 import { EventRundown } from "@/entities/event/rundown.entity";
 import { EventSponsor, SponsorLevel } from "@/entities/event/sponsor.entity";
@@ -41,49 +47,39 @@ import {
   updateSpeaker,
   deleteSpeaker,
 } from "@/services/event-content.service";
-import BackLink from "@/features/dashboard/shared/BackLink";
-import { useList } from "@/features/dashboard/shared/useList";
+import { useList } from "@/shared/hooks/useList";
+import { SPONSOR_LEVEL_LABELS, labelFor } from "@/shared/data/labels";
 
 const SPONSOR_LEVELS: SponsorLevel[] = ["PLATINUM", "GOLD", "SILVER", "BRONZE"];
 
 type Tab = "rundown" | "sponsors" | "contacts" | "speakers";
 
 const TABS: { key: Tab; label: string; icon: React.ElementType }[] = [
-  { key: "rundown", label: "Rundown", icon: CalendarClock },
-  { key: "sponsors", label: "Sponsors", icon: Handshake },
-  { key: "contacts", label: "Contacts", icon: Phone },
-  { key: "speakers", label: "Speakers", icon: Mic },
+  { key: "rundown", label: "Susunan Acara", icon: CalendarClock },
+  { key: "sponsors", label: "Sponsor", icon: Handshake },
+  { key: "contacts", label: "Kontak", icon: Phone },
+  { key: "speakers", label: "Pembicara", icon: Mic },
 ];
 
 export default function EventManager({ event }: { event: Event }) {
   const [tab, setTab] = useState<Tab>("rundown");
 
   return (
-    <div className="mx-auto px-4 py-8 max-w-7xl">
-      <BackLink href={`/dashboard/${event.slug ?? event.uuid}`} />
-      <h1 className="mb-1 font-bold text-gray-900 text-2xl">Kelola Konten Event</h1>
-      <p className="mb-6 text-gray-500 text-sm">{event.name}</p>
+    <PageShell className="py-8">
+      <PageHeader title="Kelola Konten Event" subtitle={event.name} />
 
-      <div className="flex flex-wrap gap-2 mb-8">
-        {TABS.map(({ key, label, icon: Icon }) => (
-          <button
-            key={key}
-            onClick={() => setTab(key)}
-            className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${tab === key
-                ? "bg-secondary text-white"
-                : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"
-              }`}
-          >
-            <Icon className="w-4 h-4" /> {label}
-          </button>
-        ))}
-      </div>
+      <SegmentedTabs<Tab>
+        items={TABS.map(({ key, label, icon }) => ({ id: key, label, icon }))}
+        value={tab}
+        onChange={setTab}
+        className="mb-8"
+      />
 
       {tab === "rundown" && <RundownSection eventId={event.uuid} />}
       {tab === "sponsors" && <SponsorsSection eventId={event.uuid} />}
       {tab === "contacts" && <ContactsSection eventId={event.uuid} />}
       {tab === "speakers" && <SpeakersSection eventId={event.uuid} />}
-    </div>
+    </PageShell>
   );
 }
 
@@ -91,78 +87,16 @@ export default function EventManager({ event }: { event: Event }) {
 // Shared small pieces
 // ============================================================
 
-function SectionTitle({ title, onAdd, adding }: { title: string; onAdd: () => void; adding: boolean }) {
+function AddAction({ onAdd, adding }: { onAdd: () => void; adding: boolean }) {
   return (
-    <div className="flex justify-between items-center mb-4">
-      <h2 className="font-bold text-gray-900 text-lg">{title}</h2>
-      <button
-        onClick={onAdd}
-        disabled={adding}
-        className="inline-flex items-center gap-1.5 bg-secondary hover:bg-secondary/80 disabled:opacity-50 px-3 py-1.5 rounded-lg font-semibold text-white text-xs transition-colors"
-      >
-        {adding ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
-        Tambah
-      </button>
-    </div>
-  );
-}
-
-function EmptyBox({ text }: { text: string }) {
-  return (
-    <div className="bg-white p-8 border border-gray-100 rounded-xl text-gray-500 text-sm text-center">
-      {text}
-    </div>
-  );
-}
-
-function RowActions({
-  onEdit,
-  onDelete,
-  busy,
-}: {
-  onEdit: () => void;
-  onDelete: () => void;
-  busy: boolean;
-}) {
-  return (
-    <div className="flex items-center gap-1.5 shrink-0">
-      <button
-        onClick={onEdit}
-        disabled={busy}
-        className="hover:bg-gray-100 disabled:opacity-50 p-1.5 rounded-lg text-gray-400 hover:text-gray-700 transition-colors"
-      >
-        <Pencil className="w-4 h-4" />
-      </button>
-      <button
-        onClick={onDelete}
-        disabled={busy}
-        className="hover:bg-red-50 disabled:opacity-50 p-1.5 rounded-lg text-gray-400 hover:text-red-600 transition-colors"
-      >
-        <Trash2 className="w-4 h-4" />
-      </button>
-    </div>
-  );
-}
-
-function FormButtons({ busy, onCancel }: { busy: boolean; onCancel: () => void }) {
-  return (
-    <div className="flex items-center gap-2">
-      <button
-        type="submit"
-        disabled={busy}
-        className="inline-flex items-center gap-1.5 bg-secondary hover:bg-secondary/80 disabled:opacity-50 px-4 py-2 rounded-lg font-semibold text-white text-xs transition-colors"
-      >
-        {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
-        Simpan
-      </button>
-      <button
-        type="button"
-        onClick={onCancel}
-        className="inline-flex items-center gap-1.5 hover:bg-gray-100 px-3 py-2 rounded-lg font-semibold text-gray-500 text-xs transition-colors"
-      >
-        <X className="w-3.5 h-3.5" /> Batal
-      </button>
-    </div>
+    <button
+      onClick={onAdd}
+      disabled={adding}
+      className="inline-flex items-center gap-1.5 bg-secondary hover:bg-secondary/80 disabled:opacity-50 px-3 py-1.5 rounded-lg font-semibold text-white text-xs transition-colors"
+    >
+      {adding ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
+      Tambah
+    </button>
   );
 }
 
@@ -178,7 +112,7 @@ function toLocalInputValue(dateString?: string): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-function RundownSection({ eventId }: { eventId: string }) {
+export function RundownSection({ eventId }: { eventId: string }) {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<EventRundown | null>(null);
   const [busy, setBusy] = useState(false);
@@ -227,8 +161,10 @@ function RundownSection({ eventId }: { eventId: string }) {
     });
   };
 
+  const { confirm, dialogs } = useConfirm();
+
   const handleDelete = async (item: EventRundown) => {
-    if (!confirm(`Hapus rundown "${item.title}"?`)) return;
+    if (!(await confirm(`Hapus rundown "${item.title}"?`))) return;
     setBusy(true);
     try {
       const res = await deleteRundown(item.uuid);
@@ -242,11 +178,13 @@ function RundownSection({ eventId }: { eventId: string }) {
     }
   };
 
-  if (list.loading) return <div className="flex justify-center py-16"><Loader2 className="w-6 h-6 text-secondary animate-spin" /></div>;
+  if (list.loading) return <LoadingSpinner className="py-16" />;
 
   return (
     <div>
-      <SectionTitle title="Rundown / Agenda" onAdd={() => { setEditing(null); setShowForm(true); }} adding={busy} />
+      <SectionTitle title="Rundown / Agenda" action={<AddAction onAdd={() => { setEditing(null); setShowForm(true); }} adding={busy} />} />
+
+      {dialogs}
 
       {showForm && (
         <form onSubmit={handleSubmit} className="space-y-4 bg-white mb-6 p-5 border border-gray-100 rounded-xl">
@@ -256,7 +194,7 @@ function RundownSection({ eventId }: { eventId: string }) {
             <Input label="Mulai" type="datetime-local" required value={form.start_time} onChange={(e) => setForm({ ...form, start_time: e.target.value })} />
             <Input label="Selesai" type="datetime-local" required value={form.end_time} onChange={(e) => setForm({ ...form, end_time: e.target.value })} />
           </div>
-          <FormButtons busy={busy} onCancel={resetForm} />
+          <FormActions busy={busy} onCancel={resetForm} />
         </form>
       )}
 
@@ -265,7 +203,7 @@ function RundownSection({ eventId }: { eventId: string }) {
       </div>
 
       {list.items.length === 0 ? (
-        <EmptyBox text="Belum ada rundown." />
+        <EmptyState title="Belum ada rundown." className="rounded-xl border border-gray-100 bg-white py-8" />
       ) : (
         <>
           <div className="space-y-2">
@@ -274,13 +212,13 @@ function RundownSection({ eventId }: { eventId: string }) {
                 <div className="flex-1 min-w-0">
                   <h3 className="font-semibold text-gray-900">{item.title}</h3>
                   <p className="mt-0.5 text-gray-500 text-xs">
-                    {toLocalInputValue(item.start_time).replace("T", " ") ?? ""} – {toLocalInputValue(item.end_time).replace("T", " ") ?? ""}
+                    {toLocalInputValue(item.start_time).replace("T", " ") ?? ""} â€“ {toLocalInputValue(item.end_time).replace("T", " ") ?? ""}
                   </p>
                   {item.description && (
                     <p className="mt-1 text-gray-600 text-sm line-clamp-2">{item.description}</p>
                   )}
                 </div>
-                <RowActions onEdit={() => startEdit(item)} onDelete={() => handleDelete(item)} busy={busy} />
+                <RowActions actions={[editAction(() => startEdit(item)), deleteAction(() => handleDelete(item))]} busy={busy} />
               </div>
             ))}
           </div>
@@ -304,7 +242,7 @@ function RundownSection({ eventId }: { eventId: string }) {
 // Sponsors
 // ============================================================
 
-function SponsorsSection({ eventId }: { eventId: string }) {
+export function SponsorsSection({ eventId }: { eventId: string }) {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<EventSponsor | null>(null);
   const [busy, setBusy] = useState(false);
@@ -347,8 +285,10 @@ function SponsorsSection({ eventId }: { eventId: string }) {
     setForm({ name: item.name, level: item.level || "GOLD", file: null });
   };
 
+  const { confirm, dialogs } = useConfirm();
+
   const handleDelete = async (item: EventSponsor) => {
-    if (!confirm(`Hapus sponsor "${item.name}"?`)) return;
+    if (!(await confirm(`Hapus sponsor "${item.name}"?`))) return;
     setBusy(true);
     try {
       const res = await deleteSponsor(item.uuid);
@@ -362,24 +302,26 @@ function SponsorsSection({ eventId }: { eventId: string }) {
     }
   };
 
-  if (list.loading) return <div className="flex justify-center py-16"><Loader2 className="w-6 h-6 text-secondary animate-spin" /></div>;
+  if (list.loading) return <LoadingSpinner className="py-16" />;
 
   return (
     <div>
-      <SectionTitle title="Sponsor" onAdd={() => { setEditing(null); setShowForm(true); }} adding={busy} />
+      <SectionTitle title="Sponsor" action={<AddAction onAdd={() => { setEditing(null); setShowForm(true); }} adding={busy} />} />
+
+      {dialogs}
 
       {showForm && (
         <form onSubmit={handleSubmit} className="space-y-4 bg-white mb-6 p-5 border border-gray-100 rounded-xl">
           <Input label="Nama" type="text" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
           <div>
-            <label className="block mb-2 font-medium text-gray-700 text-sm">Level</label>
+            <label className="block mb-2 font-medium text-gray-700 text-sm">Tingkatan</label>
             <select
               value={form.level}
               onChange={(e) => setForm({ ...form, level: e.target.value as SponsorLevel })}
               className="bg-white px-4 py-2.5 border border-gray-300 focus:border-brand-300 rounded-lg focus:outline-hidden focus:ring-brand-500/10 w-full h-11 text-gray-800 text-sm"
             >
               {SPONSOR_LEVELS.map((l) => (
-                <option key={l} value={l}>{l}</option>
+                <option key={l} value={l}>{labelFor(SPONSOR_LEVEL_LABELS, l, l)}</option>
               ))}
             </select>
           </div>
@@ -392,7 +334,7 @@ function SponsorsSection({ eventId }: { eventId: string }) {
               className="block file:bg-gray-100 file:hover:bg-gray-200 file:mr-3 file:px-4 file:py-2 file:border-0 file:rounded-lg w-full text-gray-600 file:text-gray-700 text-sm file:cursor-pointer"
             />
           </div>
-          <FormButtons busy={busy} onCancel={resetForm} />
+          <FormActions busy={busy} onCancel={resetForm} />
         </form>
       )}
 
@@ -401,7 +343,7 @@ function SponsorsSection({ eventId }: { eventId: string }) {
       </div>
 
       {list.items.length === 0 ? (
-        <EmptyBox text="Belum ada sponsor." />
+        <EmptyState title="Belum ada sponsor." className="rounded-xl border border-gray-100 bg-white py-8" />
       ) : (
         <>
           <div className="space-y-2">
@@ -415,11 +357,11 @@ function SponsorsSection({ eventId }: { eventId: string }) {
                 )}
                 <div className="flex-1 min-w-0">
                   <h3 className="font-semibold text-gray-900 truncate">{item.name}</h3>
-                  <span className="inline-block bg-blue-50 mt-0.5 px-2 py-0.5 rounded-full font-medium text-[11px] text-blue-700">
-                    {item.level || "Sponsor"}
-                  </span>
+                  <Badge tone="info" className="mt-0.5">
+                    {labelFor(SPONSOR_LEVEL_LABELS, item.level, "Sponsor")}
+                  </Badge>
                 </div>
-                <RowActions onEdit={() => startEdit(item)} onDelete={() => handleDelete(item)} busy={busy} />
+                <RowActions actions={[editAction(() => startEdit(item)), deleteAction(() => handleDelete(item))]} busy={busy} />
               </div>
             ))}
           </div>
@@ -443,7 +385,7 @@ function SponsorsSection({ eventId }: { eventId: string }) {
 // Contacts
 // ============================================================
 
-function ContactsSection({ eventId }: { eventId: string }) {
+export function ContactsSection({ eventId }: { eventId: string }) {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<EventContact | null>(null);
   const [busy, setBusy] = useState(false);
@@ -481,8 +423,10 @@ function ContactsSection({ eventId }: { eventId: string }) {
     setForm({ name: item.name, email: item.email, phone_number: item.phone_number });
   };
 
+  const { confirm, dialogs } = useConfirm();
+
   const handleDelete = async (item: EventContact) => {
-    if (!confirm(`Hapus kontak "${item.name}"?`)) return;
+    if (!(await confirm(`Hapus kontak "${item.name}"?`))) return;
     setBusy(true);
     try {
       const res = await deleteContact(item.uuid);
@@ -496,18 +440,20 @@ function ContactsSection({ eventId }: { eventId: string }) {
     }
   };
 
-  if (list.loading) return <div className="flex justify-center py-16"><Loader2 className="w-6 h-6 text-secondary animate-spin" /></div>;
+  if (list.loading) return <LoadingSpinner className="py-16" />;
 
   return (
     <div>
-      <SectionTitle title="Kontak" onAdd={() => { setEditing(null); setShowForm(true); }} adding={busy} />
+      <SectionTitle title="Kontak" action={<AddAction onAdd={() => { setEditing(null); setShowForm(true); }} adding={busy} />} />
+
+      {dialogs}
 
       {showForm && (
         <form onSubmit={handleSubmit} className="space-y-4 bg-white mb-6 p-5 border border-gray-100 rounded-xl">
           <Input label="Nama" type="text" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
           <Input label="Email" type="email" required value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
           <Input label="No. Telepon" type="text" required value={form.phone_number} onChange={(e) => setForm({ ...form, phone_number: e.target.value })} />
-          <FormButtons busy={busy} onCancel={resetForm} />
+          <FormActions busy={busy} onCancel={resetForm} />
         </form>
       )}
 
@@ -516,7 +462,7 @@ function ContactsSection({ eventId }: { eventId: string }) {
       </div>
 
       {list.items.length === 0 ? (
-        <EmptyBox text="Belum ada kontak." />
+        <EmptyState title="Belum ada kontak." className="rounded-xl border border-gray-100 bg-white py-8" />
       ) : (
         <>
           <div className="space-y-2">
@@ -527,7 +473,7 @@ function ContactsSection({ eventId }: { eventId: string }) {
                   <p className="mt-0.5 text-gray-600 text-sm">{item.email}</p>
                   <p className="text-gray-500 text-sm">{item.phone_number}</p>
                 </div>
-                <RowActions onEdit={() => startEdit(item)} onDelete={() => handleDelete(item)} busy={busy} />
+                <RowActions actions={[editAction(() => startEdit(item)), deleteAction(() => handleDelete(item))]} busy={busy} />
               </div>
             ))}
           </div>
@@ -551,7 +497,7 @@ function ContactsSection({ eventId }: { eventId: string }) {
 // Speakers
 // ============================================================
 
-function SpeakersSection({ eventId }: { eventId: string }) {
+export function SpeakersSection({ eventId }: { eventId: string }) {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<EventSpeaker | null>(null);
   const [busy, setBusy] = useState(false);
@@ -594,8 +540,10 @@ function SpeakersSection({ eventId }: { eventId: string }) {
     setForm({ name: item.name, bio: item.bio, file: null });
   };
 
+  const { confirm, dialogs } = useConfirm();
+
   const handleDelete = async (item: EventSpeaker) => {
-    if (!confirm(`Hapus pembicara "${item.name}"?`)) return;
+    if (!(await confirm(`Hapus pembicara "${item.name}"?`))) return;
     setBusy(true);
     try {
       const res = await deleteSpeaker(item.uuid);
@@ -609,16 +557,18 @@ function SpeakersSection({ eventId }: { eventId: string }) {
     }
   };
 
-  if (list.loading) return <div className="flex justify-center py-16"><Loader2 className="w-6 h-6 text-secondary animate-spin" /></div>;
+  if (list.loading) return <LoadingSpinner className="py-16" />;
 
   return (
     <div>
-      <SectionTitle title="Pembicara" onAdd={() => { setEditing(null); setShowForm(true); }} adding={busy} />
+      <SectionTitle title="Pembicara" action={<AddAction onAdd={() => { setEditing(null); setShowForm(true); }} adding={busy} />} />
+
+      {dialogs}
 
       {showForm && (
         <form onSubmit={handleSubmit} className="space-y-4 bg-white mb-6 p-5 border border-gray-100 rounded-xl">
           <Input label="Nama" type="text" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-          <Input label="Bio" type="text-area" required value={form.bio} onChange={(e) => setForm({ ...form, bio: e.target.value })} />
+          <Input label="Biografi" type="text-area" required value={form.bio} onChange={(e) => setForm({ ...form, bio: e.target.value })} />
           <div>
             <label className="block mb-2 font-medium text-gray-700 text-sm">Foto</label>
             <input
@@ -628,7 +578,7 @@ function SpeakersSection({ eventId }: { eventId: string }) {
               className="block file:bg-gray-100 file:hover:bg-gray-200 file:mr-3 file:px-4 file:py-2 file:border-0 file:rounded-lg w-full text-gray-600 file:text-gray-700 text-sm file:cursor-pointer"
             />
           </div>
-          <FormButtons busy={busy} onCancel={resetForm} />
+          <FormActions busy={busy} onCancel={resetForm} />
         </form>
       )}
 
@@ -637,7 +587,7 @@ function SpeakersSection({ eventId }: { eventId: string }) {
       </div>
 
       {list.items.length === 0 ? (
-        <EmptyBox text="Belum ada pembicara." />
+        <EmptyState title="Belum ada pembicara." className="rounded-xl border border-gray-100 bg-white py-8" />
       ) : (
         <>
           <div className="space-y-2">
@@ -653,7 +603,7 @@ function SpeakersSection({ eventId }: { eventId: string }) {
                   <h3 className="font-semibold text-gray-900">{item.name}</h3>
                   <p className="mt-0.5 text-gray-600 text-sm line-clamp-2">{item.bio}</p>
                 </div>
-                <RowActions onEdit={() => startEdit(item)} onDelete={() => handleDelete(item)} busy={busy} />
+                <RowActions actions={[editAction(() => startEdit(item)), deleteAction(() => handleDelete(item))]} busy={busy} />
               </div>
             ))}
           </div>

@@ -107,7 +107,7 @@ export const getMonthAgo = (): string => {
 };
 
 export const formatNumber = (number: number, locale: string = "de-DE") => {
-  return number.toLocaleString(locale, {
+  return number?.toLocaleString(locale, {
     maximumFractionDigits: 2,
   });
 };

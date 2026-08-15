@@ -2,10 +2,13 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { CheckCircle2, Loader2, Trash2, UserPlus, XCircle } from "lucide-react";
+import { CheckCircle2, Loader2, UserPlus, XCircle } from "lucide-react";
 
 import Input from "@/shared/components/form/Input";
 import SearchBar from "@/shared/components/form/SearchBar";
+import Button from "@/shared/components/button/Button";
+import PageHeader from "@/shared/components/ui/PageHeader";
+import { Modal } from "@/shared/components/ui/Modal";
 import { DataPagination } from "@/shared/components/ui/DataPagination";
 import { Event } from "@/entities/event/event.entity";
 import {
@@ -16,10 +19,16 @@ import {
   removeEventUser,
   EventUser,
 } from "@/services/event-users.service";
-import BackLink from "@/features/dashboard/shared/BackLink";
-import { useList } from "@/features/dashboard/shared/useList";
+import { useList } from "@/shared/hooks/useList";
 import RoleBadge from "@/shared/components/ui/RoleBadge";
 import SortMenu from "@/shared/components/ui/SortMenu";
+import Badge from "@/shared/components/ui/Badge";
+import RowActions, { deleteAction } from "@/shared/components/ui/RowActions";
+import { LoadingSpinner } from "@/shared/components/ui/LoadingSpinner";
+import EmptyState from "@/shared/components/ui/EmptyState";
+import { useConfirm } from "@/shared/components/ui/ConfirmDialog";
+import PageShell from "@/shared/components/ui/PageShell";
+import { APPROVAL_STATUS_LABELS, ROLE_LABELS, labelFor } from "@/shared/data/labels";
 
 const ROLES = ["OWNER", "COMMITTEE", "TENANT", "VISITOR"] as const;
 const STATUSES = ["PENDING", "APPROVED", "REJECTED"] as const;
@@ -27,6 +36,9 @@ const STATUSES = ["PENDING", "APPROVED", "REJECTED"] as const;
 export default function TeamManager({ event }: { event: Event }) {
   const [busy, setBusy] = useState(false);
   const [email, setEmail] = useState("");
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const { confirm, dialogs } = useConfirm();
 
   const list = useList<EventUser>((q) => getEventUsers(event.uuid, q), [event.uuid]);
 
@@ -36,12 +48,13 @@ export default function TeamManager({ event }: { event: Event }) {
     try {
       const res = await addCommitteeMember(event.uuid, email.trim());
       if (!res.status) throw new Error();
-      toast.success("Committee ditambahkan.");
+      toast.success("Panitia ditambahkan.");
       setEmail("");
+      setIsModalOpen(false);
       list.refetch();
       list.applySearch("");
     } catch {
-      toast.error("Gagal menambahkan committee.");
+      toast.error("Gagal menambahkan panitia.");
     } finally {
       setBusy(false);
     }
@@ -60,15 +73,15 @@ export default function TeamManager({ event }: { event: Event }) {
   const changeRole = async (m: EventUser, role: EventUser["role"]) => {
     const res = await changeEventUserRole(m.uuid, role);
     if (!res.status) {
-      toast.error("Gagal mengubah role.");
+      toast.error("Gagal mengubah peran.");
       return;
     }
-    toast.success("Role diubah.");
+    toast.success("Peran diubah.");
     list.refetch();
   };
 
   const remove = async (m: EventUser) => {
-    if (!confirm(`Hapus ${m.user?.full_name} dari event?`)) return;
+    if (!(await confirm(`Hapus ${m.user?.full_name} dari event?`))) return;
     const res = await removeEventUser(m.uuid);
     if (!res.status) {
       toast.error("Gagal menghapus anggota.");
@@ -79,19 +92,30 @@ export default function TeamManager({ event }: { event: Event }) {
   };
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-8">
-      <BackLink href={`/dashboard/${event.slug ?? event.uuid}`} />
-      <h1 className="mb-1 text-2xl font-bold text-gray-900">Tim & Committee</h1>
-      <p className="mb-6 text-sm text-gray-500">{event.name}</p>
+<PageShell className="py-8">
+<PageHeader
+        title="Tim & Panitia"
+        subtitle={event.name}
+        action={
+          <Button size="xs" startIcon={<UserPlus className="h-4 w-4" />} onClick={() => setIsModalOpen(true)}>
+            Tambah
+          </Button>
+        }
+      />
 
-      <form onSubmit={add} className="mb-6 flex flex-col gap-3 rounded-xl border border-gray-100 bg-white p-5 sm:flex-row sm:items-end">
-        <div className="flex-1">
-          <Input label="Email committee" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="committee@example.com" />
-        </div>
-        <button type="submit" disabled={busy} className="inline-flex items-center gap-1.5 rounded-lg bg-secondary px-4 py-2.5 text-sm font-semibold text-white hover:bg-secondary/80 disabled:opacity-50">
-          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />} Tambah
-        </button>
-      </form>
+      <Modal isOpen={isModalOpen} onClose={() => { setIsModalOpen(false); setEmail(""); }} title="Tambah Panitia" maxWidth="max-w-md">
+        <form onSubmit={add} className="flex flex-col gap-4">
+          <Input label="Email panitia" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="panitia@example.com" />
+          <div className="flex gap-2 pt-2">
+            <button type="submit" disabled={busy} className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-secondary px-4 py-2.5 text-sm font-semibold text-white hover:bg-secondary/80 disabled:opacity-50">
+              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />} Tambah
+            </button>
+            <button type="button" onClick={() => { setIsModalOpen(false); setEmail(""); }} className="rounded-lg px-4 py-2.5 text-sm text-gray-500 hover:bg-gray-100 flex-1">
+              Batal
+            </button>
+          </div>
+        </form>
+      </Modal>
 
       <div className="mb-4 space-y-3 rounded-xl border border-gray-100 bg-white p-4">
         <SearchBar search={list.search} setSearch={list.applySearch} placeholder="Cari nama/email..." />
@@ -100,20 +124,20 @@ export default function TeamManager({ event }: { event: Event }) {
           <button onClick={() => list.applyFilter("role", "")} className={`rounded-full px-2.5 py-1 text-xs font-semibold ${!list.filters.role ? "bg-secondary text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>Semua</button>
           {ROLES.map((r) => (
             <button key={r} onClick={() => list.applyFilter("role", r)} className={`rounded-full px-2.5 py-1 text-xs font-semibold ${list.filters.role === r ? "bg-secondary text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
-              {r}
+              {labelFor(ROLE_LABELS, r, r)}
             </button>
           ))}
           <span className="ml-2 text-xs font-medium text-gray-500">Status:</span>
           {STATUSES.map((s) => (
             <button key={s} onClick={() => list.applyFilter("status", s)} className={`rounded-full px-2.5 py-1 text-xs font-semibold ${list.filters.status === s ? "bg-secondary text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
-              {s}
+              {labelFor(APPROVAL_STATUS_LABELS, s, s)}
             </button>
           ))}
           <span className="ml-2 inline-flex items-center">
             <SortMenu
               options={[
                 { key: "full_name", label: "Nama" },
-                { key: "role", label: "Role" },
+                { key: "role", label: "Peran" },
                 { key: "created_at", label: "Terdaftar" },
               ]}
               sortBy={list.sortBy}
@@ -125,11 +149,9 @@ export default function TeamManager({ event }: { event: Event }) {
       </div>
 
       {list.loading ? (
-        <div className="flex justify-center py-10">
-          <Loader2 className="h-5 w-5 animate-spin text-secondary" />
-        </div>
+        <LoadingSpinner className="py-10" />
       ) : list.items.length === 0 ? (
-        <p className="py-8 text-center text-sm text-gray-500">Belum ada anggota terdaftar.</p>
+        <EmptyState title="Belum ada anggota terdaftar." className="py-8" />
       ) : (
         <>
           <div className="space-y-2">
@@ -149,9 +171,9 @@ export default function TeamManager({ event }: { event: Event }) {
                 </div>
                 <RoleBadge role={m.role} />
                 {m.status === "PENDING" ? (
-                  <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-700">Pending</span>
+                  <Badge tone="warning">Menunggu</Badge>
                 ) : (
-                  <span className="rounded-full bg-green-50 px-2 py-0.5 text-[11px] font-semibold text-green-700">{m.status}</span>
+                  <Badge tone="success">{labelFor(APPROVAL_STATUS_LABELS, m.status, m.status)}</Badge>
                 )}
 
                 {m.role !== "OWNER" && (
@@ -161,9 +183,9 @@ export default function TeamManager({ event }: { event: Event }) {
                       onChange={(e) => changeRole(m, e.target.value as EventUser["role"])}
                       className="rounded-lg border border-gray-200 px-2 py-1.5 text-xs text-gray-600"
                     >
-                      <option value="COMMITTEE">Committee</option>
-                      <option value="VISITOR">Visitor</option>
-                      <option value="TENANT">Tenant</option>
+                      <option value="COMMITTEE">Panitia</option>
+                      <option value="VISITOR">Pengunjung</option>
+                      <option value="TENANT">Penyewa</option>
                     </select>
                     {m.status === "PENDING" && (
                       <>
@@ -175,9 +197,7 @@ export default function TeamManager({ event }: { event: Event }) {
                         </button>
                       </>
                     )}
-                    <button onClick={() => remove(m)} className="p-2 rounded-lg text-gray-400 hover:bg-red-50 hover:text-red-600" title="Hapus">
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+                    <RowActions actions={[deleteAction(() => remove(m))]} busy={busy} />
                   </>
                 )}
               </div>
@@ -195,6 +215,8 @@ export default function TeamManager({ event }: { event: Event }) {
           </div>
         </>
       )}
-    </div>
+
+      {dialogs}
+    </PageShell>
   );
 }

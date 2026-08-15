@@ -4,12 +4,13 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronDown, HelpCircle, Search } from 'lucide-react'
 import ContentTitle1 from '@/shared/components/ui/ContentTitle1'
+import PageShell from '@/shared/components/ui/PageShell'
 import { faqData } from '../faq.data'
 
 
 
 
-const categories = ['Semua', 'Umum', 'Event', 'Tenant', 'Workshop']
+const categories = ['Semua', 'Umum', 'Event', 'Penyewa', 'Lokakarya', 'Pembayaran']
 
 export default function FAQPage() {
     const [openIndex, setOpenIndex] = useState<number | null>(null)
@@ -25,12 +26,12 @@ export default function FAQPage() {
 
     return (
         <div className="min-h-screen">
-            <div className="mx-auto px-4 py-8 max-w-7xl">
+            <PageShell className="py-8">
 
 
                 <ContentTitle1
-                    title="Frequently Asked "
-                    spanText='Questions'
+                    title="Pertanyaan yang "
+                    spanText='Sering Diajukan'
                     description="Temukan jawaban untuk pertanyaan yang sering diajukan tentang MEXPO"
 
                 />
@@ -129,7 +130,7 @@ export default function FAQPage() {
                     )}
                 </motion.div>
 
-            </div>
+            </PageShell>
         </div>
     )
 }

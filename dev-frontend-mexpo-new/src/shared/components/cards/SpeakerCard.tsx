@@ -13,12 +13,12 @@ export const SpeakerCard = ({ speaker }: { speaker: EventSpeaker }) => {
             className="object-cover"
           />
         ) : (
-          <div className="text-gray-300 font-medium">No Image</div>
+          <div className="text-gray-300 font-medium">Tanpa Gambar</div>
         )}
       </div>
       <div className="p-4 sm:p-5">
         <h4 className="font-bold text-gray-900 text-lg mb-1 line-clamp-1">{speaker.name}</h4>
-        <p className="text-gray-500 text-sm line-clamp-3">{speaker.bio || "No biography available."}</p>
+        <p className="text-gray-500 text-sm line-clamp-3">{speaker.bio || "Belum ada biografi."}</p>
       </div>
     </div>
   );

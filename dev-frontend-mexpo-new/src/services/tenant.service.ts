@@ -34,6 +34,16 @@ export async function updateTenant(tenantId: string, payload: TenantProfilePaylo
   return await httpPut(`tenants/${tenantId}`, fd, "token");
 }
 
+export async function createTenant(eventId: string, payload: TenantProfilePayload, logo?: File) {
+  const fd = buildFormData(payload as unknown as Record<string, unknown>, logo);
+  return await httpPost(`tenants/${eventId}`, fd, "token");
+}
+
+export async function applyTenant(eventId: string, payload: TenantProfilePayload, logo?: File) {
+  const fd = buildFormData(payload as unknown as Record<string, unknown>, logo);
+  return await httpPost(`tenants/apply/${eventId}`, fd, "token");
+}
+
 // ── Team (A13) ──
 
 export async function getTenantMembers(tenantId: string) {

@@ -1,37 +1,11 @@
-import { useMemo, useState } from "react"
-import { Workshop } from "@/entities/event/workshop.entity"
+import { useMemo, useState } from "react";
+import { Workshop } from "@/entities/event/workshop.entity";
+import { useGroupByDate } from "@/shared/hooks/useGroupByDate";
 
 export const useGroupedWorkshop = (workshops: Workshop[], itemsPerPage: number = 5) => {
-  const [currentPage, setCurrentPage] = useState(1)
+  const [currentPage, setCurrentPage] = useState(1);
 
-  const groupedWorkshops = useMemo(() => {
-    const grouped: { [key: string]: Workshop[] } = {}
-
-    workshops.forEach(workshop => {
-      const dateKey = workshop.start_time.split('T')[0]
-
-      if (!grouped[dateKey]) {
-        grouped[dateKey] = []
-      }
-      grouped[dateKey].push(workshop)
-    })
-
-    Object.keys(grouped).forEach(dateKey => {
-      grouped[dateKey].sort((a, b) => {
-        return (
-          new Date(a.start_time).getTime() - new Date(b.start_time).getTime()
-        )
-      })
-    })
-
-    return grouped
-  }, [workshops])
-
-  const sortedDates = useMemo(() => {
-    return Object.keys(groupedWorkshops).sort(
-      (a, b) => new Date(a).getTime() - new Date(b).getTime()
-    )
-  }, [groupedWorkshops])
+  const { grouped: groupedWorkshops, days: sortedDates } = useGroupByDate(workshops);
 
   const flattenedWorkshops = useMemo(() => {
     return sortedDates.flatMap(dateKey =>
@@ -39,8 +13,8 @@ export const useGroupedWorkshop = (workshops: Workshop[], itemsPerPage: number =
         dateKey,
         workshop
       }))
-    )
-  }, [sortedDates, groupedWorkshops])
+    );
+  }, [sortedDates, groupedWorkshops]);
 
   const totalPages = Math.ceil(flattenedWorkshops.length / itemsPerPage)
 
@@ -74,4 +48,4 @@ export const useGroupedWorkshop = (workshops: Workshop[], itemsPerPage: number =
     currentDates,
     currentGroupedItems,
   }
-}
+}

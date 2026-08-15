@@ -107,6 +107,8 @@ export interface SpeakerPayload {
   bio: string;
 }
 
+export type SpeakerStatus = "PENDING" | "APPROVED" | "REJECTED";
+
 export async function getSpeakers(eventId: string, query?: Record<string, string>) {
   const res = await httpGet(`event-speakers/${eventId}`, "token", META_DYNAMIC, query);
   return { data: res.data as EventSpeaker[], status: res.status, meta: res.meta };
@@ -124,8 +126,16 @@ export async function createSpeaker(eventId: string, payload: SpeakerPayload, fi
   return await httpPost(`event-speakers/${eventId}`, buildSpeakerFormData(payload, file), "token");
 }
 
+export async function applySpeaker(eventId: string, payload: SpeakerPayload, file?: File | null) {
+  return await httpPost(`event-speakers/apply/${eventId}`, buildSpeakerFormData(payload, file), "token");
+}
+
 export async function updateSpeaker(id: string, payload: SpeakerPayload, file?: File | null) {
   return await httpPut(`event-speakers/${id}`, buildSpeakerFormData(payload, file), "token");
+}
+
+export async function verifySpeaker(id: string, status: SpeakerStatus) {
+  return await httpPut(`event-speakers/verify/${id}`, JSON.stringify({ status }), "token");
 }
 
 export async function deleteSpeaker(id: string) {

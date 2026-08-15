@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useEffect, useRef } from 'react';
+import { createContext, useContext, useCallback, useEffect, useRef } from 'react';
 import { useAuthStore } from '@/stores/auth.store';
 import { getCookies } from '@/shared/utils/cookies';
 import { getProfile } from '@/services/user.service';
@@ -17,7 +17,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const { setUser, clearUser } = useAuthStore();
     const prevTokenRef = useRef<string | null>(null);
 
-    const syncProfile = async () => {
+    const syncProfile = useCallback(async () => {
         const token = await getCookies('token');
 
         if (token === prevTokenRef.current) return;
@@ -35,11 +35,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         } else {
             clearUser();
         }
-    };
+    }, [clearUser, setUser]);
 
     useEffect(() => {
         syncProfile();
-    }, []);
+    }, [syncProfile]);
     return (
         <AuthContext.Provider value={{ syncProfile }
         }>

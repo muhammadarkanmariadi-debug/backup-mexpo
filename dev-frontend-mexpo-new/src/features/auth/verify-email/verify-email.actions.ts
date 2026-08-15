@@ -1,11 +1,11 @@
 import { verifyEmail } from "../../../services/verify-email.service";
 
-export interface AuthActionResult<T = any> {
+export interface AuthActionResult {
     success: boolean;
     message: string;
 
 }
-export const verify = async (token: any): Promise<AuthActionResult> => {
+export const verify = async (token: string): Promise<AuthActionResult> => {
     try {
         const result = await verifyEmail(token)
 

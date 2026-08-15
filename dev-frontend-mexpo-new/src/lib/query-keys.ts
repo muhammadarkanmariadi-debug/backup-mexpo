@@ -46,6 +46,7 @@ export const keys = {
     mine: (query: Record<string, string>) =>
       ["tenants", "mine", query] as const,
     detail: (uuid: string) => ["tenants", "detail", uuid] as const,
+    members: (tenantUuid: string) => ["tenants", "members", tenantUuid] as const,
   },
   products: {
     all: (tenantUuid: string) => ["products", tenantUuid] as const,
@@ -93,4 +94,5 @@ export const keys = {
     list: (eventUuid: string, query: Record<string, string>) =>
       ["attendance", eventUuid, "list", query] as const,
   },
+  tenantCategories: () => ["tenant-categories"] as const,
 } as const;

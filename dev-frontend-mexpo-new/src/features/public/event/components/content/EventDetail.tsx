@@ -1,11 +1,5 @@
 
-import { Calendar, CheckCircle, Clock, Contact, MapPin } from "lucide-react";
-import React, { useState, useEffect } from "react";
-import Info from "../../../../../shared/components/tabs/Info";
-import Agenda from "../../../../../shared/components/tabs/Agenda";
-import Speakers from "../../../../../shared/components/tabs/Speakers";
-import Sponsors from "../../../../../shared/components/tabs/Sponsors";
-import Contacts from "../../../../../shared/components/tabs/Contact";
+import React, { useState } from "react";
 import { EventSpeaker } from "@/entities/event/speaker.entity";
 import { EventSponsor } from "@/entities/event/sponsor.entity";
 import { EventRundown } from "@/entities/event/rundown.entity";
@@ -14,13 +8,25 @@ import ContentTitle1 from "@/shared/components/ui/ContentTitle1";
 import { Event } from "@/entities/event/event.entity";
 import { WorkshopTab } from "../../../../../shared/components/tabs/Workshop";
 import { Workshop } from "@/entities/event/workshop.entity";
-import TenantContent, { TenantTab } from "../../../../../shared/components/tabs/Tenant";
+import { TenantTab } from "../../../../../shared/components/tabs/Tenant";
 import ContactsTab from "../../../../../shared/components/tabs/Contact";
 import SponsorsTab from "../../../../../shared/components/tabs/Sponsors";
 import SpeakersTab from "../../../../../shared/components/tabs/Speakers";
 import AgendaTab from "../../../../../shared/components/tabs/Agenda";
 import InfoTab from "../../../../../shared/components/tabs/Info";
 import { Tenant } from "@/entities/event/tenant.entity";
+
+// Localized tab labels — the array below must keep rendering localized text
+// while the internal key stays lowercase ("info", "agenda", …).
+const EVENT_TAB_LABELS: Record<string, string> = {
+  info: "Informasi",
+  agenda: "Agenda",
+  speakers: "Pembicara",
+  sponsors: "Sponsor",
+  contact: "Kontak",
+  workshop: "Lokakarya",
+  tenant: "Penyewa",
+};
 
 const EventDetail = ({
   eventData,
@@ -50,7 +56,7 @@ const EventDetail = ({
               title={eventData?.name.split(" ").slice(0, 2).join(" ")}
               spanText={eventData?.name.split(" ")[2]}
               description={
-                "This event is open to students, schools, industry partners, and the public. The organizer reserves the right to review and approve registrations."
+                "Event ini terbuka untuk pelajar, sekolah, mitra industri, dan masyarakat umum. Penyelenggara berhak meninjau dan menyetujui pendaftaran."
               }
             />
 
@@ -61,11 +67,11 @@ const EventDetail = ({
                     key={tab}
                     onClick={() => setActiveTab(tab.toLowerCase())}
                     className={`flex-shrink-0 px-3 sm:px-4 md:px-6 py-2 sm:py-2.5 md:py-3 text-xs sm:text-sm font-semibold transition border-b-2 whitespace-nowrap ${activeTab === tab.toLowerCase()
-                      ? "border-blue-600 text-blue-600"
+                      ? "border-secondary text-secondary"
                       : "border-transparent text-gray-600 hover:text-gray-900"
                       }`}
                   >
-                    {tab}
+                    {EVENT_TAB_LABELS[tab.toLowerCase()] ?? tab}
                   </button>
                 ),
               )}

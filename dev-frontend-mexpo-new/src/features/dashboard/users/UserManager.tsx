@@ -6,10 +6,12 @@ import SearchBar from "@/shared/components/form/SearchBar";
 import { DataPagination } from "@/shared/components/ui/DataPagination";
 import { useAuthStore } from "@/stores/auth.store";
 import { getUsers, UserListItem } from "@/services/user.service";
-import BackLink from "@/features/dashboard/shared/BackLink";
-import { useList } from "@/features/dashboard/shared/useList";
+import { useList } from "@/shared/hooks/useList";
 import RoleBadge from "@/shared/components/ui/RoleBadge";
 import SortMenu from "@/shared/components/ui/SortMenu";
+import PageHeader from "@/shared/components/ui/PageHeader";
+import PageShell from "@/shared/components/ui/PageShell";
+import Badge from "@/shared/components/ui/Badge";
 
 export default function UserManager() {
   const { user } = useAuthStore();
@@ -19,17 +21,15 @@ export default function UserManager() {
 
   if (!isSuperAdmin) {
     return (
-      <div className="mx-auto px-4 py-12 max-w-7xl text-center">
+      <PageShell className="py-12 text-center">
         <p className="text-gray-500">Halaman ini khusus Super Admin.</p>
-      </div>
+      </PageShell>
     );
   }
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-8">
-      <BackLink href="/dashboard" />
-      <h1 className="mb-1 text-2xl font-bold text-gray-900">Manajemen User</h1>
-      <p className="mb-6 text-sm text-gray-500">Kelola semua akun pengguna.</p>
+<PageShell className="py-8">
+      <PageHeader title="Manajemen User" subtitle="Kelola semua akun pengguna." />
 
       <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-gray-100 bg-white p-4">
         <div className="flex-1 min-w-[200px]">
@@ -94,11 +94,11 @@ export default function UserManager() {
                       <RoleBadge role={u.role} />
                     </td>
                     <td className="px-5 py-2.5">
-                      <span
-                        className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${u.is_active ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"}`}
-                      >
-                        {u.is_active ? "Aktif" : "Non-aktif"}
-                      </span>
+                      {u.is_active ? (
+                        <Badge tone="success">Aktif</Badge>
+                      ) : (
+                        <Badge tone="danger">Non-aktif</Badge>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -117,6 +117,6 @@ export default function UserManager() {
           </div>
         </>
       )}
-    </div>
+    </PageShell>
   );
 }

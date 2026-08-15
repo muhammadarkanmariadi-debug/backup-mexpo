@@ -4,14 +4,12 @@ import { useState } from 'react'
 import { Calendar } from 'lucide-react'
 import { toast } from 'sonner'
 
-import { BASE_API_URL } from '@/global'
 import { useGroupedWorkshop } from '../../../features/public/event/hooks/useGroupedWorkshop'
 import { formatDateWithDay, getDayName } from '@/shared/utils/format'
 import { Workshop } from '@/entities/event/workshop.entity'
 import { WorkshopCard } from '@/shared/components/cards/WorkshopCard'
 import { DataPagination } from '@/shared/components/ui/DataPagination'
-import SearchBar from '@/shared/components/form/SearchBar'
-import ContentTitle2 from '@/shared/components/ui/ContentTitle2'
+import TabListShell from './TabListShell'
 import { registerWorkshop } from '@/services/workshop.service'
 
 export const WorkshopTab = ({
@@ -46,14 +44,14 @@ export const WorkshopTab = ({
       const result = await registerWorkshop(workshopId);
 
       if (result.status) {
-        toast.success(result.message || `Berhasil mendaftar workshop!`);
+        toast.success(result.message || `Berhasil mendaftar lokakarya!`);
         if (onRefetchWorkshops) onRefetchWorkshops();
       } else {
         toast.error(
           result.message || "Gagal mendaftar. Kuota mungkin sudah penuh.",
         );
       }
-    } catch (error) {
+    } catch {
       toast.error("Terjadi kesalahan koneksi ke server");
     } finally {
       setSubmittingWorkshopId(null);
@@ -61,15 +59,13 @@ export const WorkshopTab = ({
   };
 
   return (
-    <div className="mx-auto px-2 sm:px-4 md:px-6 lg:px-0 w-full max-w-7xl">
-      <div className="flex flex-col mb-5">
-        <ContentTitle2
-          category="Workshops"
-          title="Join Our Workshops"
-        />
-        <SearchBar search={search} setSearch={setSearch} placeholder="Search Workshops..." />
-      </div>
-
+    <TabListShell
+      category="Lokakarya"
+      title="Ikuti Lokakarya Kami"
+      searchPlaceholder="Cari Lokakarya..."
+      search={search}
+      setSearch={setSearch}
+    >
       {currentDates.length > 0 ? (
         <>
           {currentDates.map(dateKey => (
@@ -88,8 +84,7 @@ export const WorkshopTab = ({
                 </div>
                 <div className='hidden sm:block flex-1 border-blue-200 border-t-2' />
                 <span className='bg-blue-100 px-2.5 sm:px-3 md:px-4 py-1 sm:py-1.5 md:py-2 rounded-full font-semibold text-[10px] text-secondary sm:text-xs md:text-sm'>
-                  {currentGroupedItems[dateKey].length} Workshop
-                  {currentGroupedItems[dateKey].length > 1 ? 's' : ''}
+                  {currentGroupedItems[dateKey].length} Lokakarya
                 </span>
               </div>
 
@@ -123,8 +118,8 @@ export const WorkshopTab = ({
           )}
         </>
       ) : (
-        <div className="text-center text-gray-500">No workshops found</div>
+        <div className="text-center text-gray-500">Tidak ada lokakarya ditemukan</div>
       )}
-    </div>
+    </TabListShell>
   )
 }

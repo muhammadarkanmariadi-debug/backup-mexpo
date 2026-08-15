@@ -12,6 +12,7 @@ import {
   registerVisitor,
   RegisterVisitorPayload,
 } from "@/services/registration.service";
+import { getEventByUuidByMe } from "@/services/event.service";
 import { useAuthStore } from "@/stores/auth.store";
 
 interface Props {
@@ -33,13 +34,45 @@ export default function RegistrationForm({ event, fields, ticketTypes }: Props) 
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [ticketTypeId, setTicketTypeId] = useState(ticketTypes[0]?.uuid ?? "");
   const [payment, setPayment] = useState({ payment_reference: "", payment_method: "CASH" });
+  // True until we've verified the caller isn't already registered in this event.
+  const [checkingRegistration, setCheckingRegistration] = useState(
+    isAuthenticated && !!user,
+  );
 
   useEffect(() => {
     if (!isAuthenticated || !user) {
-      toast.error("Silakan login terlebih dahulu untuk mendaftar.");
-      router.push("/auth");
+      const current = `${window.location.pathname}${window.location.search}`;
+      toast.error("Silakan masuk terlebih dahulu untuk mendaftar.");
+      router.push(`/auth?next=${encodeURIComponent(current)}`);
     }
   }, [isAuthenticated, user, router]);
+
+  // If the caller is already a participant of this event (OWNER / COMMITTEE /
+  // TENANT / VISITOR), block re-registration and send them to the dashboard.
+  useEffect(() => {
+    if (!isAuthenticated || !user) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await getEventByUuidByMe(event.uuid);
+        const roles = (res.data as Event | null)?.userEventRoles;
+        if (cancelled) return;
+        if (res.status && roles && roles.length > 0) {
+          toast.info("Kamu sudah terdaftar di event ini.");
+          router.push(`/dashboard/${event.slug ?? event.uuid}`);
+          return;
+        }
+      } catch {
+        // Network/server error — fall through; the backend still guards
+        // duplicates on submit.
+      } finally {
+        if (!cancelled) setCheckingRegistration(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated, user, event.uuid, event.slug, router]);
 
   const isPaid = event.ticket_mode === "PAID";
 
@@ -84,6 +117,14 @@ export default function RegistrationForm({ event, fields, ticketTypes }: Props) 
   };
 
   if (!user) return null;
+
+  if (checkingRegistration) {
+    return (
+      <div className="flex min-h-[50vh] items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-secondary" />
+      </div>
+    );
+  }
 
   if (submitted) {
     return (
@@ -152,7 +193,7 @@ export default function RegistrationForm({ event, fields, ticketTypes }: Props) 
             >
               {ticketTypes.map((t) => (
                 <option key={t.uuid} value={t.uuid}>
-                  {t.name} — Rp {t.price.toLocaleString("id-ID")}
+                  {t.name} — Rp {t.price?.toLocaleString("id-ID")}
                 </option>
               ))}
             </select>

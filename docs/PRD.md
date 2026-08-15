@@ -73,7 +73,7 @@ Legend: `[DONE]` · `[IN PROGRESS]` · `[PLANNED]` · `[NEEDS CLARIFICATION]`
 | E2 | Event lifecycle: draft → pending → published → rejected/finished | `[DONE]` | `EventStatus` = `DRAFTED/PENDING/PUBLISHED/REJECTED/FINISHED` (Sprint 2/A3) |
 | E3 | Publish **request** → super admin **approval** | `[DONE]` | `POST /events/:id/publish-request`, `PUT /events/:id/approval`, `GET /events/approval-queue` + frontend approval queue (Sprint 2/A3) |
 | E4 | Event visibility `public`/`private` | `[DONE]` | `events.visibility` + public-api hides PRIVATE (Sprint 2/A2) |
-| E5 | Registration quota (`{limited, quota}`) | `[IN PROGRESS]` | `events.quota` (Int) exists and is enforced on visitor self-registration (`POST /event-users/visitor/:event_id`); the `limited` boolean / config object from docx does not exist |
+| E5 | Registration quota (`{limited, quota}`) | `[DONE]`* | `events.quota` (Int) enforced on **both** `POST /event-users/visitor/:event_id` and `POST /public-api/registration/:event_id` (`quota > 0` = limited; 2026-08 closed the public-path bypass). The `limited` boolean / config object from docx still does not exist |
 | E6 | Ticket type `free`/`paid` | `[DONE]` | `events.ticket_mode` + `ticket_types` + `tickets` models (Sprint 3/A1); paid tickets capture payment reference (manual/POS placeholder, no gateway) |
 | E7 | Per-event feature toggles (tenant, seminar, souvenir, product, pos, paidTicket) | `[IN PROGRESS]` | `events.features` JSON + `assertEventFeature()` gating on mutations (Sprint 2/A2). Read endpoints not yet gated |
 | E8 | Event type / multi-event-type support | `[DONE]` | `events.event_type` enum + public filter + home page filter (Sprint 2/A7) |
@@ -97,7 +97,7 @@ Legend: `[DONE]` · `[IN PROGRESS]` · `[PLANNED]` · `[NEEDS CLARIFICATION]`
 | A5 | Profile (view/update own) | `[DONE]` | `GET/PUT /users/me` |
 | A6 | User management (super admin) | `[DONE]` | `GET/PUT/DELETE /users`, `/users/superadmin` |
 | A7 | Visitor bio fields (city, role_type, destination_country, departure_month) | `[DONE]`* | `users_bio` table; **hardcoded to a single event UUID** in `public-api` registration — `[NEEDS CLARIFICATION]` whether this is a general dynamic-form feature or event-specific hack |
-| A8 | Dynamic registration form (per-event fields, conditional/required fields) | `[DONE]` | `event_registration_fields` + `registration_answers` + public schema + dynamic render; conditional (show-if) fields, condition (deferred in Sprint 3) shipped as follow-up |
+| A8 | Dynamic registration form (per-event fields, conditional/required fields) | `[DONE]` | `event_registration_fields` + `registration_answers` + public schema + dynamic render; conditional (show-if) fields, condition (deferred in Sprint 3) shipped as follow-up. **Answers are readable by committee/owner since 2026-08** via `GET /event-users/:event_id` (`registrationAnswers[]` with human labels) and rendered in the dashboard Verification page |
 | A9 | Badge generator (visitor/speaker/tenant) | `[DONE]` | `GET /qr-codes/my/:event_id` (PNG data URL) + ID badge UI at `/dashboard/[slug]/badge` |
 | A10 | Certificate system | `[DONE]` | Certificate issued on workshop check-in; UI at `/dashboard/[slug]/certificates` (list + print) |
 
@@ -159,14 +159,14 @@ Legend: `[DONE]` · `[IN PROGRESS]` · `[PLANNED]` · `[NEEDS CLARIFICATION]`
 | # | Feature | Status | Evidence |
 |---|---|---|---|
 | R1 | Give souvenir to visitor | `[DONE]` | `POST /souvenirs/:event_id` |
-| R2 | Rule: visited ≥ X booths | `[DONE]` | configurable `souvenir_rules.minVisitedBooth` (default 5), evaluated by `evaluateSouvenirEligibility()` (A5) |
-| R3 | Rule: min transaction amount | `[DEFERRED]` | `souvenir_rules.minTransaction` accepted but not evaluated — `tenant_transactions.visitor_id` now links POS to visitor (A5 follow-up), but the rule is still not evaluated |
+| R2 | Rule: visited ≥ X booths | `[DONE]` | configurable `souvenir_rules.minVisitedBooth` — **only enforced when explicitly configured** (2026-08 fix: no invisible default-5 rule; owners can fully opt out) |
+| R3 | Rule: min transaction amount | `[DONE]` | `souvenir_rules.minTransaction` **evaluated** (2026-08) via `tenant_transactions.visitor_id` (set by the POS visitor-QR scan) |
 | R4 | Rule: joined seminar | `[DONE]` | `souvenir_rules.joinedSeminar` (non-cancelled workshop booking) |
 | R5 | Rule combinations / custom rule builder | `[DONE]` | `souvenir_rules.requireAll` (AND) / `false` (ANY); combos of the evaluated rules |
 | R6 | One souvenir per visitor per event | `[DONE]` | Unique `(event_id, user_id)` enforcement in service |
 | R7 | Visitor self-claim via QR + "already claimed" guard | `[DONE]` | Souvenir counter UI `/dashboard/[slug]/souvenir`: scan QR → `POST /souvenirs/check/:event_id` (rules + already-claimed) → grant; server re-validates |
 
-> **Note (R2–R5):** the souvenir rules engine (A5) is now config-driven per event: `minVisitedBooth`, `joinedSeminar`, `requireAll` are evaluated server-side. `minTransaction` remains the only accepted-but-unevaluated rule (deferred — see R3).
+> **Note (R2–R5):** the souvenir rules engine (A5) is config-driven per event: `minVisitedBooth`, `minTransaction`, `joinedSeminar`, `requireAll` are all evaluated server-side (minTransaction since 2026-08). The booth rule only participates when explicitly configured.
 
 ### 4.8 Attendance & QR
 
@@ -326,9 +326,11 @@ Items in neither source, or explicitly future-ready, are out of scope for the cu
 1. **Feature config system (E7)** — `[IN PROGRESS]` since Sprint 2/A2: `events.features` JSON + mutation gating + frontend form. Remaining: read-endpoint gating + per-view UI enforcement.
 2. **Event lifecycle/approval (E2/E3)** — `[DONE]` since Sprint 2/A3: `PENDING`/`REJECTED`, publish-request + approval endpoints + queue.
 3. **Tickets & paid events (E6)** — `[DONE]` since Sprint 3/A1: `ticket_mode` + `ticket_types` + `tickets` + public purchase flow. No payment gateway (manual/POS placeholder).
-4. **QR system (C6/C7)** — table exists, zero functionality.
-5. **Souvenir rules engine (R2–R5)** — `minVisitedBooth` configurable; `minTransaction`/`joinedSeminar`/combos remain.
+4. **QR system (C6/C7)** — `[DONE]` since Sprint 4/A4 (see §4.8 note): `qr_codes` table + `GET /qr-codes/my/:event_id` + `POST /qr-codes/resolve`, wired into check-in/POS/souvenir/booth flows. Open follow-ups: speaker QRs and a unified attendance enum (C5).
+5. **Souvenir rules engine (R2–R5)** — all rules evaluated: `minVisitedBooth` (opt-outable since 2026-08), `minTransaction` (2026-08), `joinedSeminar`, `requireAll` combos.
 6. **Speaker account/invite/QR (W6, W9)** — speakers are not users.
-7. **Tenant team roles (T7)** — no owner/staff distinction.
-8. **Excel export (X5)** — dependency installed, unused.
-9. **Frontend transactional flows** — registration, tickets, check-in, POS, redemption, tenant portal, certificates: all absent or dead links (see DESIGN.md §4 / ARCHITECTURE.md §5).
+7. **Tenant team roles (T7)** — `tenant_members.role` (`OWNER|STAFF`) exists; creator=OWNER, invites=STAFF, guarded delete/role-change. Open: `PUT /tenants/:id` profile update and member-list GETs are **unauthorized** (any authenticated user can edit any tenant's profile / list its staff).
+8. **Excel export (X5)** — `[DONE]` since Sprint 7/A16 (see §4.9 note): `GET /reports/export/:event_id` streams xlsx via `exceljs`.
+9. **Frontend transactional flows** — all dashboard routes (`/dashboard/[slug]/check-in`, `badge`, `certificates`, `booth-checkin`, `souvenir`, `workshops`, `team`, `reports`, `verification`, `registration`, `manage`, `tenant`, `approvals`, `users`, `tenant-categories`) are implemented and wired to real backend endpoints (audited 2026-08 — no phantom endpoints). Open: full i18n/Indonesian content sweep, `BASE_API_URL` server/client split for production, and per-view `features` gating.
+
+> **Maintenance audit (2026-08):** the following were verified/fixed in a single pass — ESLint (0 errors / 0 warnings) and `tsc --noEmit` (0 errors) on the frontend; production build clean (Proxy registered in `functions-config-manifest`); backend compiles + lints. Functional fixes: proxy moved to `src/proxy.ts` (was silently ignored at root), the `[uuid]/apply/*` → `[slug]/apply/*` rename that was breaking `next start` ("cannot use different slug names for the same dynamic path"), event form now sends `souvenir_rules` + `ticket_mode`, POS `?search=` crash fixed, password hashes omitted from attendance/booking reads, public-registration quota enforced, souvenir booth rule opt-out, `GET /event-users/:event_id` exposes `registrationAnswers`, resend-verification endpoint + UI, footer `/privacy-policy` + `/terms` pages added, tenant-members query key scoped per tenant, registration redirect carries `?next`, Speakers pagination fixed. See `dev-backend-mexpo-new/docs/RULES.md` §4 (B22–B29).

@@ -93,7 +93,7 @@ export function ShareButton({ event, baseUrl, className }: ShareButtonProps) {
               key={item.label}
               role="menuitem"
               onClick={item.action}
-              className="flex items-center gap-3 w-full px-3 py-2 text-sm font-medium text-gray-700 bg-transparent rounded-lg hover:bg-gray-50 hover:text-blue-600 transition-colors text-left"
+              className="flex items-center gap-3 w-full px-3 py-2 text-sm font-medium text-gray-700 bg-transparent rounded-lg hover:bg-gray-50 hover:text-secondary transition-colors text-left"
             >
               <i className={`ti ti-${item.icon} text-lg opacity-80`} aria-hidden />
               {item.label}

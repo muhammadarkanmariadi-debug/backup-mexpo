@@ -9,7 +9,8 @@ import { useApiQuery } from "@/lib/hooks/useApi";
 import { keys } from "@/lib/query-keys";
 import { getMyCertificates, Certificate } from "@/services/workshop.service";
 import { formatDateWithDay } from "@/shared/utils/format";
-import BackLink from "@/features/dashboard/shared/BackLink";
+import PageHeader from "@/shared/components/ui/PageHeader";
+import PageShell from "@/shared/components/ui/PageShell";
 
 export default function CertificatesPage({ event }: { event: Event }) {
   const { user } = useAuthStore();
@@ -21,14 +22,12 @@ export default function CertificatesPage({ event }: { event: Event }) {
   );
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-8">
-      <BackLink href={`/dashboard/${event.slug ?? event.uuid}`} />
-      <div className="mb-6 text-center">
-        <h1 className="text-xl font-bold text-gray-900">Sertifikat</h1>
-        <p className="text-sm text-gray-500">
-          Sertifikat untuk workshop yang sudah kamu ikuti
-        </p>
-      </div>
+    <PageShell className="py-8">
+      <PageHeader
+        title="Sertifikat"
+        subtitle="Sertifikat untuk workshop yang sudah kamu ikuti"
+        align="center"
+      />
 
       {loading ? (
         <div className="flex justify-center py-16">
@@ -78,7 +77,7 @@ export default function CertificatesPage({ event }: { event: Event }) {
               <p className="mt-4 text-sm text-gray-500">Diberikan kepada</p>
               <p className="mt-1 text-2xl font-bold text-gray-900">{user?.full_name}</p>
               <p className="mt-6 text-sm text-gray-600">
-                atas partisipasinya dalam workshop
+                atas partisipasinya dalam lokakarya
               </p>
               <p className="mt-1 text-lg font-bold text-brand-600">{open.workshop.title}</p>
               <p className="mt-6 text-sm text-gray-500">{event.name}</p>
@@ -103,6 +102,6 @@ export default function CertificatesPage({ event }: { event: Event }) {
           </div>
         </div>
       )}
-    </div>
+    </PageShell>
   );
 }

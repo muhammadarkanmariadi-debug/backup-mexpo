@@ -3,19 +3,19 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import useEmblaCarousel from "embla-carousel-react";
 import Autoplay from "embla-carousel-autoplay";
 
-interface UseCarouselOptions {
-  data: any[];
+interface UseCarouselOptions<T> {
+  data: T[];
   itemsPerPage?: number;
   autoplayDelay?: number;
   loop?: boolean;
 }
 
-export const useCarousel = ({
+export const useCarousel = <T,>({
   data,
   itemsPerPage = 3,
   autoplayDelay = 5000,
   loop = true,
-}: UseCarouselOptions) => {
+}: UseCarouselOptions<T>) => {
   const [currentSlide, setCurrentSlide] = useState(0);
 
   // ✅ Autoplay dibuat sekali pakai useRef, tidak re-create setiap render
@@ -37,6 +37,7 @@ export const useCarousel = ({
         "(max-width: 640px)": { slidesToScroll: 1 },
       },
     },
+    // eslint-disable-next-line react-hooks/refs -- autoplay plugin ref is stable (created once via useRef)
     [autoplayPlugin.current]
   );
 

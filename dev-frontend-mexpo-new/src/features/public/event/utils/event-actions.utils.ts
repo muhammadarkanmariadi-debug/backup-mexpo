@@ -102,9 +102,9 @@ export async function shareNative(event: Event, baseUrl?: string): Promise<boole
     // famously crash the Windows native share dialog.
     await navigator.share({ title: opts.title, url: opts.url })
     return true
-  } catch (err: any) {
+  } catch (err: unknown) {
     // If the user manually cancels the native share, do not trigger fallback, just fail silently.
-    if (err.name === 'AbortError') return true; 
+    if (err instanceof DOMException && err.name === 'AbortError') return true; 
     return false
   }
 }

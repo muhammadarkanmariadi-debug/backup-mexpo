@@ -177,9 +177,15 @@ approve.isPending             // untuk spinner tombol
 File: `src/features/dashboard/shared/useList.ts`
 
 Hook ini **ditulis ulang di atas `useQuery`** namun **API-nya tidak berubah**,
-jadi halaman yang sudah ada (ApprovalQueue, AttendancePage, EventManager,
-TenantPortal, TeamManager, UserManager, VerificationPage, WorkshopsManager)
-tidak perlu diubah sama sekali.
+jadi halaman yang memakainya tidak perlu diubah strukturnya. Konsumen saat ini:
+
+- `ApprovalQueue`, `AttendancePage`, `WorkshopsManager`, `UserManager`,
+  `TeamManager`, `TenantCategoryManager`
+- `VerificationPage` + `verification/lists/*` (Committee/Speaker/Tenant)
+- `EventManager`, `TenantPortal` + `portal/tabs/*` (ProductsTab, TransactionsTab)
+- `Eventlist` (dashboard) — memakai `useList` untuk **page/quantity/search server-side**,
+  sementara filter status/tipe & sorting tetap **client-side**
+  (backend `GET /events/me` tidak menerima `status`/`event_type`/`sort_by`).
 
 ```ts
 const list = useList<Event>((q) => getApprovalQueue(q), [isSuperAdmin]);

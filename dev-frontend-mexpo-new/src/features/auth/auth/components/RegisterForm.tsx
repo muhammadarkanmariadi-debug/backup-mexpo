@@ -57,10 +57,10 @@ export function RegisterForm() {
         {/* Header */}
         <div className="flex flex-col gap-2">
           <h1 className="font-extrabold text-secondary text-5xl sm:text-6xl leading-tight">
-            Sign Up
+            Daftar
           </h1>
           <p className="font-medium text-gray-500 text-sm sm:text-base">
-            Create your account to get started
+            Buat akun Anda untuk memulai
           </p>
         </div>
 
@@ -80,8 +80,8 @@ export function RegisterForm() {
                 {...field}
                 type="text"
                 id="name"
-                label="Full Name"
-                placeholder="Enter your full name"
+                label="Nama Lengkap"
+                placeholder="Masukkan nama lengkap Anda"
                 error={!!errors.full_name}
                 hint={errors.full_name?.message}
               />
@@ -96,8 +96,8 @@ export function RegisterForm() {
                 {...field}
                 type="email"
                 id="email"
-                label="Email"
-                placeholder="Enter your email"
+                label="Surel"
+                placeholder="Masukkan email Anda"
                 error={!!errors.email}
                 hint={errors.email?.message}
               />
@@ -112,7 +112,7 @@ export function RegisterForm() {
                 {...field}
                 type="text"
                 id="phone"
-                label="Phone Number"
+                label="Nomor HP"
                 placeholder="Contoh: 081234567890"
                 error={!!errors.phone}
                 hint={errors.phone?.message}
@@ -128,7 +128,7 @@ export function RegisterForm() {
                 {...field}
                 type="password"
                 id="password"
-                label="Password"
+                label="Kata Sandi"
                 placeholder="Minimal 6 karakter"
                 error={!!errors.password}
                 hint={errors.password?.message}
@@ -144,8 +144,8 @@ export function RegisterForm() {
                 {...field}
                 type="password"
                 id="confirmPassword"
-                label="Confirm Password"
-                placeholder="Ulangi password"
+                label="Konfirmasi Kata Sandi"
+                placeholder="Ulangi kata sandi"
                 error={!!errors.confirmPassword}
                 hint={errors.confirmPassword?.message}
               />
@@ -154,7 +154,7 @@ export function RegisterForm() {
 
           <Checkbox
             id="agreeTerms"
-            label="I agree to the terms and conditions"
+            label="Saya setuju dengan syarat dan ketentuan"
             checked={isChecked}
             onChange={() => setIsChecked(!isChecked)}
           />
@@ -166,7 +166,7 @@ export function RegisterForm() {
               disabled={isSubmitting || !isChecked}
               className="w-full font-semibold"
             >
-              {isSubmitting ? 'Signing Up...' : 'Sign Up'}
+              {isSubmitting ? 'Mendaftar...' : 'Daftar'}
             </Button>
           </div>
 

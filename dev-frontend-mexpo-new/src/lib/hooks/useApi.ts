@@ -39,7 +39,7 @@ export interface ApiResult<T> {
 /** Normalize a service result → data or throw ApiError. */
 export function unwrap<T>(res: ApiResult<T>): T {
   if (!res.status) {
-    throw new ApiError(res.message ?? "Request failed", res.code ?? 500);
+    throw new ApiError(res.message ?? "Permintaan gagal", res.code ?? 500);
   }
   return res.data;
 }

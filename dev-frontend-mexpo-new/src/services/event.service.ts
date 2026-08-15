@@ -81,7 +81,9 @@ function buildEventFormData(
   fd.append("quota", String(payload.quota ?? 0));
   if (payload.visibility) fd.append("visibility", payload.visibility);
   if (payload.event_type) fd.append("event_type", payload.event_type);
+  if (payload.ticket_mode) fd.append("ticket_mode", payload.ticket_mode);
   if (payload.features) fd.append("features", JSON.stringify(payload.features));
+  if (payload.souvenir_rules) fd.append("souvenir_rules", JSON.stringify(payload.souvenir_rules));
   if (file) fd.append("file", file);
   return fd;
 }

@@ -70,6 +70,7 @@ export const httpRequest = async <T = Record<string, never>>(
     const headers = await resolveHeaders(credential, payload);
     const fetchMeta = buildFetchMeta(meta);
 
+    console.log(`[httpRequest] URL: ${url}, method: ${method}`);
     const response = await fetch(url, {
       method,
       headers,
@@ -92,7 +93,7 @@ export const httpRequest = async <T = Record<string, never>>(
         // Non-JSON body (e.g. proxy/HTML error page) — surface a clean error.
         return {
           status: false,
-          message: `Invalid response from server (HTTP ${response.status}). Expected JSON.`,
+          message: `Respons tidak valid dari server (HTTP ${response.status}). Diharapkan format JSON.`,
           data: null,
           code: response.status,
         };
@@ -104,7 +105,7 @@ export const httpRequest = async <T = Record<string, never>>(
         status: false,
         message:
           (data?.message as string | undefined) ??
-          `Request failed: ${response.status}`,
+          `Permintaan gagal: ${response.status}`,
         data,
         code: response.status,
       };
@@ -119,7 +120,7 @@ export const httpRequest = async <T = Record<string, never>>(
       code: (data?.status as number | undefined) ?? response.status,
     };
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown error";
+    const message = error instanceof Error ? error.message : "Terjadi kesalahan yang tidak diketahui";
     return { status: false, message, data: null, code: 500 };
   }
 };

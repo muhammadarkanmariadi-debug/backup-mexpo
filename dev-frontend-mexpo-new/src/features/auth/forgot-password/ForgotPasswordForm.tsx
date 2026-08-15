@@ -21,7 +21,7 @@ export default function ForgotPasswordForm() {
       if (!res.status) throw new Error();
       setSent(true);
     } catch {
-      toast.error("Gagal mengirim email reset. Periksa kembali email kamu.");
+      toast.error("Gagal mengirim email atur ulang. Periksa kembali email kamu.");
     } finally {
       setBusy(false);
     }
@@ -39,7 +39,7 @@ export default function ForgotPasswordForm() {
           kata sandi ke <strong>{email}</strong>.
         </p>
         <Link href="/auth" className="text-sm font-semibold text-secondary hover:underline">
-          Kembali ke Login
+          Kembali ke Halaman Masuk
         </Link>
       </div>
     );
@@ -53,7 +53,7 @@ export default function ForgotPasswordForm() {
       </p>
       <form onSubmit={submit} className="space-y-4">
         <Input
-          label="Email"
+          label="Surel"
           type="email"
           required
           value={email}
@@ -66,13 +66,13 @@ export default function ForgotPasswordForm() {
           className="flex w-full items-center justify-center gap-2 rounded-lg bg-secondary px-5 py-3 text-sm font-semibold text-white hover:bg-secondary/80 disabled:opacity-50"
         >
           {busy && <Loader2 className="h-4 w-4 animate-spin" />}
-          Kirim Tautan Reset
+          Kirim Tautan Atur Ulang
         </button>
       </form>
       <p className="mt-4 text-center text-sm text-gray-500">
         Ingat kata sandi?{" "}
         <Link href="/auth" className="font-semibold text-secondary hover:underline">
-          Login
+          Masuk
         </Link>
       </p>
     </div>

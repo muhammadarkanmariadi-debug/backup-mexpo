@@ -9,7 +9,7 @@ import Link from 'next/link'
 import { TenantCard } from '@/shared/components/cards/TenantCard'
 import { Tenant, TenantProduct } from '@/entities/event/tenant.entity'
 
-import ContentTitle2 from '@/shared/components/ui/ContentTitle2'
+import TabListShell from './TabListShell'
 import SearchBar from '@/shared/components/form/SearchBar'
 import { usePagination } from '@/shared/hooks/usePagination'
 import { DataPagination } from '@/shared/components/ui/DataPagination'
@@ -47,7 +47,7 @@ export const TenantTab = ({ tenantData }: { tenantData: Tenant[] }) => {
     setPage: setProductPage,
     setItemsPerPage: setProductItemsPerPage,
     paginate: paginateProducts,
-  } = usePagination<any>({
+  } = usePagination<TenantProduct>({
     totalItems: filteredProducts.length,
     initialPageSize: 4,
   })
@@ -65,13 +65,13 @@ export const TenantTab = ({ tenantData }: { tenantData: Tenant[] }) => {
             setProductSearch('')
             setProductPage(1)
           }}
-          className='flex items-center gap-1.5 sm:gap-2 font-bold text-blue-500 text-sm sm:text-base hover:underline'
+          className='flex items-center gap-1.5 sm:gap-2 font-bold text-secondary text-sm sm:text-base hover:underline'
         >
-          <ArrowLeft className='w-4 h-4 sm:w-5 sm:h-5' /> Back to List
+          <ArrowLeft className='w-4 h-4 sm:w-5 sm:h-5' /> Kembali ke Daftar
         </button>
 
-        <div className='bg-white shadow-sm border border-blue-100 rounded-2xl sm:rounded-3xl overflow-hidden'>
-          <div className='relative bg-gradient-to-r from-blue-500 to-blue-400 h-20 sm:h-24 md:h-32'>
+        <div className='bg-white shadow-sm border border-brand-100 rounded-2xl sm:rounded-3xl overflow-hidden'>
+          <div className='relative bg-gradient-to-r from-brand-500 to-brand-400 h-20 sm:h-24 md:h-32'>
             <div className='-bottom-8 sm:-bottom-10 left-4 sm:left-6 md:left-8 absolute bg-white shadow-lg p-1.5 sm:p-2 border border-gray-100 rounded-xl sm:rounded-2xl w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24'>
               <Image
                 width={150}
@@ -90,7 +90,7 @@ export const TenantTab = ({ tenantData }: { tenantData: Tenant[] }) => {
                   {selectedTenant.name}
                 </h2> 
 
-                <p className='font-medium text-blue-500 text-sm sm:text-base'>
+                <p className='font-medium text-secondary text-sm sm:text-base'>
                   {selectedTenant.category?.name}
                 </p>
               </div>
@@ -112,21 +112,21 @@ export const TenantTab = ({ tenantData }: { tenantData: Tenant[] }) => {
         <div className='gap-4 sm:gap-6 md:gap-8 grid grid-cols-1 lg:grid-cols-3'>
           <div className='space-y-4 sm:space-y-6 lg:col-span-2'>
             <h3 className='flex items-center gap-2 font-bold text-gray-800 text-lg sm:text-xl md:text-2xl'>
-              <ShoppingBag className='w-5 h-5 sm:w-6 sm:h-6 text-blue-500' /> Products
+              <ShoppingBag className='w-5 h-5 sm:w-6 sm:h-6 text-secondary' /> Produk
             </h3>
             <SearchBar
-              placeholder='Search products...'
+              placeholder='Cari Produk...'
               search={productSearch}
               setSearch={setProductSearch}
             />
             <div className='gap-3 sm:gap-4 grid grid-cols-1 sm:grid-cols-2'>
               {paginatedProducts.length > 0 ? (
-                paginatedProducts.map((product: any) => (
+                paginatedProducts.map((product: TenantProduct) => (
                   <ProductCard key={product.uuid} product={product} />
                 ))
               ) : (
                 <div className='col-span-full bg-gray-50 py-8 sm:py-12 rounded-2xl text-gray-400 text-sm sm:text-base text-center'>
-                  No products uploaded yet.
+                  Belum ada produk.
                 </div>
               )}
              
@@ -149,19 +149,19 @@ export const TenantTab = ({ tenantData }: { tenantData: Tenant[] }) => {
 
           <div className='space-y-4 sm:space-y-6'>
             <div className='space-y-3 sm:space-y-4 bg-white shadow-sm p-4 sm:p-5 md:p-6 border border-gray-100 rounded-2xl'>
-              <h4 className='font-bold text-gray-800 text-sm sm:text-base'>Contact Info</h4>
+              <h4 className='font-bold text-gray-800 text-sm sm:text-base'>Info Kontak</h4>
               <div className='space-y-2 sm:space-y-3'>
                 <div className='flex items-center gap-2 sm:gap-3 text-gray-600 text-xs sm:text-sm'>
-                  <Mail className='flex-shrink-0 w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-500' />{' '}
-                  <span className='break-all'>{selectedTenant.email || 'No email'}</span>
+                  <Mail className='flex-shrink-0 w-3.5 h-3.5 sm:w-4 sm:h-4 text-secondary' />{' '}
+                  <span className='break-all'>{selectedTenant.email || 'Tidak ada email'}</span>
                 </div>
                 <div className='flex items-center gap-2 sm:gap-3 text-gray-600 text-xs sm:text-sm'>
-                  <Phone className='flex-shrink-0 w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-500' />{' '}
-                  {selectedTenant.phone || 'No phone'}
+                  <Phone className='flex-shrink-0 w-3.5 h-3.5 sm:w-4 sm:h-4 text-secondary' />{' '}
+                  {selectedTenant.phone || 'Tidak ada telepon'}
                 </div>
                 {selectedTenant.website && (
                   <div className='flex items-center gap-2 sm:gap-3 text-gray-600 text-xs sm:text-sm'>
-                    <Eye className='flex-shrink-0 w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-500' />
+                    <Eye className='flex-shrink-0 w-3.5 h-3.5 sm:w-4 sm:h-4 text-secondary' />
                     <Link
                       href={
                         selectedTenant.website.startsWith('http')
@@ -185,12 +185,13 @@ export const TenantTab = ({ tenantData }: { tenantData: Tenant[] }) => {
   }
 
   return (
-    <div className='mx-auto px-2 sm:px-4 md:px-6 lg:px-0 w-full max-w-7xl animate-in duration-500 fade-in'>
-      <div className="flex flex-col mb-5">
-        <ContentTitle2 category="Tenants" title="Meet Our Tenants" />
-        <SearchBar search={search} setSearch={setSearch} placeholder="Search Tenants..." />
-      </div>
-
+    <TabListShell
+      category="Penyewa"
+      title="Penyewa Kami"
+      searchPlaceholder="Cari Penyewa..."
+      search={search}
+      setSearch={setSearch}
+    >
       {filteredTenants.length > 0 ? (
         <div className='grid grid-cols-1 gap-4 sm:gap-6'>
           {paginatedTenants.map(tenant => (
@@ -198,12 +199,12 @@ export const TenantTab = ({ tenantData }: { tenantData: Tenant[] }) => {
               key={tenant.uuid}
               tenant={tenant}
               onSeeProduct={() => setSelectedTenant(tenant)}
-              categoryName={tenant.category?.name || 'No Category'}
+              categoryName={tenant.category?.name || 'Tanpa Kategori'}
             />
           ))}
         </div>
       ) : (
-        <div className="text-center text-gray-500">No tenants found</div>
+        <div className="text-center text-gray-500">Tidak ada penyewa ditemukan</div>
       )}
 
       {filteredTenants.length > tenantItemsPerPage && (
@@ -217,7 +218,7 @@ export const TenantTab = ({ tenantData }: { tenantData: Tenant[] }) => {
           pageSizeOptions={[4, 8, 12, 16]}
         />
       )}
-    </div>
+    </TabListShell>
   )
 }
 

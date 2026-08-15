@@ -1,38 +1,15 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState } from "react";
 import { EventRundown } from "@/entities/event/rundown.entity";
+import { useGroupByDate } from "@/shared/hooks/useGroupByDate";
 
 export const useGroupedRundown = (rundown?: EventRundown[]) => {
   const [selectedDay, setSelectedDay] = useState<string>("");
 
-  const { groupedRundown, days } = useMemo(() => {
-    if (!rundown || rundown.length === 0) {
-      return { groupedRundown: {}, days: [] };
-    }
-
-    const grouped: { [key: string]: EventRundown[] } = {};
-
-    rundown.forEach((item) => {
-      const date = item.start_time.split("T")[0];
-
-      if (!grouped[date]) {
-        grouped[date] = [];
-      }
-      grouped[date].push(item);
-    });
-
-    Object.keys(grouped).forEach((date) => {
-      grouped[date].sort(
-        (a, b) =>
-          new Date(a.start_time).getTime() - new Date(b.start_time).getTime(),
-      );
-    });
-
-    const sortedDays = Object.keys(grouped).sort();
-    return { groupedRundown: grouped, days: sortedDays };
-  }, [rundown]);
+  const { grouped, days } = useGroupByDate(rundown);
 
   useEffect(() => {
     if (days.length > 0 && (!selectedDay || !days.includes(selectedDay))) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- sync selectedDay with available days
       setSelectedDay(days[0]);
     } else if (days.length === 0 && selectedDay !== "") {
       setSelectedDay("");
@@ -43,6 +20,6 @@ export const useGroupedRundown = (rundown?: EventRundown[]) => {
     selectedDay,
     setSelectedDay,
     days,
-    groupedRundown,
+    groupedRundown: grouped,
   };
 };

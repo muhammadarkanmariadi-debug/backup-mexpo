@@ -1,13 +1,21 @@
 ﻿"use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import { toast } from "sonner";
-import { CalendarClock, Loader2, Plus, Pencil, Trash2, UserPlus } from "lucide-react";
+import { Eye, Loader2, Plus, UserPlus } from "lucide-react";
 
 import Input from "@/shared/components/form/Input";
 import SearchBar from "@/shared/components/form/SearchBar";
+import Button from "@/shared/components/button/Button";
+import PageHeader from "@/shared/components/ui/PageHeader";
+import PageShell from "@/shared/components/ui/PageShell";
+import RowActions, { editAction, deleteAction } from "@/shared/components/ui/RowActions";
+import { LoadingSpinner } from "@/shared/components/ui/LoadingSpinner";
+import EmptyState from "@/shared/components/ui/EmptyState";
+import { Modal } from "@/shared/components/ui/Modal";
 import { DataPagination } from "@/shared/components/ui/DataPagination";
+import { useConfirm } from "@/shared/components/ui/ConfirmDialog";
 import { Event } from "@/entities/event/event.entity";
 import { Workshop } from "@/entities/event/workshop.entity";
 import { EventSpeaker } from "@/entities/event/speaker.entity";
@@ -21,11 +29,11 @@ import {
   WorkshopPayload,
 } from "@/services/workshop.service";
 import { getSpeakers } from "@/services/event-content.service";
-import BackLink from "@/features/dashboard/shared/BackLink";
-import { useList } from "@/features/dashboard/shared/useList";
+import { useList } from "@/shared/hooks/useList";
 import { useApiQuery } from "@/lib/hooks/useApi";
 import { keys } from "@/lib/query-keys";
 import SortMenu from "@/shared/components/ui/SortMenu";
+import SearchableSelect from "@/shared/components/form/SearchableSelect";
 
 function toLocalInputValue(dateString?: string): string {
   if (!dateString) return "";
@@ -49,8 +57,23 @@ export default function WorkshopsManager({ event }: { event: Event }) {
   const [busy, setBusy] = useState(false);
   const [form, setForm] = useState<WorkshopPayload>(EMPTY);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const [speakerModalOpen, setSpeakerModalOpen] = useState(false);
+  const [selectedWorkshopId, setSelectedWorkshopId] = useState<string | null>(null);
+  const [selectedSpeakerId, setSelectedSpeakerId] = useState("");
+  const [viewSpeakersWorkshop, setViewSpeakersWorkshop] = useState<Workshop | null>(null);
+
+  const { confirm, dialogs } = useConfirm();
 
   const list = useList<Workshop>((q) => getWorkshops(event.uuid, q), [event.uuid]);
+
+  // Exclude speakers already attached to the selected workshop so the picker
+  // can't trigger a duplicate --/Conflict-- "Speaker already set" error.
+  const attachedSpeakerIds = useMemo(() => {
+    const w = list.items.find((i) => i.uuid === selectedWorkshopId);
+    return new Set((w?.workshopSpeakers ?? []).map((s) => s.speaker_id));
+  }, [list.items, selectedWorkshopId]);
 
   const { data: speakers } = useApiQuery<EventSpeaker[]>(
     keys.content.speakers(event.uuid),
@@ -74,12 +97,13 @@ export default function WorkshopsManager({ event }: { event: Event }) {
         ? await updateWorkshop(editingId, payload)
         : await createWorkshop(event.uuid, payload);
       if (!res.status) throw new Error();
-      toast.success(editingId ? "Workshop diperbarui." : "Workshop ditambahkan.");
+      toast.success(editingId ? "Lokakarya diperbarui." : "Lokakarya ditambahkan.");
       setForm(EMPTY);
       setEditingId(null);
+      setIsModalOpen(false);
       list.refetch();
     } catch {
-      toast.error("Gagal menyimpan workshop.");
+      toast.error("Gagal menyimpan lokakarya.");
     } finally {
       setBusy(false);
     }
@@ -96,78 +120,172 @@ export default function WorkshopsManager({ event }: { event: Event }) {
       quota: w.quota,
       is_public: w.is_public,
     });
+    setIsModalOpen(true);
   };
 
   const remove = async (w: Workshop) => {
-    if (!confirm(`Hapus workshop "${w.title}"?`)) return;
+    if (!(await confirm(`Hapus lokakarya "${w.title}"?`))) return;
     const res = await deleteWorkshop(w.uuid);
     if (!res.status) {
-      toast.error("Gagal menghapus workshop.");
+      toast.error("Gagal menghapus lokakarya.");
       return;
     }
-    toast.success("Workshop dihapus.");
+    toast.success("Lokakarya dihapus.");
     list.refetch();
   };
 
-  const attachSpeaker = async (workshopId: string) => {
-    const speakerId = prompt("Tempel UUID speaker untuk workshop ini");
-    if (!speakerId) return;
-    const res = await attachWorkshopSpeaker(workshopId, speakerId.trim());
+  const attachSpeaker = (workshopId: string) => {
+    setSelectedWorkshopId(workshopId);
+    setSelectedSpeakerId("");
+    setSpeakerModalOpen(true);
+  };
+
+  const submitSpeaker = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedWorkshopId || !selectedSpeakerId) return;
+    setBusy(true);
+    const res = await attachWorkshopSpeaker(selectedWorkshopId, selectedSpeakerId);
+    setBusy(false);
     if (!res.status) {
-      toast.error("Gagal menambahkan speaker.");
-      return;
+      console.log(res)
+      toast.error(res.message);
+      return; 
     }
-    toast.success("Speaker ditambahkan.");
+    toast.success("Pembicara ditambahkan.");
+    setSpeakerModalOpen(false);
     list.refetch();
   };
 
   const detachSpeaker = async (linkId: string) => {
-    if (!confirm("Lepaskan speaker dari workshop ini?")) return;
+    if (!(await confirm("Lepaskan pembicara dari lokakarya ini?"))) return;
     const res = await removeWorkshopSpeaker(linkId);
     if (!res.status) {
-      toast.error("Gagal melepas speaker.");
+      toast.error("Gagal melepas pembicara.");
       return;
     }
-    toast.success("Speaker dilepas.");
+    toast.success("Pembicara dilepas.");
     list.refetch();
   };
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-8">
-      <BackLink href={`/dashboard/${event.slug ?? event.uuid}`} />
-      <h1 className="mb-1 text-2xl font-bold text-gray-900">Kelola Workshop</h1>
-      <p className="mb-6 text-sm text-gray-500">{event.name}</p>
+    <PageShell className="py-8">
+      <PageHeader
+        title="Kelola Lokakarya"
+        subtitle={event.name}
+        action={
+          <Button size="xs" startIcon={<Plus className="h-4 w-4" />} onClick={() => setIsModalOpen(true)}>
+            Tambah Lokakarya
+          </Button>
+        }
+      />
 
-      <form onSubmit={submit} className="mb-6 space-y-3 rounded-xl border border-gray-100 bg-white p-5">
-        <h3 className="font-semibold text-gray-900">{editingId ? "Edit Workshop" : "Tambah Workshop"}</h3>
-        <Input label="Judul" required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
-        <Input label="Deskripsi" type="text-area" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
-        <Input label="Lokasi" required value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} />
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <Input label="Mulai" type="datetime-local" required value={form.start_time} onChange={(e) => setForm({ ...form, start_time: e.target.value })} />
-          <Input label="Selesai" type="datetime-local" required value={form.end_time} onChange={(e) => setForm({ ...form, end_time: e.target.value })} />
-          <Input label="Kuota (0 = tak terbatas)" type="number" min="0" value={String(form.quota ?? 0)} onChange={(e) => setForm({ ...form, quota: Number(e.target.value) || 0 })} />
-          <label className="flex items-center gap-2 text-sm text-gray-700">
-            <input type="checkbox" checked={form.is_public} onChange={(e) => setForm({ ...form, is_public: e.target.checked })} className="h-4 w-4 accent-brand-500" />
-            Publik
-          </label>
-        </div>
-        <div className="flex gap-2">
-          <button type="submit" disabled={busy} className="inline-flex items-center gap-1.5 rounded-lg bg-secondary px-4 py-2 text-sm font-semibold text-white hover:bg-secondary/80 disabled:opacity-50">
-            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-            {editingId ? "Simpan" : "Tambah"}
-          </button>
-          {editingId && (
-            <button type="button" onClick={() => { setEditingId(null); setForm(EMPTY); }} className="px-3 py-2 text-sm text-gray-500 hover:bg-gray-100">
+      <Modal isOpen={isModalOpen} onClose={() => { setIsModalOpen(false); setEditingId(null); setForm(EMPTY); }} title={editingId ? "Edit Lokakarya" : "Tambah Lokakarya"} maxWidth="max-w-2xl">
+        <form onSubmit={submit} className="space-y-4">
+          <Input label="Judul" required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
+          <Input label="Deskripsi" type="text-area" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+          <Input label="Lokasi" required value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} />
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <Input label="Mulai" type="datetime-local" required value={form.start_time} onChange={(e) => setForm({ ...form, start_time: e.target.value })} />
+            <Input label="Selesai" type="datetime-local" required value={form.end_time} onChange={(e) => setForm({ ...form, end_time: e.target.value })} />
+            <Input label="Kuota (0 = tak terbatas)" type="number" min="0" value={String(form.quota ?? 0)} onChange={(e) => setForm({ ...form, quota: Number(e.target.value) || 0 })} />
+            <label className="flex items-center gap-2 text-sm text-gray-700">
+              <input type="checkbox" checked={form.is_public} onChange={(e) => setForm({ ...form, is_public: e.target.checked })} className="h-4 w-4 accent-brand-500" />
+              Publik
+            </label>
+          </div>
+          <div className="flex gap-2 pt-2">
+            <Button
+              type="submit"
+              size="xs"
+              disabled={busy}
+              startIcon={busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+            >
+              {editingId ? "Simpan" : "Tambah"}
+            </Button>
+            <Button type="button" size="xs" variant="outline" onClick={() => { setIsModalOpen(false); setEditingId(null); setForm(EMPTY); }}>
               Batal
-            </button>
-          )}
-        </div>
-      </form>
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
+      <Modal isOpen={speakerModalOpen} onClose={() => setSpeakerModalOpen(false)} title="Pilih Pembicara" maxWidth="max-w-md">
+        <form onSubmit={submitSpeaker} className="space-y-4">
+          <div>
+       
+
+            <SearchableSelect
+              label="Pilih Pembicara"
+            
+              value={selectedSpeakerId}
+              onChange={(value) => setSelectedSpeakerId(value)}
+              options={(speakers ?? [])
+                .filter((s) => !attachedSpeakerIds.has(s.uuid))
+                .map((s) => ({
+                  label: s.name,
+                  value: s.uuid,
+                }))}
+              emptyText={
+                attachedSpeakerIds.size > 0
+                  ? "Semua pembicara sudah ditambahkan ke lokakarya ini."
+                  : "Tidak ada pembicara tersedia."
+              }
+            />
+          </div>
+          <div className="flex gap-2 pt-2">
+            <Button
+              type="submit"
+              size="xs"
+              disabled={busy || !selectedSpeakerId}
+              startIcon={busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+            >
+              Tambahkan
+            </Button>
+            <Button type="button" size="xs" variant="outline" onClick={() => setSpeakerModalOpen(false)}>
+              Batal
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
+      <Modal isOpen={!!viewSpeakersWorkshop} onClose={() => setViewSpeakersWorkshop(null)} title="Pembicara Lokakarya" maxWidth="max-w-lg">
+        {viewSpeakersWorkshop ? (
+          <div className="space-y-3">
+            <p className="text-sm font-semibold text-gray-900">{viewSpeakersWorkshop.title}</p>
+            {viewSpeakersWorkshop.workshopSpeakers?.length > 0 ? (
+              <div className="space-y-3">
+                {viewSpeakersWorkshop.workshopSpeakers.map((link) => {
+                  const sp = link.event_speaker;
+                  return (
+                    <div key={link.uuid} className="flex items-start gap-3 rounded-xl border border-gray-100 p-3">
+                      {sp?.photo ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={sp.photo} alt={sp.name} className="h-12 w-12 rounded-full object-cover" />
+                      ) : (
+                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 text-lg font-bold text-gray-500">
+                          {(sp?.name ?? "P")[0]}
+                        </div>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <p className="font-semibold text-gray-900 text-sm">{sp?.name ?? "Pembicara"}</p>
+                        {sp?.bio && (
+                          <p className="mt-0.5 text-gray-500 text-xs leading-relaxed line-clamp-3">{sp.bio}</p>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="py-6 text-center text-sm text-gray-500">Belum ada pembicara untuk lokakarya ini.</p>
+            )}
+          </div>
+        ) : null}
+      </Modal>
 
       <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-gray-100 bg-white p-4">
         <div className="min-w-[200px] flex-1">
-          <SearchBar search={list.search} setSearch={list.applySearch} placeholder="Cari workshop..." />
+          <SearchBar search={list.search} setSearch={list.applySearch} placeholder="Cari lokakarya..." />
         </div>
         <SortMenu
           options={[
@@ -182,20 +300,15 @@ export default function WorkshopsManager({ event }: { event: Event }) {
       </div>
 
       {list.loading ? (
-        <div className="flex justify-center py-10">
-          <Loader2 className="h-5 w-5 animate-spin text-secondary" />
-        </div>
+        <LoadingSpinner className="py-10" />
       ) : list.items.length === 0 ? (
-        <p className="py-8 text-center text-sm text-gray-500">Belum ada workshop.</p>
+        <EmptyState title="Belum ada lokakarya." className="py-8" />
       ) : (
         <>
           <div className="space-y-3">
             {list.items.map((w) => (
               <div key={w.uuid} className="rounded-xl border border-gray-100 bg-white px-4 py-3">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-secondary">
-                    <CalendarClock className="h-5 w-5" />
-                  </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold text-gray-900 text-sm">{w.title}</p>
                     <p className="text-xs text-gray-500">
@@ -207,25 +320,17 @@ export default function WorkshopsManager({ event }: { event: Event }) {
                     </p>
                   </div>
                   <button onClick={() => attachSpeaker(w.uuid)} disabled={(speakers ?? []).length === 0} className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-40">
-                    <UserPlus className="h-3.5 w-3.5" /> Speaker
+                    <UserPlus className="h-3.5 w-3.5" /> Pembicara
                   </button>
-                  <button onClick={() => startEdit(w)} className="p-2 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-700" title="Edit">
-                    <Pencil className="h-4 w-4" />
+                  <button
+                    onClick={() => setViewSpeakersWorkshop(w)}
+                    className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50"
+                  >
+                    <Eye className="h-3.5 w-3.5" /> Lihat Pembicara
                   </button>
-                  <button onClick={() => remove(w)} className="p-2 rounded-lg text-gray-400 hover:bg-red-50 hover:text-red-600" title="Hapus">
-                    <Trash2 className="h-4 w-4" />
-                  </button>
+                  <RowActions actions={[editAction(() => startEdit(w)), deleteAction(() => remove(w))]} busy={busy} />
                 </div>
-                {w.workshopSpeakers && w.workshopSpeakers.length > 0 && (
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {w.workshopSpeakers.map((s) => (
-                      <span key={s.uuid} className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-1 text-xs text-blue-700">
-                        {s.event_speaker?.name ?? "Speaker"}
-                        <button onClick={() => detachSpeaker(s.uuid)} className="hover:text-red-600" title="Lepas">Ã—</button>
-                      </span>
-                    ))}
-                  </div>
-                )}
+              
               </div>
             ))}
           </div>
@@ -241,6 +346,8 @@ export default function WorkshopsManager({ event }: { event: Event }) {
           </div>
         </>
       )}
-    </div>
+
+      {dialogs}
+    </PageShell>
   );
 }

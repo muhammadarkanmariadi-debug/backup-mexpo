@@ -191,13 +191,27 @@ export class EventsService {
             where: { user_id: userId },
             select: { role: true },
           },
+          _count: {
+            select: {
+              userEventRoles: { where: { role: `VISITOR` } },
+              tenants: { where: { status: `APPROVED` } },
+              workshops: true,
+            },
+          },
         },
       });
+
+      const mappedEvents = events.map((e) => ({
+        ...e,
+        count_user_registration: e._count?.userEventRoles ?? 0,
+        count_tenants: e._count?.tenants ?? 0,
+        count_workshops: e._count?.workshops ?? 0,
+      }));
 
       return {
         success: true,
         message: `Events retrieved successfully`,
-        data: events,
+        data: mappedEvents,
         meta: { page, quantity, counts },
       };
     } catch (error) {
@@ -233,16 +247,30 @@ export class EventsService {
             where: { status: `APPROVED` },
             include: { tenantProducts: true, category: true },
           },
+          _count: {
+            select: {
+              userEventRoles: { where: { role: `VISITOR` } },
+              tenants: { where: { status: `APPROVED` } },
+              workshops: true,
+            },
+          },
         },
       });
       if (!findExistingEvent) {
         throw new NotFoundException(`Event doesn't exists`);
       }
 
+      const mappedEvent = {
+        ...findExistingEvent,
+        count_user_registration: findExistingEvent._count?.userEventRoles ?? 0,
+        count_tenants: findExistingEvent._count?.tenants ?? 0,
+        count_workshops: findExistingEvent._count?.workshops ?? 0,
+      };
+
       return {
         success: true,
         message: `Events retrieved successfully`,
-        data: findExistingEvent,
+        data: mappedEvent,
       };
     } catch (error) {
       if (error instanceof HttpException) {

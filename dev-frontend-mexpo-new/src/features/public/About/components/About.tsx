@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 
+import PageShell from "@/shared/components/ui/PageShell";
 import Hero from "./content/Hero";
 import AboutDescription from "./content/AboutDescription";
 import Gallery from "./content/Gallery";
@@ -14,13 +15,13 @@ import { QrCode, BarChart3, Users, Zap } from "lucide-react";
 const features = [
   {
     icon: <QrCode className="w-5 h-5" />,
-    title: "QR Check-in",
+    title: "Check-in QR",
     description:
       "Menggantikan daftar kertas dan antrean lambat dengan check-in QR instan untuk pintu masuk yang mulus.",
   },
   {
     icon: <BarChart3 className="w-5 h-5" />,
-    title: "Analitik Real-time",
+    title: "Analitik Waktu Nyata",
     description:
       "Data kehadiran dan transaksi tampil langsung, membantu panitia mengoptimalkan jalannya acara.",
   },
@@ -32,7 +33,7 @@ const features = [
   },
   {
     icon: <Zap className="w-5 h-5" />,
-    title: "Setup Cepat",
+    title: "Penyiapan Cepat",
     description:
       "Peluncuran event dalam hitungan menit, bukan hari — siap dipakai tim mana pun.",
   },
@@ -69,7 +70,7 @@ const About = () => {
       transition={{ duration: 0.4 }}
       className="min-h-screen"
     >
-      <div className="mx-auto px-4 py-8 max-w-7xl">
+      <PageShell className="py-8">
         {/* ─── 1. Hero banner full-width ─── */}
         <Hero />
 
@@ -86,7 +87,7 @@ const About = () => {
         <CoreValue coreValues={coreValues} />
 
      
-      </div>
+      </PageShell>
     </motion.div>
   );
 };

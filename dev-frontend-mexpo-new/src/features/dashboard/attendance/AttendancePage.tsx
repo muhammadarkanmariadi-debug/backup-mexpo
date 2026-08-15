@@ -5,9 +5,11 @@ import { CalendarCheck, Loader2 } from "lucide-react";
 import { DataPagination } from "@/shared/components/ui/DataPagination";
 import { Event } from "@/entities/event/event.entity";
 import { getEventAttendance, AttendanceLog } from "@/services/attendance.service";
-import BackLink from "@/features/dashboard/shared/BackLink";
-import { useList } from "@/features/dashboard/shared/useList";
+import { useList } from "@/shared/hooks/useList";
 import SortMenu from "@/shared/components/ui/SortMenu";
+import PageHeader from "@/shared/components/ui/PageHeader";
+import Badge from "@/shared/components/ui/Badge";
+import PageShell from "@/shared/components/ui/PageShell";
 
 function toInputValue(d?: string): string {
   if (!d) return "";
@@ -27,17 +29,12 @@ export default function AttendancePage({ event }: { event: Event }) {
     "h-10 rounded-lg border border-gray-300 px-3 text-sm bg-white text-gray-800";
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-8">
-      <BackLink href={`/dashboard/${event.slug ?? event.uuid}`} />
-      <div className="mb-6 flex items-center gap-3">
-        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-secondary">
-          <CalendarCheck className="h-5 w-5" />
-        </div>
-        <div>
-          <h1 className="text-xl font-bold text-gray-900">Attendance</h1>
-          <p className="text-sm text-gray-500">{event.name}</p>
-        </div>
-      </div>
+    <PageShell className="py-8">
+      <PageHeader
+        title="Kehadiran"
+        subtitle={event.name}
+        icon={{ node: <CalendarCheck className="h-5 w-5" />, className: "bg-brand-50 text-secondary" }}
+      />
 
       <div className="mb-6 flex flex-wrap items-end gap-3 rounded-xl border border-gray-100 bg-white p-4">
         <div>
@@ -88,14 +85,12 @@ export default function AttendancePage({ event }: { event: Event }) {
       ) : (
         <div className="rounded-xl border border-gray-100 bg-white">
           <div className="flex items-center justify-between border-b border-gray-100 px-5 py-3">
-            <span className="text-sm font-semibold text-gray-900">Daftar Check-in</span>
-            <span className="rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-secondary">
-              {list.total} org
-            </span>
+            <span className="text-sm font-semibold text-gray-900">Daftar Kehadiran</span>
+            <Badge tone="info">{list.total} org</Badge>
           </div>
           {list.items.length === 0 ? (
             <p className="px-5 py-8 text-center text-sm text-gray-500">
-              Belum ada data attendance.
+              Belum ada data kehadiran.
             </p>
           ) : (
             <>
@@ -103,7 +98,7 @@ export default function AttendancePage({ event }: { event: Event }) {
                 <thead>
                   <tr className="text-left text-xs text-gray-400">
                     <th className="px-5 py-2">Nama</th>
-                    <th className="px-5 py-2">Waktu Check-in</th>
+                    <th className="px-5 py-2">Waktu Kehadiran</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
@@ -131,6 +126,6 @@ export default function AttendancePage({ event }: { event: Event }) {
           )}
         </div>
       )}
-    </div>
+    </PageShell>
   );
 }

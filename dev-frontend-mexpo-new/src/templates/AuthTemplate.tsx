@@ -1,7 +1,7 @@
 
 
 import MexpoCard from '@/features/auth/auth/components/MexpoCard';
-import BackToHomepage from '@/shared/components/button/BackToHomepage';
+import BackLink from '@/shared/components/ui/BackLink';
 
 interface AuthTemplateProps {
   children: React.ReactNode;
@@ -10,7 +10,7 @@ interface AuthTemplateProps {
 export function AuthTemplate({ children }: AuthTemplateProps) {
   return (
     <div className="flex flex-col bg-background w-full min-h-screen">
-      <BackToHomepage />
+      <BackLink variant="hero" label="Kembali ke Beranda" hideOnRoutes={["/events"]} />
 
       <main className="flex flex-1 justify-center items-center px-4 sm:px-6 lg:px-8 py-10">
         <div className="flex lg:flex-row flex-col justify-between items-center gap-12 lg:gap-16 w-full max-w-7xl">

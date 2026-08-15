@@ -36,10 +36,6 @@ const Hero = ({ eventData }: { eventData: Event }) => {
     eventData.registration_deadline
   )
 
-  const canJoin =
-    (eventCategory === 'On Going' || eventCategory === 'Upcoming') &&
-    regStatus.canRegister === true
-
   return (
     <section className='relative w-full overflow-hidden bg-white'>
       {/* subtle grid texture */}
@@ -48,7 +44,7 @@ const Hero = ({ eventData }: { eventData: Event }) => {
         className='pointer-events-none absolute inset-0 opacity-[0.025]'
         style={{
           backgroundImage:
-            'linear-gradient(#2563eb 1px, transparent 1px), linear-gradient(90deg, #2563eb 1px, transparent 1px)',
+            'linear-gradient(var(--color-secondary) 1px, transparent 1px), linear-gradient(90deg, var(--color-secondary) 1px, transparent 1px)',
           backgroundSize: '48px 48px',
         }}
       />
@@ -73,7 +69,7 @@ const Hero = ({ eventData }: { eventData: Event }) => {
             {/* eyebrow */}
             <motion.div>
               <span className='inline-block rounded-full border border-blue-200 bg-blue-50 px-3 py-1 font-jakarta text-xs font-semibold tracking-wide text-secondary'>
-                Exhibition &amp; Seminar
+                Pameran &amp; Seminar
               </span>
             </motion.div>
 
@@ -111,7 +107,7 @@ const Hero = ({ eventData }: { eventData: Event }) => {
               </div>
             )}
             {/* CTA */}
-            {canJoin && (
+            {regStatus.canRegister && (
               <motion.div className='mt-8'>
                 <Button
                   onClick={() => {
@@ -121,7 +117,7 @@ const Hero = ({ eventData }: { eventData: Event }) => {
                   disabled={isRedirecting}
                   className='px-8 py-3 text-sm sm:text-base hover:text-secondary hover:bg-white'
                 >
-                  {isRedirecting ? 'Loading...' : 'Join Event'}
+                  {isRedirecting ? 'Memuat...' : 'Daftar Event'}
                 </Button>
               </motion.div>
             )}

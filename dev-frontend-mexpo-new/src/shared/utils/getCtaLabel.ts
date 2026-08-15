@@ -5,8 +5,8 @@ export const getCtaLabel = (
   canRegister: boolean
 ): string | null => {
   if (category === 'Past')     return 'Lihat Detail'
-  if (category === 'On Going') return canRegister ? 'Register Now' : 'Lihat Detail'
-  if (category === 'Upcoming') return canRegister ? 'Register Now' : null
+  if (category === 'On Going') return canRegister ? 'Daftar Sekarang' : 'Lihat Detail'
+  if (category === 'Upcoming') return canRegister ? 'Daftar Sekarang' : null
   
   return null
 }

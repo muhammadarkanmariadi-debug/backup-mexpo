@@ -1,13 +1,9 @@
 
 import ContentTitle1 from "@/shared/components/ui/ContentTitle1";
-import { icon } from "@fortawesome/fontawesome-svg-core";
 import {
-  Calendar,
-  CheckCircle,
   House,
   QrCode,
   UserPlus,
-  Users,
 } from "lucide-react";
 import Image from "next/image";
 import React from "react";
@@ -16,24 +12,24 @@ const RegistrationFlow = () => {
   const RegistrationFlow = [
     {
       id: 1,
-      title: "Register & Login",
+      title: "Daftar & Masuk",
       icon: <UserPlus className="w-8 sm:w-10 md:w-12 h-8 sm:h-10 md:h-12 text-white" />,
       description:
-        "Create your account or log in to access the registration portal and manage your event details",
+        "Buat akun atau masuk untuk mengakses portal pendaftaran dan mengelola detail event Anda",
     },
     {
       id: 2,
       icon: <QrCode className="w-8 sm:w-10 md:w-12 h-8 sm:h-10 md:h-12 text-white" />,
-      title: "Get QR Code",
+      title: "Dapatkan QR Code",
       description:
-        "Receive a personal QR Code that will be used for check-in, booth visits, and seminar access.",
+        "Terima QR Code pribadi yang akan digunakan untuk check-in, kunjungan tenant, dan akses seminar.",
     },
     {
       id: 3,
       icon: <House className="w-8 sm:w-10 md:w-12 h-8 sm:h-10 md:h-12 text-white" />,
-      title: "Attend & Participate",
+      title: "Hadir & Berpartisipasi",
       description:
-        "Use the QR Code to check in, visit tenants, join seminars, and receive digital certificates.",
+        "Gunakan QR Code untuk check-in, mengunjungi tenant, mengikuti seminar, dan mendapatkan sertifikat digital.",
     },
   ];
 
@@ -41,9 +37,9 @@ const RegistrationFlow = () => {
     <section className="py-8 sm:py-10 md:py-14 lg:py-20">
       <div className="mx-auto px-4 sm:px-6 lg:px-8 max-w-400">
         <ContentTitle1
-          spanText="Flow"
-          title="Event Registration "
-          description="Follow the steps below to complete your registration and participate in the event."
+          spanText="Alur"
+          title="Pendaftaran Event "
+          description="Ikuti langkah-langkah di bawah ini untuk menyelesaikan pendaftaran Anda dan berpartisipasi dalam event."
         />
         <div className="flex lg:flex-row flex-col justify-center items-center gap-4 sm:gap-6 md:gap-8 mt-6 sm:mt-8 md:mt-10 lg:mt-12">
           {RegistrationFlow.map((flow) => (

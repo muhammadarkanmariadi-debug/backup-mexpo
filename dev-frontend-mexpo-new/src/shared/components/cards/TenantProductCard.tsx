@@ -54,7 +54,7 @@ export const ProductCard = ({ product }: ProductCardProps) => {
         <p className="text-gray-500 text-sm line-clamp-2">
           {product.description}
         </p>
-        <p className="font-bold text-blue-600 text-lg">
+        <p className="font-bold text-secondary text-lg">
           {formatPrice(product.price)}
         </p>
       </div>

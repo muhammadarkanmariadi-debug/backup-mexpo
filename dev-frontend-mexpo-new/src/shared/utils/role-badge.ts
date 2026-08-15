@@ -10,7 +10,7 @@
 
 export const ROLE_BADGE: Record<string, string> = {
   OWNER: "bg-secondary text-white",
-  COMMITTEE: "bg-blue-50 text-blue-700",
+  COMMITTEE: "bg-brand-50 text-brand-700",
   TENANT: "bg-teal-50 text-teal-700",
   VISITOR: "bg-gray-100 text-gray-600",
   SUPERADMIN: "bg-purple-50 text-purple-700",

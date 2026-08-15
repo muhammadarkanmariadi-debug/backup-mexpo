@@ -1,7 +1,6 @@
 "use client";
 import React from "react";
 import Image from "next/image";
-import { Toaster } from "sonner";
 import { usePathname } from "next/navigation";
 
 const MexpoCard = ({}) => {
@@ -14,7 +13,7 @@ const MexpoCard = ({}) => {
     <div className="hidden xl:flex flex-col bg-secondary px-6 sm:px-8 rounded-xl w-150 text-white">
       <Image
         src="/images/shape/pattern1.png"
-        alt="Pattern"
+        alt="Pola"
         width={300}
         height={400}
         className="w-full"
@@ -25,7 +24,7 @@ const MexpoCard = ({}) => {
           MEXPO
         </h1>
         <p className="font-public-sans text-lg sm:text-xl">
-          Manage your event, exhibition, or expo with MEXPO.
+          Kelola event, pameran, atau expo Anda bersama MEXPO.
         </p>
       </div>
     </div>

@@ -5,11 +5,12 @@ import { toast } from "sonner";
 import { Camera, Loader2, Save } from "lucide-react";
 
 import Input from "@/shared/components/form/Input";
+import PageHeader from "@/shared/components/ui/PageHeader";
+import PageShell from "@/shared/components/ui/PageShell";
 import { useAuthStore } from "@/stores/auth.store";
 import { useApiMutation, useApiQuery } from "@/lib/hooks/useApi";
 import { keys } from "@/lib/query-keys";
 import { getProfile, updateProfile } from "@/services/user.service";
-import BackLink from "@/features/dashboard/shared/BackLink";
 
 export default function ProfilePage() {
   const { user, setUser } = useAuthStore();
@@ -70,9 +71,8 @@ export default function ProfilePage() {
   const photoPreview = photo ? URL.createObjectURL(photo) : user?.photo;
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-10">
-      <BackLink href="/dashboard" />
-      <h1 className="mb-6 text-2xl font-bold text-gray-900">Profil Saya</h1>
+<PageShell className="py-10">
+      <PageHeader title="Profil Saya" subtitle="Atur informasi akun Anda." />
 
       <form onSubmit={submit} className="space-y-5 rounded-xl border border-gray-100 bg-white p-6">
         <div className="flex items-center gap-4">
@@ -130,6 +130,6 @@ export default function ProfilePage() {
           Simpan Profil
         </button>
       </form>
-    </div>
+    </PageShell>
   );
 }

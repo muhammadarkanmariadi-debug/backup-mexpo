@@ -4,7 +4,7 @@
 
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 
 interface UsePaginationOptions {
   /** Total item yang akan dipaginasi */
@@ -29,9 +29,17 @@ interface UsePaginationReturn<T> {
 export function usePagination<T = unknown>({
   totalItems,
   initialPageSize = 10,
+  resetDeps = [],
 }: UsePaginationOptions): UsePaginationReturn<T> {
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPageState] = useState(initialPageSize)
+
+  // Reset ke halaman 1 saat dependency (search/filter) berubah.
+  const resetKey = JSON.stringify(resetDeps)
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reset to page 1 when filters change
+    setCurrentPage(1)
+  }, [resetKey])
 
   const totalPages = useMemo(
     () => Math.max(1, Math.ceil(totalItems / itemsPerPage)),

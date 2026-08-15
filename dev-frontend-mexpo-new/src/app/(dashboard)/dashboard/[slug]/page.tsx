@@ -1,7 +1,5 @@
 import { notFound } from "next/navigation";
-import { BASE_API_URL } from "@/global";
 import { Event, getEventRole, getRoleRoute } from "@/entities/event/event.entity";
-import { getCookies } from "@/shared/utils/cookies";
 import OwnerView from "@/features/dashboard/owner/OwnerView";
 import CommitteeView from "@/features/dashboard/committee/CommitteeView";
 import TenantView from "@/features/dashboard/tenant/TenantView";

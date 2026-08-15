@@ -7,7 +7,6 @@ import { motion } from 'framer-motion'
 import { Send, Loader2 } from 'lucide-react'
 
 
-import dynamic from 'next/dynamic'
 import ContentTitle1 from '@/shared/components/ui/ContentTitle1'
 import Input from '@/shared/components/form/Input'
 import { contactInfo } from '../contact.data'

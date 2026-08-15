@@ -19,11 +19,10 @@ interface CarouselSectionProps {
 
 const CarouselSection = ({
   events,
-  category,
   title,
   label,
   variant = 'secondary',
-  emptyMessage = 'No events available.',
+  emptyMessage = 'Tidak ada event tersedia.',
 }: CarouselSectionProps) => {
   const { currentSlide, nextSlide, prevSlide, goToSlide, emblaApi, emblaRef } =
     useCarousel({ data: events })
@@ -84,7 +83,7 @@ const CarouselSection = ({
             <button
               key={index}
               onClick={() => goToSlide(index)}
-              aria-label={`Go to slide ${index + 1}`}
+              aria-label={`Ke slide ${index + 1}`}
               className={`rounded-full transition-all duration-300 ${index === currentSlide
                 ? 'w-5 h-2 bg-secondary'
                 : 'w-2 h-2 bg-gray-300 dark:bg-gray-600 hover:bg-secondary/50'

@@ -3,8 +3,7 @@ import { EventRundown } from "@/entities/event/rundown.entity";
 import React from "react";
 import { useGroupedRundown } from "../../../features/public/event/hooks/useGroupedRundown";
 import { formatTabDate, formatDateWithDay, formatTime } from "@/shared/utils/format";
-import ContentTitle2 from "@/shared/components/ui/ContentTitle2";
-import SearchBar from "@/shared/components/form/SearchBar";
+import TabListShell from "./TabListShell";
 import { DataPagination } from "@/shared/components/ui/DataPagination";
 import { useState, useMemo } from "react";
 import { Clock } from "lucide-react";
@@ -29,15 +28,14 @@ const AgendaTab = ({ rundown }: { rundown?: EventRundown[] }) => {
 
 
   return (
-    <div className="min-h-screen">
-      <div className="mx-auto px-2 sm:px-4 md:px-0 max-w-7xl">
-        <div className="flex flex-col flex-col mb-5">
-          <ContentTitle2 variant="tertiary" title="See our schedule" category="Agenda" />
-
-          <SearchBar search={search} setSearch={(v) => { setSearch(v); setPage(1); }} placeholder="Search agenda..." />
-
-        </div>
-        {/* Header Tabs */}
+    <TabListShell
+      category="Agenda"
+      title="Lihat Jadwal Kami"
+      searchPlaceholder="Cari agenda..."
+      search={search}
+      setSearch={(v) => { setSearch(v); setPage(1); }}
+    >
+      {/* Header Tabs */}
         {days.length > 0 ? (
           <div>
             <div className="bg-white shadow-sm border border-gray-200 rounded-t-lg">
@@ -47,7 +45,7 @@ const AgendaTab = ({ rundown }: { rundown?: EventRundown[] }) => {
                     key={day}
                     onClick={() => { setSelectedDay(day); setPage(1); }}
                     className={`flex-1 min-w-[80px] sm:min-w-[100px] px-4 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm font-semibold font-public-sans uppercase transition-colors ${selectedDay === day
-                      ? "bg-blue-500 text-white border-b-2 border-blue-600"
+                      ? "bg-brand-500 text-white border-b-2 border-brand-600"
                       : "text-gray-600 hover:bg-gray-50"
                       }`}
                   >
@@ -57,11 +55,11 @@ const AgendaTab = ({ rundown }: { rundown?: EventRundown[] }) => {
               </div>
 
               {/* Title Bar */}
-              <div className="bg-blue-500 px-4 sm:px-6 py-3 sm:py-4 text-white">
+              <div className="bg-brand-500 px-4 sm:px-6 py-3 sm:py-4 text-white">
                 <h1 className="font-public-sans font-bold text-lg sm:text-xl uppercase">
                   {selectedDay && formatDateWithDay(selectedDay)}
                 </h1>
-                <p className="mt-1 font-jakarta text-blue-100 text-xs sm:text-sm">
+                <p className="mt-1 font-jakarta text-brand-100 text-xs sm:text-sm">
                   Agenda
                 </p>
               </div>
@@ -94,7 +92,7 @@ const AgendaTab = ({ rundown }: { rundown?: EventRundown[] }) => {
                             {formatTime(item.end_time)}
                           </td>
                           <td className="px-3 sm:px-6 py-3 sm:py-4">
-                            <div className="flex justify-center items-center bg-blue-500 rounded-full w-6 sm:w-8 h-6 sm:h-8">
+                            <div className="flex justify-center items-center bg-brand-500 rounded-full w-6 sm:w-8 h-6 sm:h-8">
                               <Clock className="w-3 sm:w-4 h-3 sm:h-4 text-white" />
                             </div>
                           </td>
@@ -117,7 +115,7 @@ const AgendaTab = ({ rundown }: { rundown?: EventRundown[] }) => {
                 </div>
               ) : (
                 <div className="px-4 sm:px-6 py-8 sm:py-12 font-jakarta text-gray-500 text-sm sm:text-base text-center">
-                  No agenda available for this day
+                  Belum ada agenda untuk hari ini
                 </div>
               )}
             </div>
@@ -138,11 +136,10 @@ const AgendaTab = ({ rundown }: { rundown?: EventRundown[] }) => {
           </div>
         ) : (
           <div className="px-4 sm:px-6 py-8 sm:py-12 font-jakarta text-gray-500 text-sm sm:text-base text-center">
-            No agenda available
+            Belum ada agenda
           </div>
         )}
-      </div>
-    </div>
+    </TabListShell>
   );
 };
 

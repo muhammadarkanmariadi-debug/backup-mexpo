@@ -72,7 +72,7 @@ const VerticalEventCard = ({ event }: { event: Event }) => {
             </Link>
           ) : (
             <button disabled className='bg-gray-100 px-5 py-2.5 rounded-xl w-full font-medium text-gray-400 text-sm cursor-not-allowed'>
-              Coming Soon
+              Segera Hadir
             </button>
           )}
         </div>

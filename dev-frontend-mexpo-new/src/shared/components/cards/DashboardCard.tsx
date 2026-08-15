@@ -20,7 +20,7 @@ function StatusBadge({ status }: { status: string }) {
     <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium shrink-0
       ${isPublished ? "bg-green-50 text-green-700" : "bg-amber-50 text-amber-700"}`}>
       <span className={`w-1.5 h-1.5 rounded-full ${isPublished ? "bg-green-500" : "bg-amber-500"}`} />
-      {isPublished ? "Published" : "Drafted"}
+      {isPublished ? "Dipublikasikan" : "Draf"}
     </span>
   );
 }
@@ -199,9 +199,9 @@ export default function CardCommitteeEvent({ data, onPhotoUpdated }: Props) {
         {/* Single action button → /dashboard/[slug] */}
         <Link
           href={`/dashboard/${data.slug ?? data.uuid}`}
-          className="inline-flex items-center self-center gap-1.5 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 border border-blue-200 hover:border-blue-300 rounded-lg w-full sm:w-fit font-medium text-blue-600 text-xs transition-colors shrink-0"
+          className="inline-flex items-center self-center gap-1.5 bg-brand-50 hover:bg-brand-100 px-3 py-1.5 border border-brand-200 hover:border-brand-300 rounded-lg w-full sm:w-fit font-medium text-secondary text-xs transition-colors shrink-0"
         >
-          {isCommittee ? "Kelola" : isTenant ? "Enter" : "Details"}
+          {isCommittee ? "Kelola" : isTenant ? "Masuk" : "Detail"}
           <ArrowRight className="w-3.5 h-3.5" />
         </Link>
       </div>

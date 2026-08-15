@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useMemo } from 'react'
+import React from 'react'
 import { motion } from 'framer-motion'
 
 
@@ -30,19 +30,19 @@ interface EventsLayoutProps {
 
 const SECTION_META = {
   'Upcoming': {
-    label: 'Upcoming Events',
-    title: "Get Ready for What's Next!",
-    emptyMessage: 'No upcoming events found.',
+    label: 'Event Akan Datang',
+    title: 'Siapkan Diri untuk Apa yang Akan Datang!',
+    emptyMessage: 'Belum ada event yang akan datang.',
   },
   'On Going': {
-    label: 'Ongoing Events',
-    title: "Don't Miss Out!",
-    emptyMessage: 'No ongoing events available.',
+    label: 'Event Berlangsung',
+    title: 'Jangan Sampai Terlewat!',
+    emptyMessage: 'Tidak ada event yang sedang berlangsung.',
   },
   'Past': {
-    label: 'Past Events',
-    title: 'Relive the Moments That Matter!',
-    emptyMessage: 'No past events available.',
+    label: 'Event Selesai',
+    title: 'Kenang Kembali Momen-Momen Berkesan!',
+    emptyMessage: 'Tidak ada event yang sudah selesai.',
   },
 } as const
 
@@ -68,9 +68,9 @@ const EventsLayout = ({ category, search, events, isLoading }: EventsLayoutProps
     return (
       <div className='mx-5'>
         <ContentTitle1
-          title='No Events '
-          spanText='Found'
-          description="Sorry, we couldn't find any events matching your criteria."
+          title='Tidak Ada '
+          spanText='Event'
+          description='Maaf, kami tidak menemukan event yang sesuai dengan kriteria Anda.'
         />
       </div>
     )

@@ -180,6 +180,18 @@
   --color-warning-900: #7a2e0e;
   --color-warning-950: #4e1d09;
 
+  /* Teal — tenant / booth identity accents (deliberate, tokenized) */
+  --color-teal-50: #f0fdfa;
+  --color-teal-100: #ccfbf1;
+  --color-teal-600: #0d9488;
+  --color-teal-700: #0f766e;
+
+  /* Fuchsia — souvenir / gift accents (deliberate, tokenized) */
+  --color-fuchsia-50: #fdf4ff;
+  --color-fuchsia-100: #fae8ff;
+  --color-fuchsia-600: #c026d3;
+  --color-fuchsia-700: #a21caf;
+
   --color-theme-pink-500: #ee46bc;
 
   --color-theme-purple-500: #7a5af8;
