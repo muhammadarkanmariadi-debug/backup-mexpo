@@ -26,7 +26,6 @@ import {
   updateWorkshop,
   deleteWorkshop,
   attachWorkshopSpeaker,
-  removeWorkshopSpeaker,
   WorkshopPayload,
 } from "@/services/workshop.service";
 import { getSpeakers } from "@/services/event-content.service";
@@ -164,17 +163,6 @@ export default function WorkshopsManager({ event }: { event: Event }) {
     list.refetch();
   };
 
-  const detachSpeaker = async (linkId: string) => {
-    if (!(await confirm("Lepaskan pembicara dari lokakarya ini?"))) return;
-    const res = await removeWorkshopSpeaker(linkId);
-    if (!res.status) {
-      toast.error("Gagal melepas pembicara.");
-      return;
-    }
-    toast.success("Pembicara dilepas.");
-    list.refetch();
-  };
-
   return (
     <PageShell className="py-8">
       <PageHeader
@@ -307,71 +295,84 @@ export default function WorkshopsManager({ event }: { event: Event }) {
         />
       </div>
 
-      {list.loading ? (
-        <LoadingSpinner className="py-10" />
-      ) : list.items.length === 0 ? (
-        <EmptyState title="Belum ada lokakarya." className="py-8" />
-      ) : (
-        <>
-          <div className="space-y-3">
-            {list.items.map((w) => (
-              <div key={w.uuid} className="rounded-xl border border-gray-100 bg-white px-4 py-3">
-                <div className="flex items-center gap-3">
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-gray-900 text-sm">{w.title}</p>
-                    <p className="text-xs text-gray-500">
-                      {new Date(w.start_time).toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short" })}
-                      {" â€“ "}
-                      {new Date(w.end_time).toLocaleString("id-ID", { timeStyle: "short" })}
-                      {" Â· "}
-                      {w.location} Â· kuota {w.quota > 0 ? w.quota : "âˆž"}
-                    </p>
+<div className="relative">
+        {list.loading ? (
+          <LoadingSpinner className="py-10" />
+        ) : list.items.length === 0 ? (
+          <EmptyState title="Belum ada lokakarya." className="py-8" />
+        ) : (
+          <>
+            <div className="space-y-3">
+              {list.items.map((w) => (
+                <div key={w.uuid} className="rounded-xl border border-gray-100 bg-white px-4 py-3">
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-gray-900 text-sm">{w.title}</p>
+                      <p className="text-xs text-gray-500">
+                        {new Date(w.start_time).toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short" })}
+                        {" â€“ "}
+                        {new Date(w.end_time).toLocaleString("id-ID", { timeStyle: "short" })}
+                        {" Â· "}
+                        {w.location} Â· kuota {w.quota > 0 ? w.quota : "âˆž"}
+                      </p>
+                    </div>
+                    <button onClick={() => attachSpeaker(w.uuid)} disabled={(speakers ?? []).length === 0} className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-40">
+                      <UserPlus className="h-3.5 w-3.5" /> Pembicara
+                    </button>
+                    <button
+                      onClick={() => setViewSpeakersWorkshop(w)}
+                      className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50"
+                    >
+                      <Eye className="h-3.5 w-3.5" /> Lihat Pembicara
+                    </button>
+                    <RowActions
+                      actions={[
+                        editAction(() => startEdit(w), deletingId !== null),
+                        {
+                          key: "delete",
+                          icon:
+                            deletingId === w.uuid ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="h-4 w-4" />
+                            ),
+                          label: "Hapus",
+                          tone: "danger",
+                          onClick: () => remove(w),
+                          disabled: deletingId !== null,
+                        },
+                      ]}
+                      busy={busy || deletingId !== null}
+                    />
                   </div>
-                  <button onClick={() => attachSpeaker(w.uuid)} disabled={(speakers ?? []).length === 0} className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-40">
-                    <UserPlus className="h-3.5 w-3.5" /> Pembicara
-                  </button>
-                  <button
-                    onClick={() => setViewSpeakersWorkshop(w)}
-                    className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50"
-                  >
-                    <Eye className="h-3.5 w-3.5" /> Lihat Pembicara
-                  </button>
-                  <RowActions
-                    actions={[
-                      editAction(() => startEdit(w), deletingId !== null),
-                      {
-                        key: "delete",
-                        icon:
-                          deletingId === w.uuid ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <Trash2 className="h-4 w-4" />
-                          ),
-                        label: "Hapus",
-                        tone: "danger",
-                        onClick: () => remove(w),
-                        disabled: deletingId !== null,
-                      },
-                    ]}
-                    busy={busy || deletingId !== null}
-                  />
+
                 </div>
-              
-              </div>
-            ))}
+              ))}
+            </div>
+            <div className="mt-4">
+              <DataPagination
+                currentPage={list.page}
+                totalPages={list.totalPages}
+                itemsPerPage={list.pageSize}
+                totalItems={list.total}
+                onPageChange={list.setPage}
+                onItemsPerPageChange={(size) => { list.setPageSize(size); list.setPage(1); }}
+              />
+            </div>
+          </>
+        )}
+
+        {/* Refetch overlay: shown while searching / changing pages / refreshing
+            after a mutation, without hiding the existing list. */}
+        {list.fetching && list.items.length > 0 && (
+          <div className="absolute inset-0 z-10 flex items-start justify-center rounded-xl bg-white/50 pt-8">
+            <div className="flex items-center gap-2 rounded-full border border-gray-200 bg-white px-4 py-2 text-xs font-medium text-gray-600 shadow-sm">
+              <Loader2 className="h-4 w-4 animate-spin text-secondary" />
+              Memuat ulang&hellip;
+            </div>
           </div>
-          <div className="mt-4">
-            <DataPagination
-              currentPage={list.page}
-              totalPages={list.totalPages}
-              itemsPerPage={list.pageSize}
-              totalItems={list.total}
-              onPageChange={list.setPage}
-              onItemsPerPageChange={(size) => { list.setPageSize(size); list.setPage(1); }}
-            />
-          </div>
-        </>
-      )}
+        )}
+      </div>
 
       {dialogs}
     </PageShell>
