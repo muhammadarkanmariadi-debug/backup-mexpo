@@ -67,7 +67,7 @@ export default function SortMenu({
       </button>
 
       {open && (
-        <div className="absolute right-0 z-30 mt-1 w-48 rounded-xl border border-gray-200 bg-white py-1 shadow-lg">
+        <div className="absolute left-0 right-auto z-30 mt-1 w-48 rounded-xl border border-gray-200 bg-white py-1 shadow-lg md:left-auto md:right-0">
           {options.map((opt) => (
             <button
               key={opt.key}

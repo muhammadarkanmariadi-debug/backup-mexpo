@@ -173,8 +173,8 @@ export function TransactionsTab({ tenantId }: { tenantId: string }) {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="font-semibold text-gray-900 hidden sm:block">Riwayat Transaksi</h2>
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4">
+        <h2 className="font-semibold text-gray-900">Riwayat Transaksi</h2>
         <button
           type="button"
           onClick={() => {

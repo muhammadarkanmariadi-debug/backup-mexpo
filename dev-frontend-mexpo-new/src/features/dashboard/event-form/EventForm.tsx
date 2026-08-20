@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Loader2, Upload, X } from "lucide-react";
 
 import Input from "@/shared/components/form/Input";
+import Image from "next/image";
 import {
   Event,
   EventFeatures,
@@ -172,8 +173,8 @@ export default function EventForm({ event }: Props) {
             <div className="flex items-start gap-4">
               <div className="relative flex justify-center items-center bg-gray-50 border-2 border-dashed border-gray-200 rounded-xl w-40 h-28 overflow-hidden">
                 {photoPreview ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={photoPreview} alt="Preview" className="w-full h-full object-cover" />
+                   
+                  <Image src={photoPreview} alt="Preview" fill unoptimized className="object-cover" />
                 ) : (
                   <span className="text-gray-400 text-xs text-center px-2">
                     Belum ada foto

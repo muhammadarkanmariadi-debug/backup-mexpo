@@ -143,7 +143,7 @@ const Hero = ({ eventData }: { eventData: Event }) => {
               height={600}
               priority
               className='relative w-full object-cover rounded-2xl
-                h-56 xs:h-64 sm:h-80 md:h-96
+                h-56 xsm:h-64 sm:h-80 md:h-96
                 lg:h-[32rem] xl:h-[36rem] 2xl:h-[40rem]
                 lg:rounded-tl-[2.5rem] lg:rounded-br-[2.5rem]
                 lg:rounded-tr-none lg:rounded-bl-none

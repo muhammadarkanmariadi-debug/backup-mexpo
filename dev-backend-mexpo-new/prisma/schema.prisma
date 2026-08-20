@@ -9,7 +9,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "mysql"
 }
 
 model users {
@@ -662,4 +662,16 @@ model registration_answers {
   editor     users    @relation("editor_registration_answers", fields: [updated_by], references: [uuid])
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
+}
+
+// Public contact form submissions (`POST /contact`). Anonymous visitors — no
+// user FK / audit fields by design (the sender is NOT a users row).
+model contact_message {
+  uuid       String   @id @default(uuid())
+  name       String   @default("")
+  email      String   @default("")
+  subject    String   @default("")
+  message    String   @db.Text
+  ip_address String   @default("")
+  created_at DateTime @default(now())
 }

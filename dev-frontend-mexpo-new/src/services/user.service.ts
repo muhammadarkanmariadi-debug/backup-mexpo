@@ -59,3 +59,28 @@ export async function verifyResetPassword(
     "Basic",
   );
 }
+
+/** Change own password — requires the current password (verified server-side). */
+export async function changePassword(
+  current_password: string,
+  password: string,
+  confirm_password: string,
+) {
+  return await httpPut(
+    "users/me/password",
+    JSON.stringify({ current_password, password, confirm_password }),
+    "token",
+  );
+}
+
+/**
+ * Change own email — requires the current password. The account is set
+ * inactive again until the new address is verified via the emailed link.
+ */
+export async function changeEmail(email: string, current_password: string) {
+  return await httpPut(
+    "users/me/email",
+    JSON.stringify({ email, current_password }),
+    "token",
+  );
+}

@@ -25,7 +25,7 @@ export function Modal({ isOpen, onClose, title, children, maxWidth = "max-w-md" 
 
   return (
     <div className="z-[100] fixed inset-0 flex justify-center items-center bg-black/40 p-4">
-      <div className={`bg-white rounded-xl w-full ${maxWidth} flex flex-col max-h-[90vh]`}>
+      <div className={`bg-white rounded-xl w-full ${maxWidth} flex flex-col max-h-[90vh] text-gray-900`}>
         <div className="flex items-center justify-between p-4 md:p-5 border-b border-gray-100 rounded-t-xl shrink-0">
           <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
           <button

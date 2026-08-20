@@ -21,7 +21,7 @@ export default function ViewDetails({ items, className }: ViewDetailsProps) {
           <div key={idx} className="flex items-center gap-3 px-5 py-3.5">
             <Icon className="w-4 h-4 text-gray-400 shrink-0" />
             <span className="w-32 text-gray-400 text-xs shrink-0">{item.label}</span>
-            <span className="font-medium text-gray-800 text-sm">{item.value}</span>
+            <span className="font-medium text-gray-800 text-sm min-w-0 flex-1 break-words">{item.value}</span>
           </div>
         );
       })}

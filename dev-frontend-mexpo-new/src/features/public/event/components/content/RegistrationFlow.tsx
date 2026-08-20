@@ -37,8 +37,8 @@ const RegistrationFlow = () => {
     <section className="py-8 sm:py-10 md:py-14 lg:py-20">
       <div className="mx-auto px-4 sm:px-6 lg:px-8 max-w-400">
         <ContentTitle1
-          spanText="Alur"
-          title="Pendaftaran Event "
+          spanText="Event"
+          title="Alur Pendaftaran "
           description="Ikuti langkah-langkah di bawah ini untuk menyelesaikan pendaftaran Anda dan berpartisipasi dalam event."
         />
         <div className="flex lg:flex-row flex-col justify-center items-center gap-4 sm:gap-6 md:gap-8 mt-6 sm:mt-8 md:mt-10 lg:mt-12">

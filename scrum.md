@@ -65,7 +65,7 @@
 | FIX-17 | `GET /event-rundowns/detail/:id` + `GET /event-sponsors/detail/:id` routed; dead stub removed |
 | FIX-18 | Dead dark-mode theme code removed (`ThemeContext`, `ThemeToggler`, layout import) |
 | FIX-19 | Outfit font loaded; `--font-jakarta` → `Plus Jakarta Sans` |
-| FIX-20 | Contact form now validates (zod) + opens `mailto:` to contact email (no fake success) |
+| FIX-20 | Contact form now validates (zod) + **submits to real backend** `POST /contact` (persist + email); `mailto:` kept only as a fallback when the API is unreachable |
 | FIX-21 | Event detail caching → `META_ISR(60)` (public) / `META_DYNAMIC` (dashboard) |
 | FIX-22 | `src/lib/utils.ts` reduced to a re-export shim of `src/shared/utils/cn.ts` |
 | FIX-23 | Removed unused `@tanstack/react-query`, `react-query-devtools`, `toaster`; deleted dead `site.config.ts`/`env.config.ts`; cleaned unused imports. `exceljs` kept for A16 |
@@ -646,7 +646,7 @@
 | FIX-17 | Dead / unrouted endpoints | P2 | S | BE | ✅ Done (qr_codes decision: leave for A4) |
 | FIX-18 | Dark mode | P2 | S | FE | ✅ Done (dead code removed) |
 | FIX-19 | Fonts | P2 | S | FE | ✅ Done |
-| FIX-20 | Contact form | P2 | S | FE | ✅ Done (mailto action) |
+| FIX-20 | Contact form | P2 | S | FE | ✅ Done — now a real submit: backend `POST /contact` persists + emails, FE server action calls it, `mailto:` kept only as a fallback when the API is down |
 | FIX-21 | Stale fetch cache | P2 | S | FE | ✅ Done |
 | FIX-22 | Duplicate `cn()` util | P2 | S | FE | ✅ Done |
 | FIX-23 | Unused deps / dead code | P2 | S | BE+FE | ✅ Done (exceljs kept for A16) |
@@ -659,7 +659,7 @@
 |---|---|---|
 | F1–F8 | Sprint 0 foundations (moved) | Folded into Sprint 1 as FIX-02…FIX-15 — see consolidation note above |
 | F9 | Env documentation (Sprint 0) | `.env.example` + documented vars — stays in Sprint 0 |
-| C1 | Contact form (fake submit) | `/contact` form + `contact.service/action/schema` are empty — covered by **FIX-20** |
+| C1 | Contact form (fake submit) | ✅ Resolved — form now submits to backend `POST /contact` (persists + emails); `mailto:` only a fallback (FIX-20 + 2026 contact follow-up) |
 | P1 | WorkshopCard hides register button on `/event*` | Button unreachable where the tab renders — covered by **FIX-09** |
 | P2 | Dark mode dead code | `ThemeProvider` never mounted; toggle commented (dev-frontend-mexpo-new/docs/DESIGN.md §2.6) — covered by **FIX-18** |
 | P3 | Dashboard layout renders public template | No dashboard shell/sidebar (dev-frontend-mexpo-new/docs/DESIGN.md §6) — covered by **FIX-16** |

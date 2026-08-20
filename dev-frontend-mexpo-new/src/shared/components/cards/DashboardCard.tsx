@@ -7,6 +7,7 @@ import { CalendarDays, MapPin, Users, BookOpen, ArrowRight, Camera, Loader2 } fr
 import { toast } from "sonner";
 
 import { Event, getEventRole, getRoleRoute } from "@/entities/event/event.entity";
+import Image from "next/image";
 import { formatDateRange, formatDateWithDay } from "@/shared/utils/format";
 import { updateEvent } from "@/services/event.service";
 import RoleBadge from "@/shared/components/ui/RoleBadge";
@@ -40,7 +41,7 @@ function StatChip({ icon: Icon, value, label }: { icon: React.ElementType; value
 
 function CommitteeStrip({ event }: { event: Event }) {
   return (
-    <div className="flex justify-between items-center bg-gray-50 px-5 py-2 border-gray-100 border-t text-gray-400 text-xs">
+    <div className="flex flex-wrap justify-between items-center gap-x-3 gap-y-1 bg-gray-50 px-5 py-2 border-gray-100 border-t text-gray-400 text-xs">
       <span className="flex items-center gap-1.5">
         <CalendarDays className="w-3 h-3 shrink-0" />
         Registrasi:{" "}
@@ -67,7 +68,7 @@ function TenantStrip({ event }: { event: Event }) {
 
 function VisitorStrip({ event }: { event: Event }) {
   return (
-    <div className="flex items-center gap-4 bg-gray-50 px-5 py-2 border-gray-100 border-t text-gray-400 text-xs">
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 bg-gray-50 px-5 py-2 border-gray-100 border-t text-gray-400 text-xs">
       <span className="flex items-center gap-1.5">
         <Users className="w-3 h-3 shrink-0" />
         Kuota:{" "}
@@ -137,12 +138,13 @@ export default function CardCommitteeEvent({ data, onPhotoUpdated }: Props) {
     >
       <div className="flex sm:flex-row flex-col sm:items-stretch gap-4 px-5 py-4">
         {/* Event image — editable by committee/admin */}
-        <div className="relative w-full sm:w-36 shrink-0">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
+        <div className="relative w-full sm:w-36 h-32 sm:h-24 shrink-0">
+          <Image
             src={data.photo || "/images/cards/card-e.png"}
             alt={data.name}
-            className="rounded-lg w-full sm:w-36 h-32 sm:h-24 object-cover"
+            fill
+            sizes="(max-width: 640px) 100vw, 144px"
+            className="rounded-lg object-cover"
           />
           {isCommittee && (
             <button
@@ -208,6 +210,15 @@ export default function CardCommitteeEvent({ data, onPhotoUpdated }: Props) {
 
       {/* Info strip */}
       {isCommittee  && <CommitteeStrip event={data} />}
+      {/* Committee stats — desktop shows them in the header (hidden md:flex);
+          this row is the mobile < md equivalent so the counts aren't lost. */}
+      {isCommittee && (
+        <div className="md:hidden flex flex-wrap items-center gap-x-4 gap-y-1 bg-gray-50 px-5 py-2 border-gray-100 border-t text-xs">
+          <StatChip icon={Users}    value={data.count_user_registration} label="registrasi" />
+          <StatChip icon={Users}    value={data.count_tenants}           label="tenant" />
+          <StatChip icon={BookOpen} value={data.count_workshops}         label="workshop" />
+        </div>
+      )}
       {isTenant     && <TenantStrip    event={data} />}
       {!isCommittee && !isTenant && <VisitorStrip event={data} />}
     </motion.div>

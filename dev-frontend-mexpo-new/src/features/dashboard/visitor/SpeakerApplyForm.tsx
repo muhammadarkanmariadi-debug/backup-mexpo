@@ -8,6 +8,7 @@ import Input from "@/shared/components/form/Input";
 import Button from "@/shared/components/button/Button";
 import { Event } from "@/entities/event/event.entity";
 import { applySpeaker } from "@/services/event-content.service";
+import Image from "next/image";
 
 export default function SpeakerApplyForm({ event }: { event: Event }) {
   const router = useRouter();
@@ -72,8 +73,8 @@ export default function SpeakerApplyForm({ event }: { event: Event }) {
         <div className="flex items-center gap-4">
           <label className="flex flex-col items-center justify-center w-32 h-32 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:bg-gray-50 bg-gray-50/50 overflow-hidden relative">
             {photoPreview ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={photoPreview} alt="Foto" className="w-full h-full object-cover" />
+               
+              <Image src={photoPreview} alt="Foto" fill unoptimized className="object-cover" />
             ) : (
               <div className="flex flex-col items-center justify-center text-gray-500">
                 <Upload className="w-6 h-6 mb-2 text-gray-400" />

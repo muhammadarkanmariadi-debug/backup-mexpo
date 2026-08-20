@@ -393,7 +393,13 @@ Response sukses (umumnya) memakai pembungkus seperti ini:
 | `GET` | `/public-api/registration-fields/:event_id` | Basic | — | Skema formulir registrasi event |
 | `GET` | `/public-api/ticket-types/:event_id` | Basic | — | Jenis tiket untuk event |
 
-### 5.16 Root / health (kesehatan aplikasi)
+### 5.16 Contact (publik, tanpa auth)
+
+| Method | Path | Auth | Body / Query | Keterangan |
+|---|---|---|---|---|
+| `POST` | `/contact` | Tanpa auth (publik) | `CreateContactMessageDto` (`name`, `email`, `subject`, `message`) | Form kontak publik: menyimpan pesan ke tabel `contact_message` DAN mengirim email notifikasi ke `CONTACT_DESTINATION_EMAIL` (default `tefa@smktelkom-mlg.sch.id`). Rate-limit in-memory per-IP **3 pesan/jam** → HTTP 429 |
+
+### 5.17 Root / health (kesehatan aplikasi)
 
 | Method | Path | Auth | Keterangan |
 |---|---|---|---|
@@ -507,6 +513,9 @@ Response sukses (umumnya) memakai pembungkus seperti ini:
 
 **registration_answers**
 `uuid` (PK) · `event_id` FK · `user_id` FK · `field_key` · `value` · field audit
+
+**contact_message** (form kontak publik — `POST /contact`)
+`uuid` (PK) · `name` · `email` · `subject` · `message` (longtext) · `ip_address` (untuk rate-limit/audit) · `created_at` — **tidak ada field audit** `created_by`/`updated_by` karena pengirim bukan `users` yang terdaftar
 
 ---
 

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { Loader2, Upload } from "lucide-react";
 import Input from "@/shared/components/form/Input";
+import Image from "next/image";
 import { useApiMutation, useApiQuery } from "@/lib/hooks/useApi";
 import { createTenant, TenantProfilePayload } from "@/services/tenant.service";
 import { httpGet } from "@/shared/utils/http-client";
@@ -67,8 +68,8 @@ export function CreateTenantForm({ eventId, onSuccess }: { eventId: string; onSu
         <div className="flex items-start gap-4">
           <div className="relative flex justify-center items-center bg-gray-50 border-2 border-dashed border-gray-200 rounded-xl w-32 h-32 overflow-hidden">
             {photoPreview ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={photoPreview} alt="Preview" className="w-full h-full object-cover" />
+               
+              <Image src={photoPreview} alt="Preview" fill unoptimized className="object-cover" />
             ) : (
               <span className="text-gray-400 text-xs text-center px-2">
                 Belum ada logo

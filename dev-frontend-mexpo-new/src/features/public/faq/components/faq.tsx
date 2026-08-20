@@ -10,7 +10,7 @@ import { faqData } from '../faq.data'
 
 
 
-const categories = ['Semua', 'Umum', 'Event', 'Penyewa', 'Lokakarya', 'Pembayaran']
+const categories = ['Semua', 'Umum', 'Akun', 'Event', 'Lokakarya', 'Penyewa & Pembicara', 'Pembayaran']
 
 export default function FAQPage() {
     const [openIndex, setOpenIndex] = useState<number | null>(null)

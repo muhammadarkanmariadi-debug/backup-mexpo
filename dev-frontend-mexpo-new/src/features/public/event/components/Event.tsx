@@ -18,7 +18,7 @@ export default function EventdetailPage({ eventData }: { eventData: Event }) {
     const tenants = eventData.tenants ?? [];
 
     return (
-        <div className="-mt-16 xs:-mt-18 sm:-mt-20 md:-mt-22 lg:-mt-24 xl:-mt-25 overflow-hidden">
+        <div className="-mt-16 xsm:-mt-18 sm:-mt-20 md:-mt-22 lg:-mt-24 xl:-mt-25 overflow-hidden">
             <Hero eventData={eventData} />
 
             <RegistrationFlow />

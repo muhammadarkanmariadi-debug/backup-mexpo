@@ -17,6 +17,8 @@ export const keys = {
       ["events", "list", query] as const,
     detail: (uuid: string) => ["events", "detail", uuid] as const,
     my: (query: Record<string, string>) => ["events", "my", query] as const,
+    /** Single event fetched via GET /events/me/:uuid (full response incl. relations). */
+    me: (uuid: string) => ["events", "me", uuid] as const,
     approvalQueue: (query: Record<string, string>) =>
       ["events", "approval-queue", query] as const,
   },

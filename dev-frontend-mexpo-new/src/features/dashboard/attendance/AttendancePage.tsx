@@ -94,24 +94,26 @@ export default function AttendancePage({ event }: { event: Event }) {
             </p>
           ) : (
             <>
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="text-left text-xs text-gray-400">
-                    <th className="px-5 py-2">Nama</th>
-                    <th className="px-5 py-2">Waktu Kehadiran</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-50">
-                  {list.items.map((r) => (
-                    <tr key={r.uuid}>
-                      <td className="px-5 py-2.5 font-medium text-gray-800">{r.user?.full_name}</td>
-                      <td className="px-5 py-2.5 text-gray-500">
-                        {new Date(r.created_at).toLocaleString("id-ID")}
-                      </td>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-left text-xs text-gray-400">
+                      <th className="px-5 py-2">Nama</th>
+                      <th className="px-5 py-2">Waktu Kehadiran</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {list.items.map((r) => (
+                      <tr key={r.uuid}>
+                        <td className="px-5 py-2.5 font-medium text-gray-800">{r.user?.full_name}</td>
+                        <td className="px-5 py-2.5 text-gray-500">
+                          {new Date(r.created_at).toLocaleString("id-ID")}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
               <div className="px-4 py-3">
                 <DataPagination
                   currentPage={list.page}

@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { Loader2, UserPlus, Users, Trash2 } from "lucide-react";
 import Input from "@/shared/components/form/Input";
 import SearchBar from "@/shared/components/form/SearchBar";
+import Image from "next/image";
 import { Modal } from "@/shared/components/ui/Modal";
 import { useApiMutation, useApiQuery } from "@/lib/hooks/useApi";
 import { keys } from "@/lib/query-keys";
@@ -121,8 +122,8 @@ export function TeamTab({ tenantId }: { tenantId: string }) {
           {list.map((m) => (
             <div key={m.uuid} className="flex items-center gap-3 bg-white px-4 py-3 border border-gray-100 rounded-xl">
               {m.user?.photo ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={m.user.photo} alt={m.user.full_name} className="rounded-full w-10 h-10 object-cover" />
+                 
+                <Image src={m.user.photo} alt={m.user.full_name} width={40} height={40} className="rounded-full w-10 h-10 object-cover" />
               ) : (
                 <div className="flex justify-center items-center bg-brand-50 rounded-full w-10 h-10 text-brand-700">
                   <Users className="w-4 h-4" />

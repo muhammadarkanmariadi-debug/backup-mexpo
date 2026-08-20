@@ -14,11 +14,14 @@ import { registerWorkshop } from '@/services/workshop.service'
 
 export const WorkshopTab = ({
   workshops,
-  onRefetchWorkshops
+  onRefetchWorkshops,
+  showRegisterButton = true,
 }: {
   workshops: Workshop[]
   category?: string
   onRefetchWorkshops?: () => void
+  /** Show the "Daftar Lokakarya" CTA (visitor dashboard uses true, public page uses false). */
+  showRegisterButton?: boolean
 }) => {
   const [itemsPerPage, setItemsPerPage] = useState(5)
   const [submittingWorkshopId, setSubmittingWorkshopId] = useState<string | null>(null)
@@ -96,6 +99,7 @@ export const WorkshopTab = ({
                     handleRefetchWorkshops={onRefetchWorkshops}
                     isSubmitting={submittingWorkshopId === workshop.uuid}
                     handleRegisterWorkshop={() => handleRegisterWorkshop(workshop.uuid)}
+                    showRegisterButton={showRegisterButton}
                   />
                 ))}
               </div>

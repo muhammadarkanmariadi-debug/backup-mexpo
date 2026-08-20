@@ -15,6 +15,8 @@ import SpeakersTab from "../../../../../shared/components/tabs/Speakers";
 import AgendaTab from "../../../../../shared/components/tabs/Agenda";
 import InfoTab from "../../../../../shared/components/tabs/Info";
 import { Tenant } from "@/entities/event/tenant.entity";
+import { motion } from "framer-motion";
+import { renderHighlightedTitle } from "../../utils/title-highlight.utils";
 
 // Localized tab labels — the array below must keep rendering localized text
 // while the internal key stays lowercase ("info", "agenda", …).
@@ -52,13 +54,13 @@ const EventDetail = ({
       <div className="mx-auto px-4 sm:px-6 lg:px-8 max-w-440">
         <div className="rounded-2xl sm:rounded-3xl overflow-hidden">
           <div className="p-4 sm:p-6 md:p-8 lg:p-12">
-            <ContentTitle1
-              title={eventData?.name.split(" ").slice(0, 2).join(" ")}
-              spanText={eventData?.name.split(" ")[2]}
-              description={
-                "Event ini terbuka untuk pelajar, sekolah, mitra industri, dan masyarakat umum. Penyelenggara berhak meninjau dan menyetujui pendaftaran."
-              }
-            />
+            <motion.h1
+
+              className='mt-4 font-public-sans text-3xl md:text-5xl lg:text-6xl w-fit mx-auto my-10 font-extrabold'
+           
+            >
+              {renderHighlightedTitle(eventData?.name ?? '')}
+            </motion.h1>
 
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:mx-20 mb-4 sm:mb-6 md:mb-8 border-gray-200 border-b overflow-x-auto scrollbar-hide">
               {["Info", "Agenda", "Speakers", "Sponsors", "Contact", "Workshop", "Tenant"].map(
@@ -99,7 +101,7 @@ const EventDetail = ({
               )}
 
               {activeTab === "workshop" && (
-                <WorkshopTab key={"workshop"} workshops={workshops} />
+                <WorkshopTab key={"workshop"} workshops={workshops} showRegisterButton={false} />
               )}
 
               {activeTab === "tenant" && (

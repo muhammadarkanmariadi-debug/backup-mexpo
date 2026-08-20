@@ -15,12 +15,15 @@ export const WorkshopCard = ({
   workshop,
   handleRegisterWorkshop,
   isSubmitting,
+  showRegisterButton = true,
 }: {
   workshop: Workshop;
   variant?: string;
   handleRefetchWorkshops?: () => void;
   handleRegisterWorkshop: () => void;
   isSubmitting: boolean;
+  /** Hide the register CTA (public catalog view). Defaults to showing it. */
+  showRegisterButton?: boolean;
 }) => {
 
   const [isExpanded, setIsExpanded] = useState(false);
@@ -131,7 +134,9 @@ export const WorkshopCard = ({
           </div>
         </div>
 
-        {/* Action Button (visible wherever the card renders — FIX-09) */}
+        {/* Action Button — only rendered in the visitor dashboard
+            (public event page hides it via showRegisterButton=false). */}
+        {showRegisterButton ? (
         <button
             onClick={handleRegisterWorkshop}
             disabled={isFull || isSubmitting || isUserRegistered}
@@ -158,6 +163,11 @@ export const WorkshopCard = ({
               "Daftar Lokakarya Sekarang"
             )}
           </button>
+        ) : (
+          <p className="mx-auto max-w-md text-sm text-gray-500">
+            Pendaftaran lokakarya dilakukan dari dashboard pengunjung event Anda.
+          </p>
+        )}
       </div>
     </div>
   );

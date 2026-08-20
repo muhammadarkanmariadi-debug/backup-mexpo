@@ -5,6 +5,7 @@ import {
   InternalServerErrorException,
   NotFoundException,
   Query,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -19,6 +20,8 @@ import {
   ResetPasswordDto,
   VerifyResetPasswordDto,
 } from './dto/reset-password.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
+import { ChangeEmailDto } from './dto/change-email.dto';
 import { buildOrderBy } from '../helper/sort';
 import { Prisma } from '@prisma/client';
 
@@ -410,6 +413,124 @@ export class UsersService {
         success: true,
         message: `New password has updated to your account`,
         data: updateUser,
+      };
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error; // rethrow NestJS exceptions
+      }
+      throw new InternalServerErrorException(`Something were wrong. ${error}`);
+    }
+  }
+
+  async changePassword(id: string, changePasswordDto: ChangePasswordDto) {
+    try {
+      const { current_password, password, confirm_password } =
+        changePasswordDto;
+      const findUser = await this.prisma.users.findFirst({
+        where: { uuid: id },
+      });
+      if (!findUser) {
+        throw new NotFoundException(`User not found`);
+      }
+
+      const isMatch = await this.bcrypt.comparePassword(
+        current_password,
+        findUser.password,
+      );
+      if (!isMatch) {
+        throw new UnauthorizedException(`Current password is incorrect`);
+      }
+
+      if (confirm_password && password !== confirm_password) {
+        throw new ConflictException(`Confirmation password doesn't match`);
+      }
+
+      const hashedPassword = await this.bcrypt.hashPassword(password);
+      const updatedUser = await this.prisma.users.update({
+        where: { uuid: id },
+        data: { password: hashedPassword },
+        omit: { password: true },
+      });
+
+      return {
+        success: true,
+        message: `Password changed successfully.`,
+        data: updatedUser,
+      };
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error; // rethrow NestJS exceptions
+      }
+      throw new InternalServerErrorException(`Something were wrong. ${error}`);
+    }
+  }
+
+  async changeEmail(id: string, changeEmailDto: ChangeEmailDto) {
+    try {
+      const { email, current_password } = changeEmailDto;
+      const findUser = await this.prisma.users.findFirst({
+        where: { uuid: id },
+      });
+      if (!findUser) {
+        throw new NotFoundException(`User not found`);
+      }
+
+      const isMatch = await this.bcrypt.comparePassword(
+        current_password,
+        findUser.password,
+      );
+      if (!isMatch) {
+        throw new UnauthorizedException(`Current password is incorrect`);
+      }
+
+      if (email.toLowerCase() === findUser.email.toLowerCase()) {
+        throw new ConflictException(`New email is the same as current email`);
+      }
+
+      const emailExists = await this.prisma.users.findFirst({
+        where: { email },
+      });
+      if (emailExists) {
+        throw new ConflictException(`Email is already used by another account`);
+      }
+
+      // Switch to the new address and require re-verification before the
+      // account is active again (mirrors the sign-up flow).
+      await this.prisma.users.update({
+        where: { uuid: id },
+        data: { email, verify_at: null, is_active: false },
+      });
+
+      await this.prisma.email_verification.deleteMany({
+        where: { user_id: id },
+      });
+
+      const newVerification = await this.prisma.email_verification.create({
+        data: {
+          user_id: id,
+          expiresAt: new Date(Date.now() + 72 * 60 * 60 * 1000), // 72 hours
+        },
+      });
+
+      const link = `${this.configService.get<string>(`PUBLIC_FRONTEND_URL`)}/verify-email?token=${newVerification.uuid}`;
+
+      this.mailer
+        .sendMail(
+          email,
+          'Expo Website - Verify Your New Email',
+          this.verificationEmailTemplate(findUser.full_name, link),
+        )
+        .then(() => {
+          console.log('Verification email sent successfully.');
+        })
+        .catch((error) => {
+          console.error('Error sending verification email:', error);
+        });
+
+      return {
+        success: true,
+        message: `Email changed. Verification link has been sent to ${email}`,
+        data: { email },
       };
     } catch (error) {
       if (error instanceof HttpException) {

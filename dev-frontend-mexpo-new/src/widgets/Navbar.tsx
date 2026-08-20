@@ -13,6 +13,7 @@ import { useTheme } from '@/context/ThemeContext'
 import Button from '@/shared/components/button/Button'
 import { cn } from '@/shared/utils/cn'
 import { logoutAction } from '@/features/auth/auth'
+import { ProfileModal } from '@/features/dashboard/profile/ProfileModal'
 
 interface NavItem {
   title: string
@@ -38,6 +39,7 @@ export default function Navbar() {
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null)
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
   const [mobileDropdown, setMobileDropdown] = useState<string | null>(null)
+  const [profileOpen, setProfileOpen] = useState(false)
 
   const userMenuRef = useRef<HTMLDivElement>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
@@ -108,18 +110,18 @@ export default function Navbar() {
         {/* Logo */}
         <Link href="/" className="xl:mt-9 shrink-0">
           <Image
-            src="/logo/logo-m.svg"
+            src="/logo/logo.png"
             alt="Mexpo"
-            width={120}
-            height={50}
-            className="h-12 object-contain dark:brightness-0 dark:invert"
+            width={140}
+            height={60}
+            className=" object-contain dark:brightness-0 dark:invert"
           />
         </Link>
 
         {/* Floating pill nav — desktop only */}
         <div
           className={cn(
-            'hidden left-1/2 z-[999] fixed xl:flex items-center transition-all -translate-x-1/2 duration-500',
+            'hidden left-1/2 z-[999] fixed lg:flex items-center transition-all -translate-x-1/2 duration-500',
             scrolled
               ? 'top-4 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border border-neutral-200 dark:border-gray-700 shadow-[0_8px_32px_rgba(0,0,0,0.12)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.4)] rounded-full px-6 py-2.5'
               : 'top-8 bg-white dark:bg-gray-900 border border-neutral-200 dark:border-gray-700 shadow-[0_4px_16px_rgba(0,0,0,0.08)] dark:shadow-[0_4px_16px_rgba(0,0,0,0.3)] rounded-full px-8 py-3'
@@ -215,7 +217,7 @@ export default function Navbar() {
         </div>
 
         {/* Right side — user / login */}
-        <div className="hidden xl:flex items-center gap-3 xl:mt-9 shrink-0" ref={userMenuRef}>
+        <div className="hidden lg:flex items-center gap-3 xl:mt-9 shrink-0" ref={userMenuRef}>
      
           {username ? (
             <div className="relative">
@@ -288,14 +290,14 @@ export default function Navbar() {
                       </div>
                     </div>
 
-                    <Link
-                      href="/profile"
-                      onClick={() => setIsUserMenuOpen(false)}
-                      className="flex items-center gap-2.5 hover:bg-secondary/5 dark:hover:bg-secondary/10 px-4 py-2.5 text-gray-700 dark:text-gray-300 hover:text-secondary text-sm transition-colors"
+                    <button
+                      type="button"
+                      onClick={() => { setProfileOpen(true); setIsUserMenuOpen(false); }}
+                      className="flex items-center gap-2.5 hover:bg-secondary/5 dark:hover:bg-secondary/10 px-4 py-2.5 w-full text-left text-gray-700 dark:text-gray-300 hover:text-secondary text-sm transition-colors"
                     >
                       <User size={15} />
                       Profil
-                    </Link>
+                    </button>
                     <button
                       onClick={handleLogout}
                       className="flex items-center gap-2.5 hover:bg-red-50 dark:hover:bg-red-500/10 px-4 py-2.5 w-full text-red-500 text-sm transition-colors"
@@ -319,7 +321,7 @@ export default function Navbar() {
         </div>
 
         {/* Toggle + Hamburger — mobile only */}
-        <div className="xl:hidden flex items-center gap-2">
+        <div className="lg:hidden flex items-center gap-2">
           <button
             onClick={toggleTheme}
             aria-label={theme === 'dark' ? 'Ubah ke mode terang' : 'Ubah ke mode gelap'}
@@ -374,13 +376,13 @@ export default function Navbar() {
                     </div>
                   </div>
                   <div className="flex gap-2 mt-3">
-                    <Link
-                      href="/profile"
-                      onClick={() => setIsMobileOpen(false)}
+                    <button
+                      type="button"
+                      onClick={() => { setProfileOpen(true); setIsMobileOpen(false); }}
                       className="flex flex-1 justify-center items-center gap-1.5 bg-white dark:bg-gray-800 hover:bg-secondary/5 dark:hover:bg-secondary/10 px-3 py-1.5 border border-secondary/30 rounded-full font-semibold text-secondary text-xs transition-colors"
                     >
                       <User size={12} /> Profil
-                    </Link>
+                    </button>
                     <button
                       onClick={handleLogout}
                       className="flex flex-1 justify-center items-center gap-1.5 bg-white dark:bg-gray-800 hover:bg-red-50 dark:hover:bg-red-500/10 px-3 py-1.5 border border-red-200 dark:border-red-500/30 rounded-full font-semibold text-red-500 text-xs transition-colors"
@@ -461,6 +463,9 @@ export default function Navbar() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Profile popup — opened from the user menu (desktop + mobile). */}
+      <ProfileModal open={profileOpen} onClose={() => setProfileOpen(false)} />
     </nav>
   )
 }

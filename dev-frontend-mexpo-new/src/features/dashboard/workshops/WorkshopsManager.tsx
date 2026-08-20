@@ -12,6 +12,7 @@ import PageHeader from "@/shared/components/ui/PageHeader";
 import PageShell from "@/shared/components/ui/PageShell";
 import RowActions, { editAction, deleteAction } from "@/shared/components/ui/RowActions";
 import { LoadingSpinner } from "@/shared/components/ui/LoadingSpinner";
+import Image from "next/image";
 import EmptyState from "@/shared/components/ui/EmptyState";
 import { Modal } from "@/shared/components/ui/Modal";
 import { DataPagination } from "@/shared/components/ui/DataPagination";
@@ -259,8 +260,8 @@ export default function WorkshopsManager({ event }: { event: Event }) {
                   return (
                     <div key={link.uuid} className="flex items-start gap-3 rounded-xl border border-gray-100 p-3">
                       {sp?.photo ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={sp.photo} alt={sp.name} className="h-12 w-12 rounded-full object-cover" />
+                         
+                        <Image src={sp.photo} alt={sp.name} width={48} height={48} className="h-12 w-12 rounded-full object-cover" />
                       ) : (
                         <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 text-lg font-bold text-gray-500">
                           {(sp?.name ?? "P")[0]}

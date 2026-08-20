@@ -9,6 +9,7 @@ import SearchBar from "@/shared/components/form/SearchBar";
 import Button from "@/shared/components/button/Button";
 import PageHeader from "@/shared/components/ui/PageHeader";
 import { Modal } from "@/shared/components/ui/Modal";
+import Image from "next/image";
 import { DataPagination } from "@/shared/components/ui/DataPagination";
 import { Event } from "@/entities/event/event.entity";
 import {
@@ -158,8 +159,8 @@ export default function TeamManager({ event }: { event: Event }) {
             {list.items.map((m) => (
               <div key={m.uuid} className="flex flex-wrap items-center gap-3 rounded-xl border border-gray-100 bg-white px-4 py-3">
                 {m.user?.photo ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={m.user.photo} alt={m.user.full_name} className="h-10 w-10 rounded-full object-cover" />
+                   
+                  <Image src={m.user.photo} alt={m.user.full_name} width={40} height={40} className="h-10 w-10 rounded-full object-cover" />
                 ) : (
                   <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 text-gray-500">
                     {(m.user?.full_name ?? "?")[0]}

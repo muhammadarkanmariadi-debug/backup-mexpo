@@ -2,6 +2,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { Loader2, Upload, Pencil } from "lucide-react";
 import Input from "@/shared/components/form/Input";
+import Image from "next/image";
 import { Modal } from "@/shared/components/ui/Modal";
 import { Tenant } from "@/entities/event/tenant.entity";
 import { useApiMutation, useApiQuery } from "@/lib/hooks/useApi";
@@ -89,8 +90,8 @@ export function ProfileTab({ tenantId }: { tenantId: string }) {
       <div className="bg-white p-6 border border-gray-100 rounded-xl flex flex-col sm:flex-row items-start gap-6">
         <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-xl bg-gray-50 border border-gray-200 overflow-hidden flex-shrink-0">
           {tenant?.logo ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={tenant?.logo} alt="Logo" className="w-full h-full object-cover" />
+             
+            <Image src={tenant?.logo ?? ""} alt="Logo" width={128} height={128} className="w-full h-full object-cover" />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">Belum Ada Logo</div>
           )}
@@ -133,8 +134,8 @@ export function ProfileTab({ tenantId }: { tenantId: string }) {
             <div className="flex items-start gap-4">
               <div className="relative flex justify-center items-center bg-gray-50 border-2 border-dashed border-gray-200 rounded-xl w-32 h-32 overflow-hidden shrink-0">
                 {photoPreview ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={photoPreview} alt="Preview" className="w-full h-full object-cover" />
+                   
+                  <Image src={photoPreview} alt="Preview" fill unoptimized className="object-cover" />
                 ) : (
                   <span className="text-gray-400 text-xs text-center px-2">
                     Belum ada logo

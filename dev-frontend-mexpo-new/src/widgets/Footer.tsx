@@ -55,11 +55,11 @@ const Footer = () => {
           <div className="flex flex-col gap-6 max-w-sm">
             <Link href="/" className="inline-block">
               <Image
-                src="/logo/logo-m.svg"
+                src="/logo/logo_dark.png"
                 alt="Mexpo"
                 width={120}
                 height={50}
-                className="h-10 w-auto object-contain brightness-0 invert"
+                className="w-auto object-contain brightness-0 invert"
               />
             </Link>
             <p className="font-jakarta text-white/80 dark:text-gray-400 text-sm md:text-base leading-relaxed">

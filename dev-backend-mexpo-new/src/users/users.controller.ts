@@ -30,6 +30,8 @@ import {
   ResetPasswordDto,
   VerifyResetPasswordDto,
 } from './dto/reset-password.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
+import { ChangeEmailDto } from './dto/change-email.dto';
 
 @ApiTags('Users')
 @Controller('users')
@@ -124,6 +126,26 @@ export class UsersController {
   ) {
     const id: string = req.user.uuid;
     return this.usersService.update(id, updateUserDto, file);
+  }
+
+  @Put('me/password')
+  @UseGuards(AuthGuard(`jwt`))
+  @UsePipes(new ValidationPipe({ exceptionFactory: FormatValidation }))
+  changePassword(
+    @Body() changePasswordDto: ChangePasswordDto,
+    @Request() req: authTypes.AuthRequest,
+  ) {
+    return this.usersService.changePassword(req.user.uuid, changePasswordDto);
+  }
+
+  @Put('me/email')
+  @UseGuards(AuthGuard(`jwt`))
+  @UsePipes(new ValidationPipe({ exceptionFactory: FormatValidation }))
+  changeEmail(
+    @Body() changeEmailDto: ChangeEmailDto,
+    @Request() req: authTypes.AuthRequest,
+  ) {
+    return this.usersService.changeEmail(req.user.uuid, changeEmailDto);
   }
 
   @Put(':id')

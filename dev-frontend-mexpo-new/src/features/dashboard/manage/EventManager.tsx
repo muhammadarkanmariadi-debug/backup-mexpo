@@ -13,6 +13,7 @@ import {
 
 import Input from "@/shared/components/form/Input";
 import SearchBar from "@/shared/components/form/SearchBar";
+import Image from "next/image";
 import { DataPagination } from "@/shared/components/ui/DataPagination";
 import PageHeader from "@/shared/components/ui/PageHeader";
 import SegmentedTabs from "@/shared/components/ui/SegmentedTabs";
@@ -350,8 +351,8 @@ export function SponsorsSection({ eventId }: { eventId: string }) {
             {list.items.map((item) => (
               <div key={item.uuid} className="flex items-center gap-4 bg-white p-4 border border-gray-100 rounded-xl">
                 {item.logo ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={item.logo} alt={item.name} className="bg-gray-50 rounded-lg w-12 h-12 object-cover" />
+                   
+                  <Image src={item.logo} alt={item.name} width={48} height={48} className="bg-gray-50 rounded-lg w-12 h-12 object-cover" />
                 ) : (
                   <div className="flex justify-center items-center bg-gray-50 rounded-lg w-12 h-12 text-gray-400 text-xs">-</div>
                 )}
@@ -594,8 +595,8 @@ export function SpeakersSection({ eventId }: { eventId: string }) {
             {list.items.map((item) => (
               <div key={item.uuid} className="flex items-start gap-4 bg-white p-4 border border-gray-100 rounded-xl">
                 {item.photo ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={item.photo} alt={item.name} className="bg-gray-50 rounded-full w-12 h-12 object-cover" />
+                   
+                  <Image src={item.photo} alt={item.name} width={48} height={48} className="bg-gray-50 rounded-full w-12 h-12 object-cover" />
                 ) : (
                   <div className="flex justify-center items-center bg-gray-50 rounded-full w-12 h-12 text-gray-400 text-xs">-</div>
                 )}

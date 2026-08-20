@@ -40,7 +40,7 @@ Mexpo/
 │  │  └─ flows/*.mmd              # ← Mermaid user-flow diagrams (9 flows)
 │  ├─ src/
 │  │  ├─ auth/ users/ events/ event-users/
-│  │  ├─ event-contacts/ event-rundowns/ event-sponsors/ event_speakers/
+│  │  ├─ contact-messages/ event-contacts/ event-rundowns/ event-sponsors/ event_speakers/
 │  │  ├─ workshops/ workshop_bookings/
 │  │  ├─ tenants/ tenant-categories/ tenant-products/ tenant-transactions/
 │  │  ├─ attendances/ souvenirs/ reports/ public-api/
@@ -132,6 +132,7 @@ Mexpo/
 24. **Reports upgraded + management gaps filled (Sprint 7 follow-up):** `recharts` installed; reports page has a **date-range filter** + Attendance & Transaction sections (bar/pie charts). Backend `reports.service.ts` `buildDateFilter` supports partial ranges. New owner/committee pages: `/dashboard/[uuid]/workshops`, `/team`, `/attendance`. When editing these, note the backend `FilterReportDto` accepts `start_date`/`end_date` (ISO), and `getEventAttendance`/report fetchers take date params.
 25. **Follow-up #2 (profile / tenant reports / minTransaction / conditional fields):** `/profile`, `/forgot-passwords`, `/forgot-passwords/reset-password` pages added; tenant portal "Laporan" tab + `GET /reports/export/:event_id/tenant/:tenant_id`; `tenant_transactions.visitor_id` (set via POS visitor-QR scan) enables the souvenir `minTransaction` rule; `event_registration_fields.condition` (`{field_key,value}`) enables show-if registration fields (public form hides/omits them; backend skips their required check when hidden). Migrations `add_transaction_visitor`, `add_registration_field_condition`.
 21. **`events.souvenir_rules` is a JSON column** — when writing it in Prisma, use `Prisma.InputJsonValue`/`eventsUncheckedUpdateInput` (scalar FK fields like `approved_by` are not on the checked update input).
+26. **Contact form is a real submit now** — `POST /contact` (NO auth, `contact-messages/` module) persists to `contact_message` + emails `CONTACT_DESTINATION_EMAIL` (env override, default `tefa@smktelkom-mlg.sch.id`). In-memory per-IP rate limit (3/hour → 429; resets on restart — not cluster-safe). Frontend `submitContactAction` POSTs to it and falls back to `mailto:` **only** when the API is unreachable. Note: `contact_message` has **no** `created_by`/`updated_by` (anonymous senders). Migration `2026-08-15 add_contact_message` (mysql history) — `prisma migrate dev` on this repo currently demands a destructive reset due to pre-existing drift; apply via `prisma db execute --file <migration>.sql` instead.
 
 ---
 

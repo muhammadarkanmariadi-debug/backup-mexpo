@@ -407,6 +407,19 @@ Relations: `users_bio` (1:1), all audit FKs (`creator_*`/`editor_*` on ~20 table
 | `value` | String | `@default("")` | |
 | audit + timestamps | | | |
 
+### 2.29 `contact_message` (form kontak publik — `POST /contact`)
+| Column | Type | Constraints | Notes |
+|---|---|---|---|
+| `uuid` | String | PK | |
+| `name` | String | `@default("")` | |
+| `email` | String | `@default("")` | |
+| `subject` | String | `@default("")` | |
+| `message` | String | `@db.Text` | pesan pengunjung |
+| `ip_address` | String | `@default("")` | untuk rate-limit/audit |
+| `created_at` | DateTime | `@default(now())` | |
+
+> Tidak ada `created_by`/`updated_by` (FK → users) karena pengirim **bukan user terdaftar**. Migrasi: `prisma/migrations-mysql/20260815000000_add_contact_message`.
+
 ---
 
 ## 3. docx-Only Concepts (not in schema)

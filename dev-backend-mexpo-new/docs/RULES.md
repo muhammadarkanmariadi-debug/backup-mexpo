@@ -157,6 +157,15 @@ All backend DTOs use **class-validator + class-transformer** (no Zod on backend)
 - workshop-bookings: `status?` enum `BookingStatus`
 - event-users: status/role enums
 
+### 2.9 contact-messages (`CreateContactMessageDto` — `POST /contact`)
+
+| Field | Validation |
+|---|---|
+| `name` | `@IsNotEmpty` / `@IsString`, max 120 |
+| `email` | `@IsString` + `@IsEmail`, max 120 |
+| `subject` | `@IsNotEmpty` / `@IsString`, max 150 |
+| `message` | `@IsNotEmpty` / `@IsString`, min 10, max 4000 |
+
 ---
 
 ## 3. Service-Level Business Rules (from code)
@@ -197,6 +206,13 @@ All backend DTOs use **class-validator + class-transformer** (no Zod on backend)
   - If known → upserts event role to APPROVED.
   - **Hardcoded**: for event UUID `05f3af5d-b049-43b2-985f-78d5214b8f56`, it additionally requires/upserts `users_bio` (`city`, `role_type`, `destination_country`, `departure_month`). A second UUID (`7fbef9fe-...`) appears in a comment.
 - This is event-specific business logic embedded in a generic endpoint. **Ask before touching** — see AGENT.md.
+
+### 3.7 Contact (`POST /contact` — publik)
+- **Tanpa auth** — endpoint publik di `contact-messages` controller (bukan `public-api`, karena controller itu Basic-auth di level class).
+- **Persist dulu, email best-effort** — pesan disimpan ke `contact_message` terlebih dahulu (sumber kebenaran); email notifikasi dikirim `fire-and-forget`, kegagalan SMTP hanya di-log dan **tidak** menggagalkan request.
+- **Rate-limit in-memory per-IP** — maksimal **3 pesan/jam** → HTTP 429. Resets saat proses restart & tidak cluster-safe (`@nestjs/throttler` = upgrade path).
+- Tujuan email: `CONTACT_DESTINATION_EMAIL` (env; default `tefa@smktelkom-mlg.sch.id`) — sinkron dengan nilai yang ditampilkan di UI (`dev-frontend-mexpo-new/src/features/public/contact/contact.data.ts`).
+- Frontend: `submitContactAction` memanggil backend; jika tidak terjangkau (network error) ia **fallback ke `mailto:`** dengan pesan yang jujur (bukan sukses palsu).
 
 ---
 

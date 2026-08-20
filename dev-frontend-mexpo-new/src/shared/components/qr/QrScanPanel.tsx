@@ -12,6 +12,7 @@ import {
 
 import Input from "@/shared/components/form/Input";
 import Button from "@/shared/components/button/Button";
+import Image from "next/image";
 import { useQrScanner } from "@/shared/hooks/useQrScanner";
 import { ResolvedQr } from "@/services/qr.service";
 import { cn } from "@/shared/utils/cn";
@@ -132,10 +133,11 @@ export function QrScanPanel({
         <div className={cn("rounded-lg p-4", palette.tile)}>
           <div className="flex items-center gap-3">
             {resolved.user.photo ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
+              <Image
                 src={resolved.user.photo}
                 alt={resolved.user.full_name}
+                width={48}
+                height={48}
                 className="h-12 w-12 rounded-full object-cover"
               />
             ) : (

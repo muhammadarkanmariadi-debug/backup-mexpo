@@ -27,6 +27,7 @@ import { SouvenirsModule } from './souvenirs/souvenirs.module';
 import { TicketsModule } from './tickets/tickets.module';
 import { RegistrationFieldsModule } from './registration-fields/registration-fields.module';
 import { QrCodesModule } from './qr-codes/qr-codes.module';
+import { ContactMessagesModule } from './contact-messages/contact-messages.module';
 
 @Module({
   imports: [
@@ -56,6 +57,7 @@ import { QrCodesModule } from './qr-codes/qr-codes.module';
     TicketsModule,
     RegistrationFieldsModule,
     QrCodesModule,
+    ContactMessagesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -1,9 +1,7 @@
-import ProfilePage from "@/features/dashboard/profile/ProfilePage";
+import { redirect } from "next/navigation";
 
-export const metadata = {
-  title: "Profil Saya",
-};
-
+// /profile is now a popup opened from the Navbar user menu (ProfileModal).
+// Keep the route so stale links/bookmarks don't 404; just send them home.
 export default function ProfileRoute() {
-  return <ProfilePage />;
+  redirect("/");
 }

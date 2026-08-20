@@ -11,6 +11,7 @@ import { applyTenant } from "@/services/tenant.service";
 import { getTenantCategories, TenantCategory } from "@/services/tenant-category.service";
 import { useApiQuery } from "@/lib/hooks/useApi";
 import { keys } from "@/lib/query-keys";
+import Image from "next/image";
 
 export default function TenantApplyForm({ event }: { event: Event }) {
   const router = useRouter();
@@ -129,8 +130,8 @@ export default function TenantApplyForm({ event }: { event: Event }) {
         <div className="flex items-center gap-4">
           <label className="flex flex-col items-center justify-center w-32 h-32 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:bg-gray-50 bg-gray-50/50 overflow-hidden relative">
             {photoPreview ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={photoPreview} alt="Logo" className="w-full h-full object-cover" />
+               
+              <Image src={photoPreview} alt="Logo" fill unoptimized className="object-cover" />
             ) : (
               <div className="flex flex-col items-center justify-center text-gray-500">
                 <Upload className="w-6 h-6 mb-2 text-gray-400" />

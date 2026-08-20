@@ -28,17 +28,27 @@ export default function ContactPage() {
         e.preventDefault()
         setIsSubmitting(true)
 
-        // Real submit via server action (FIX-20): validates and opens the
-        // visitor's mail client pre-filled with the message. No fake success.
-        const result = await submitContactAction(formData)
-        if (result.success && result.mailto) {
-            window.location.href = result.mailto
-            toast.success(result.message)
-            setFormData({ name: '', email: '', subject: '', message: '' })
-        } else {
-            toast.error(result.message)
+        try {
+            // Real submit via server action (FIX-20): validates, persists to the
+            // backend (POST /contact), and only falls back to the visitor's mail
+            // client when the API is unreachable (no fake success).
+            const result = await submitContactAction(formData)
+
+            if (result.mailto) {
+                window.location.href = result.mailto
+            }
+
+            if (result.success) {
+                toast.success(result.message)
+                setFormData({ name: '', email: '', subject: '', message: '' })
+            } else {
+                toast.error(result.message)
+            }
+        } catch {
+            toast.error('Terjadi kesalahan. Silakan coba lagi.')
+        } finally {
+            setIsSubmitting(false)
         }
-        setIsSubmitting(false)
     }
 
 
