@@ -381,15 +381,16 @@
 # Sprint 3 — Visitor Journey
 
 ### A1. Ticket & paid-ticketing system
-- **Sides:** `[BOTH]` ✅ done (Sprint 3)
+- **Sides:** `[BOTH]` ✅ done (Sprint 3) + A1b payment gateway (follow-up)
 - **Priority:** P0 · **Effort:** L
 - **Depends on:** A2, A3
 - **User story:** *As a visitor, I want to register and buy a ticket (free or paid) for an event so that I can attend.*
 - **Acceptance criteria:**
   - [x] `TicketMode` (`free|paid`) per event; `ticket_types`/`tickets` models + migration `20260808083739`
   - [x] Visitor registration issues a ticket; paid events capture payment reference (manual/POS/CASH/QRIS/TRANSFER — no gateway yet, `[NEEDS CLARIFICATION]` payment handling)
+  - [x] **A1b — Midtrans Snap gateway:** `transactions` + `event_settlements` + `events.payout_*`; `POST /events/:id/checkout` returns Snap token; `POST /payment/notification` webhook (SHA512 + idempotent); settlement summary/payout/settle (SUPERADMIN) endpoints; public registration returns payment intent. Manual CASH/QRIS/TRANSFER kept as fallback. See `dev-backend-mexpo-new/docs/PAYMENT.md`
   - [ ] Ticket emails sent (depends on A11 — deferred)
-  - [x] Frontend: public registration page `/event/[uuid]/register` (ticket select + success screen) replaces dead links
+  - [x] Frontend: public registration page `/event/[uuid]/register` (ticket select + Snap popup + success screen) replaces dead links
 
 ### A8. Dynamic registration form
 - **Sides:** `[BOTH]` ✅ done (Sprint 3 — conditional fields deferred)
@@ -521,6 +522,7 @@
 - **User story:** *As a visitor, I want a certificate for workshops/seminars I completed so that I can use it as proof of participation.*
 - **Acceptance criteria:**
   - [x] Backend `GET /workshop-bookings/certificates/my/:event_id` returns the caller's `CHECKED_IN` bookings; `/dashboard/[uuid]/certificates` lists them + printable certificate (event, workshop, name, date)
+  - [x] **Template engine (follow-up):** OWNER/COMMITTEE design certificates with a Konva studio (`/dashboard/[uuid]` → Sertifikat tab) — layout, custom background (color/image upload), static default text + dynamic per-recipient fields (whitelisted: participant_name, event_name, workshop_title, date, organizer_name, certificate_number). Persisted in `certificate_templates`; the visitor page renders the active template and exports PDF/PNG via jsPDF; falls back to the legacy HTML block when no template exists.
   - [ ] Organizer revoke — deferred (not implemented)
 
 ---

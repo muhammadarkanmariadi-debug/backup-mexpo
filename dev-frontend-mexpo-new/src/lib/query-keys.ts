@@ -91,6 +91,19 @@ export const keys = {
   certificates: {
     mine: ["certificates", "mine"] as const,
   },
+  certificateTemplates: {
+    all: (eventUuid: string) => ["certificate-templates", eventUuid] as const,
+    active: (eventUuid: string) =>
+      ["certificate-templates", eventUuid, "active"] as const,
+  },
+  payments: {
+    all: (eventUuid: string) => ["payments", eventUuid] as const,
+    my: (eventUuid: string) => ["payments", eventUuid, "my"] as const,
+    list: (eventUuid: string, query: Record<string, string>) =>
+      ["payments", eventUuid, "list", query] as const,
+    detail: (id: string) => ["payments", "detail", id] as const,
+    summary: (eventUuid: string) => ["payments", eventUuid, "summary"] as const,
+  },
   attendance: {
     all: (eventUuid: string) => ["attendance", eventUuid] as const,
     list: (eventUuid: string, query: Record<string, string>) =>

@@ -28,6 +28,8 @@ import { TicketsModule } from './tickets/tickets.module';
 import { RegistrationFieldsModule } from './registration-fields/registration-fields.module';
 import { QrCodesModule } from './qr-codes/qr-codes.module';
 import { ContactMessagesModule } from './contact-messages/contact-messages.module';
+import { CertificatesModule } from './certificates/certificates.module';
+import { PaymentsModule } from './payments/payments.module';
 
 @Module({
   imports: [
@@ -58,6 +60,8 @@ import { ContactMessagesModule } from './contact-messages/contact-messages.modul
     RegistrationFieldsModule,
     QrCodesModule,
     ContactMessagesModule,
+    CertificatesModule,
+    PaymentsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

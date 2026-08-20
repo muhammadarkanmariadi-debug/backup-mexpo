@@ -13,6 +13,7 @@ import Input from '@/shared/components/form/Input';
 import Button from '@/shared/components/button/Button';
 import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
+import { GoogleButton } from './GoogleButton';
 
 export function LoginForm() {
   const router = useRouter();
@@ -88,6 +89,9 @@ export function LoginForm() {
             {serverError}
           </div>
         )}
+
+        {/* Google sign-in */}
+        <GoogleButton />
 
         {/* Form */}
         <form className="flex flex-col gap-4" onSubmit={handleSubmit(onSubmit)}>

@@ -420,6 +420,56 @@ Relations: `users_bio` (1:1), all audit FKs (`creator_*`/`editor_*` on ~20 table
 
 > Tidak ada `created_by`/`updated_by` (FK → users) karena pengirim **bukan user terdaftar**. Migrasi: `prisma/migrations-mysql/20260815000000_add_contact_message`.
 
+### 2.30 `certificate_templates` (template sertifikat A10 — Konva designer)
+| Column | Type | Constraints | Notes |
+|---|---|---|---|
+| `uuid` | String | PK | |
+| `event_id` | String | FK → events, Cascade | `certificateTemplates[]` on `events` |
+| `name` | String | `@default("")` | nama template (label UI) |
+| `kind` | String | `@default("WORKSHOP")` | `WORKSHOP \| PARTICIPANT` (cadangan: SPEAKER/COMMITTEE) |
+| `template` | Json? | nullable | envelope Konva: `{version:1, width, height, background, nodes[]}` + `attrs.binding` pada Text |
+| `background` | String | `@default("")` | URL gambar latar (S3 bucket `expo-project-certificate`); ikut dihapus saat delete |
+| `is_active` | Boolean | `@default(true)` | template dipakai untuk render sertifikat |
+| audit + timestamps | | | `created_by`/`updated_by` FK → users |
+
+> Binding key dinamis **divalidasi server** (whitelist di `certificates.service.ts`): `participant_name`, `event_name`, `workshop_title`, `date`, `organizer_name`, `certificate_number`.
+> Migrasi: `prisma/migrations/20260820000000_add_certificate_templates` (Postgres) & `prisma/migrations-mysql/20260820000000_add_certificate_templates` (MySQL).
+
+### 2.31 `transactions` (payment intent Midtrans Snap — A1b)
+| Column | Type | Constraints | Notes |
+|---|---|---|---|
+| `uuid` | String | PK | |
+| `event_id` | String | FK → events, Cascade | |
+| `user_id` | String | FK → users, Cascade | |
+| `ticket_id` | String? | FK → tickets, SetNull | 1:M — beberapa attempt per tiket diizinkan |
+| `midtrans_order_id` | String | **UNIQUE** | format `MXP-<uuid tanpa dash uppercase>` |
+| `amount` | Int | `@default(0)` | IDR integer dari `ticket_types.price` (server) |
+| `platform_fee` | Int | `@default(0)` | potongan platform sebelum payout (%) |
+| `status` | enum `TransactionStatus` | `@default(PENDING)` | `PENDING \| PAID \| EXPIRED \| FAILED \| REFUNDED` |
+| `payment_method` | String | `@default("")` | diisi webhook (`payment_type` Midtrans) |
+| `snap_token` | String | `@db.Text` | token Snap (panjang, wajib TEXT) |
+| `paid_at` / `expired_at` / `refunded_at` | DateTime? | nullable | |
+| `refund_reason` | String | `@default("")` | |
+| audit + timestamps | | | `created_by`/`updated_by` FK → users |
+
+> Migrasi: `prisma/migrations/20260826000000_add_payments` (Postgres) & `prisma/migrations-mysql/20260826000000_add_payments` (MySQL).
+> Status final hanya ditulis dari `PENDING` (idempotent). Webhook signature SHA512 di `payments/midtrans.service.ts`.
+
+### 2.32 `event_settlements` (payout manual oleh SUPERADMIN — A1b)
+| Column | Type | Constraints | Notes |
+|---|---|---|---|
+| `uuid` | String | PK | |
+| `event_id` | String | FK → events, Cascade | |
+| `amount_transferred` | Int | `@default(0)` | harus = net summary |
+| `transferred_by` | String | FK → users | SUPERADMIN yang transfer |
+| `proof_of_transfer` | String | `@default("")` | URL S3 bucket `expo-project-payment` |
+| `note` | String | `@default("")` | |
+| `created_at` | DateTime | `@default(now())` | |
+
+> Kolom `events.payout_*` (`payout_bank_name`, `payout_account_number`,
+> `payout_account_holder`, `payout_status`, `settled_at`) menyimpan rekening
+> organizer dan status escrow. Sumber organizer = `events.created_by`.
+
 ---
 
 ## 3. docx-Only Concepts (not in schema)
@@ -434,11 +484,11 @@ Relations: `users_bio` (1:1), all audit FKs (`creator_*`/`editor_*` on ~20 table
 | Event type | 8+ event types | **DONE** — `events.event_type` enum (Sprint 2 / A7) |
 | Souvenir rules | `{ minVisitedBooth, minTransaction, joinedSeminar, ... }` | **Partial** — `events.souvenir_rules` JSON column added (FIX-11), only `minVisitedBooth` evaluated |
 | Attendance types | `venue_checkin \| seminar_checkin \| tenant_checkin \| visitor_booth_visit \| souvenir_claim` | Implicit via 3 tables; `souvenir_claim` missing |
-| Payment methods | cash / QRIS / transfer | **Partial** — free-form `tickets.payment_method` (CASH/QRIS/TRANSFER); no structured gateway |
+| Payment methods | cash / QRIS / transfer | **Partial→DONE** — free-form `tickets.payment_method` (CASH/QRIS/TRANSFER) remain as manual fallback; **Midtrans Snap gateway added** (`transactions` + `event_settlements` + `events.payout_*`, Sprint 6 follow-up / A1b) — see `docs/PAYMENT.md` |
 | Tenant address/social | profile fields | Missing |
 | Tenant roles | owner / staff | Missing (`tenant_members` has no role) |
 | Speaker account + QR | speaker as user | Missing (speakers are content rows) |
-| Certificates / badges / dynamic forms | suggested features | **Partial** — dynamic registration form **DONE** (`event_registration_fields` + `registration_answers`, Sprint 3 / A8); certificates/badges missing |
+| Certificates / badges / dynamic forms | suggested features | **Partial** — dynamic registration form **DONE** (`event_registration_fields` + `registration_answers`, Sprint 3 / A8); **certificate templates DONE** (`certificate_templates`, Sprint 6 follow-up / A10 upgrade — Konva designer + bound dynamic fields); badges are an ID-badge PDF, **no badge template engine yet** |
 
 ---
 

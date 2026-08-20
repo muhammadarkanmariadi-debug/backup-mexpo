@@ -8,11 +8,14 @@ import { CheckCircle2, Loader2, Ticket as TicketIcon } from "lucide-react";
 
 import Input from "@/shared/components/form/Input";
 import { Event, RegistrationField, TicketType } from "@/entities/event/event.entity";
+import { PaymentIntent, TransactionStatus } from "@/entities/payment/payment.entity";
 import {
   registerVisitor,
   RegisterVisitorPayload,
 } from "@/services/registration.service";
 import { getEventByUuidByMe } from "@/services/event.service";
+import { getTransaction } from "@/services/payment.service";
+import { loadSnapScript, payWithSnap } from "@/shared/utils/snap";
 import { useAuthStore } from "@/stores/auth.store";
 
 interface Props {
@@ -34,6 +37,10 @@ export default function RegistrationForm({ event, fields, ticketTypes }: Props) 
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [ticketTypeId, setTicketTypeId] = useState(ticketTypes[0]?.uuid ?? "");
   const [payment, setPayment] = useState({ payment_reference: "", payment_method: "CASH" });
+  // Midtrans Snap intent returned by the public registration for PAID events.
+  const [paymentIntent, setPaymentIntent] = useState<PaymentIntent | null>(null);
+  const [paymentStatus, setPaymentStatus] = useState<TransactionStatus | "UNKNOWN">("UNKNOWN");
+  const [paymentBusy, setPaymentBusy] = useState(false);
   // True until we've verified the caller isn't already registered in this event.
   const [checkingRegistration, setCheckingRegistration] = useState(
     isAuthenticated && !!user,
@@ -109,11 +116,77 @@ export default function RegistrationForm({ event, fields, ticketTypes }: Props) 
       const res = await registerVisitor(event.uuid, payload);
       if (!res.status) throw new Error(res.message || "Gagal mendaftar");
       setSubmitted(true);
+
+      // A1b — public registration returns the Midtrans Snap intent for paid
+      // events, so the fresh visitor can pay right away (no login needed).
+      const paymentData = (res.data as { payment?: unknown } | null)?.payment;
+      if (isPaid && paymentData && typeof paymentData === "object") {
+        setPaymentIntent(paymentData as unknown as PaymentIntent);
+        setPaymentStatus("PENDING");
+      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Terjadi kesalahan server");
     } finally {
       setSubmitting(false);
     }
+  };
+
+  // A1b — poll the transaction so the submitted screen reflects the real
+  // status after the user pays (or abandons) the Snap popup.
+  const pollTransaction = async (txUuid: string, attempts = 10) => {
+    for (let i = 0; i < attempts; i++) {
+      await new Promise((r) => setTimeout(r, 3000));
+      try {
+        const res = await getTransaction(txUuid);
+        if (!res.status || !res.data) continue;
+        setPaymentStatus(res.data.status);
+        if (["PAID", "EXPIRED", "FAILED", "REFUNDED"].includes(res.data.status)) {
+          return;
+        }
+      } catch {
+        // transient — keep polling
+      }
+    }
+  };
+
+  const openSnap = async () => {
+    if (!paymentIntent) return;
+    setPaymentBusy(true);
+    try {
+      const ready = await loadSnapScript();
+      if (!ready) {
+        toast.error("Gagal memuat Midtrans Snap. Coba lagi nanti.");
+        return;
+      }
+      payWithSnap(paymentIntent.snap_token, {
+        onSuccess: () => {
+          setPaymentStatus("PAID");
+          void pollTransaction(paymentIntent.transaction_uuid, 5);
+        },
+        onPending: () => {
+          setPaymentStatus("PENDING");
+          void pollTransaction(paymentIntent.transaction_uuid, 20);
+        },
+        onClose: () => {
+          void pollTransaction(paymentIntent.transaction_uuid, 10);
+        },
+        onError: () => {
+          toast.error("Pembayaran gagal. Silakan coba lagi.");
+        },
+      });
+    } catch {
+      toast.error("Gagal membuka pembayaran.");
+    } finally {
+      setPaymentBusy(false);
+    }
+  };
+
+  const statusLabel: Record<string, { text: string; cls: string }> = {
+    PAID: { text: "Pembayaran berhasil", cls: "text-emerald-600" },
+    PENDING: { text: "Menunggu pembayaran", cls: "text-amber-600" },
+    EXPIRED: { text: "Waktu pembayaran habis", cls: "text-red-600" },
+    FAILED: { text: "Pembayaran gagal", cls: "text-red-600" },
+    REFUNDED: { text: "Dana telah dikembalikan", cls: "text-gray-500" },
   };
 
   if (!user) return null;
@@ -135,10 +208,67 @@ export default function RegistrationForm({ event, fields, ticketTypes }: Props) 
         <h1 className="mb-2 text-2xl font-bold text-gray-900">Pendaftaran Berhasil!</h1>
         <p className="mb-6 text-sm text-gray-500">
           Kamu berhasil mendaftar ke {event.name}.
-          {isPaid
-            ? " Pembayaran tiket akan diproses oleh panitia."
-            : " Sampai jumpa di event!"}
+          {isPaid ? " Lanjutkan ke pembayaran tiket untuk mengaktifkan tiketmu." : " Sampai jumpa di event!"}
         </p>
+
+        {isPaid && paymentIntent && (
+          <div className="mb-6 rounded-xl border border-gray-200 bg-white p-5 text-left">
+            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+              <span className="text-sm font-medium text-gray-600">
+                Tagihan Tiket
+              </span>
+              <span className="text-lg font-bold text-gray-900">
+                Rp {paymentIntent.amount.toLocaleString("id-ID")}
+              </span>
+            </div>
+            <div className="mt-3 grid grid-cols-1 gap-2 text-sm">
+              <div className="flex items-center justify-between text-gray-500">
+                <span>Biaya tiket</span>
+                <span>Rp {paymentIntent.amount.toLocaleString("id-ID")}</span>
+              </div>
+              {paymentIntent.platform_fee > 0 && (
+                <div className="flex items-center justify-between text-gray-500">
+                  <span>Biaya platform</span>
+                  <span>Rp {paymentIntent.platform_fee.toLocaleString("id-ID")}</span>
+                </div>
+              )}
+              <div className="flex items-center justify-between font-semibold text-gray-800">
+                <span>Total dibayar</span>
+                <span>Rp {paymentIntent.amount.toLocaleString("id-ID")}</span>
+              </div>
+            </div>
+
+            {paymentStatus && statusLabel[paymentStatus] && (
+              <p className={`mt-3 text-xs font-semibold ${statusLabel[paymentStatus].cls}`}>
+                {statusLabel[paymentStatus].text}
+              </p>
+            )}
+
+            {paymentStatus !== "PAID" && (
+              <button
+                type="button"
+                onClick={() => void openSnap()}
+                disabled={paymentBusy}
+                className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-secondary px-5 py-3 text-sm font-semibold text-white hover:bg-secondary/80 disabled:opacity-50"
+              >
+                {paymentBusy ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <TicketIcon className="h-4 w-4" />
+                )}
+                {paymentStatus === "EXPIRED" || paymentStatus === "FAILED"
+                  ? "Coba Bayar Lagi"
+                  : "Lanjut ke Pembayaran"}
+              </button>
+            )}
+            {paymentStatus === "PAID" && (
+              <p className="mt-4 rounded-lg bg-emerald-50 p-3 text-center text-sm font-semibold text-emerald-700">
+                Tiket sudah aktif — QR check-in kamu tersedia di dashboard.
+              </p>
+            )}
+          </div>
+        )}
+
         <div className="flex justify-center gap-3">
           <Link
             href={`/event/${event.slug ?? event.uuid}`}

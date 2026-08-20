@@ -92,7 +92,7 @@ Legend: `[DONE]` · `[IN PROGRESS]` · `[PLANNED]` · `[NEEDS CLARIFICATION]`
 |---|---|---|---|
 | A1 | Register (email + password + phone) | `[DONE]` | `POST /users` (Basic guard) + frontend `/auth` register tab |
 | A2 | Email verification | `[DONE]` | `email_verification` token, 72h expiry, `GET /users/verification/:code`, frontend `/verify-email` |
-| A3 | Login → JWT | `[DONE]` | `POST /auth` → `{token, role}`, 1-day expiry |
+| A3 | Login → JWT | `[DONE]` | `POST /auth` → `{token, role}`, 1-day expiry. **Google sign-in added (2026-08):** `POST /auth/google` verifies a GIS id_token (google-auth-library, `email_verified` + `aud`), find-or-creates the user by email (auto-activated) and issues the same JWT |
 | A4 | Reset password (email) | `[DONE]` | `POST /users/reset-password` + `/users/reset-password/verify`, 24h token |
 | A5 | Profile (view/update own) | `[DONE]` | `GET/PUT /users/me` |
 | A6 | User management (super admin) | `[DONE]` | `GET/PUT/DELETE /users`, `/users/superadmin` |
@@ -325,7 +325,7 @@ Items in neither source, or explicitly future-ready, are out of scope for the cu
 
 1. **Feature config system (E7)** — `[IN PROGRESS]` since Sprint 2/A2: `events.features` JSON + mutation gating + frontend form. Remaining: read-endpoint gating + per-view UI enforcement.
 2. **Event lifecycle/approval (E2/E3)** — `[DONE]` since Sprint 2/A3: `PENDING`/`REJECTED`, publish-request + approval endpoints + queue.
-3. **Tickets & paid events (E6)** — `[DONE]` since Sprint 3/A1: `ticket_mode` + `ticket_types` + `tickets` + public purchase flow. No payment gateway (manual/POS placeholder).
+3. **Tickets & paid events (E6)** — `[DONE]` since Sprint 3/A1: `ticket_mode` + `ticket_types` + `tickets` + public purchase flow. **A1b (2026-08): Midtrans Snap payment gateway** added — checkout → Snap token, verified webhook, escrow settlement (see `dev-backend-mexpo-new/docs/PAYMENT.md`); manual/POS fallback retained.
 4. **QR system (C6/C7)** — `[DONE]` since Sprint 4/A4 (see §4.8 note): `qr_codes` table + `GET /qr-codes/my/:event_id` + `POST /qr-codes/resolve`, wired into check-in/POS/souvenir/booth flows. Open follow-ups: speaker QRs and a unified attendance enum (C5).
 5. **Souvenir rules engine (R2–R5)** — all rules evaluated: `minVisitedBooth` (opt-outable since 2026-08), `minTransaction` (2026-08), `joinedSeminar`, `requireAll` combos.
 6. **Speaker account/invite/QR (W6, W9)** — speakers are not users.

@@ -1,14 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Award, Loader2, Printer, X } from "lucide-react";
 
 import { Event } from "@/entities/event/event.entity";
+import { CertificateTemplate } from "@/entities/event/certificate-template.entity";
 import { useAuthStore } from "@/stores/auth.store";
 import { useApiQuery } from "@/lib/hooks/useApi";
 import { keys } from "@/lib/query-keys";
 import { getMyCertificates, Certificate } from "@/services/workshop.service";
-import { formatDateWithDay } from "@/shared/utils/format";
+import { getActiveCertificateTemplate } from "@/services/certificate.service";
+import { buildCertificateData } from "@/features/certificates/certificate-fields";
+import { CertificatePreview } from "@/features/certificates/CertificatePreview";
+import { dateFormat, formatDateWithDay } from "@/shared/utils/format";
 import PageHeader from "@/shared/components/ui/PageHeader";
 import PageShell from "@/shared/components/ui/PageShell";
 
@@ -20,6 +24,26 @@ export default function CertificatesPage({ event }: { event: Event }) {
     keys.certificates.mine,
     () => getMyCertificates(event.uuid),
   );
+
+  // A10 upgrade — the event may define a Konva template; fall back to the
+  // legacy hardcoded HTML block when none is configured.
+  const { data: template } = useApiQuery<CertificateTemplate | null>(
+    keys.certificateTemplates.active(event.uuid),
+    () => getActiveCertificateTemplate(event.uuid),
+    { retry: 0, enabled: !loading },
+  );
+
+  const previewData = useMemo(() => {
+    if (!open || !user) return null;
+    return buildCertificateData({
+      participantName: user.full_name ?? "-",
+      eventName: event.name,
+      workshopTitle: open.workshop?.title ?? "",
+      date: open.checkin_at ? dateFormat(open.checkin_at) : dateFormat(new Date().toISOString()),
+      organizerName: event.organizer_name,
+      certificateNumber: `MXP-${event.uuid.slice(0, 4).toUpperCase()}-${open.uuid.slice(0, 8).toUpperCase()}`,
+    });
+  }, [open, user, event]);
 
   return (
     <PageShell className="py-8">
@@ -49,7 +73,7 @@ export default function CertificatesPage({ event }: { event: Event }) {
                 <Award className="h-5 w-5" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="font-medium text-gray-900 text-sm">{c.workshop.title}</p>
+                <p className="font-medium text-gray-900 text-sm">{c.workshop?.title}</p>
                 <p className="text-xs text-gray-500">
                   {c.checkin_at
                     ? `Check-in ${formatDateWithDay(c.checkin_at)}`
@@ -69,36 +93,67 @@ export default function CertificatesPage({ event }: { event: Event }) {
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-lg rounded-2xl bg-white p-6">
-            <div id="certificate-print" className="rounded-xl border-4 border-double border-amber-400 p-8 text-center">
-              <p className="text-xs font-semibold uppercase tracking-widest text-amber-600">
-                Sertifikat Partisipasi
-              </p>
-              <p className="mt-4 text-sm text-gray-500">Diberikan kepada</p>
-              <p className="mt-1 text-2xl font-bold text-gray-900">{user?.full_name}</p>
-              <p className="mt-6 text-sm text-gray-600">
-                atas partisipasinya dalam lokakarya
-              </p>
-              <p className="mt-1 text-lg font-bold text-brand-600">{open.workshop.title}</p>
-              <p className="mt-6 text-sm text-gray-500">{event.name}</p>
-              <p className="mt-1 text-xs text-gray-400">
-                {open.checkin_at ? formatDateWithDay(open.checkin_at) : ""}
-              </p>
-            </div>
-            <div className="mt-4 flex gap-2">
-              <button
-                onClick={() => window.print()}
-                className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg bg-secondary px-4 py-2 text-sm font-semibold text-white hover:bg-secondary/80"
-              >
-                <Printer className="h-4 w-4" /> Cetak
-              </button>
-              <button
-                onClick={() => setOpen(null)}
-                className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-50"
-              >
-                <X className="h-4 w-4" /> Tutup
-              </button>
-            </div>
+          <div className="w-full max-w-2xl rounded-2xl bg-white p-6">
+            {!previewData ? (
+              <div className="py-10 text-center text-sm text-gray-500">
+                Memuat data…
+              </div>
+            ) : template?.template ? (
+              <CertificatePreview
+                template={template.template}
+                data={previewData}
+                title={`sertifikat-${open.workshop?.title ?? "workshop"}`}
+              />
+            ) : (
+              <>
+                <div
+                  id="certificate-print"
+                  className="rounded-xl border-4 border-double border-amber-400 p-8 text-center"
+                >
+                  <p className="text-xs font-semibold uppercase tracking-widest text-amber-600">
+                    Sertifikat Partisipasi
+                  </p>
+                  <p className="mt-4 text-sm text-gray-500">Diberikan kepada</p>
+                  <p className="mt-1 text-2xl font-bold text-gray-900">
+                    {user?.full_name}
+                  </p>
+                  <p className="mt-6 text-sm text-gray-600">
+                    atas partisipasinya dalam lokakarya
+                  </p>
+                  <p className="mt-1 text-lg font-bold text-brand-600">
+                    {open.workshop?.title}
+                  </p>
+                  <p className="mt-6 text-sm text-gray-500">{event.name}</p>
+                  <p className="mt-1 text-xs text-gray-400">
+                    {open.checkin_at ? formatDateWithDay(open.checkin_at) : ""}
+                  </p>
+                </div>
+                <div className="mt-4 flex gap-2">
+                  <button
+                    onClick={() => window.print()}
+                    className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg bg-secondary px-4 py-2 text-sm font-semibold text-white hover:bg-secondary/80"
+                  >
+                    <Printer className="h-4 w-4" /> Cetak
+                  </button>
+                  <button
+                    onClick={() => setOpen(null)}
+                    className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-50"
+                  >
+                    <X className="h-4 w-4" /> Tutup
+                  </button>
+                </div>
+              </>
+            )}
+            {template?.template && (
+              <div className="mt-4 flex justify-end">
+                <button
+                  onClick={() => setOpen(null)}
+                  className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-50"
+                >
+                  <X className="h-4 w-4" /> Tutup
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}

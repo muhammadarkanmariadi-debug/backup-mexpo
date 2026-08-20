@@ -186,6 +186,7 @@ Response sukses (umumnya) memakai pembungkus seperti ini:
 | Method | Path | Auth | Body / Query | Keterangan |
 |---|---|---|---|---|
 | `POST` | `/auth` | Pub | `AuthDTO { email, password }` | Login → `{ token, ... }` |
+| `POST` | `/auth/google` | Pub (self-verifying) | `GoogleAuthDto { credential }` | Google GIS id_token → verifikasi (`google-auth-library`, wajib `email_verified` + `aud` = client id) → findOrCreate user by email (granted aktif otomatis) → `{ token, role, is_new, user }` |
 
 ### 5.2 Users (Pengguna)
 
@@ -393,13 +394,45 @@ Response sukses (umumnya) memakai pembungkus seperti ini:
 | `GET` | `/public-api/registration-fields/:event_id` | Basic | — | Skema formulir registrasi event |
 | `GET` | `/public-api/ticket-types/:event_id` | Basic | — | Jenis tiket untuk event |
 
-### 5.16 Contact (publik, tanpa auth)
+### 5.16 Certificate Templates (Template Sertifikat, A10)
+
+> Desain sertifikat per event oleh OWNER/COMMITTEE menggunakan **Konva.js**.
+> `template` adalah envelope stage yang terserialisasi: `{ version:1, width, height, background:{type:'color'|'image', value?, url?}, nodes[] }`.
+> Teks dinamis memakai `attrs.binding`: `{type:'static', value}` (nilai default) atau `{type:'dynamic', key}` dengan `key` dari whitelist: `participant_name`, `event_name`, `workshop_title`, `date`, `organizer_name`, `certificate_number`. Key di luar whitelist ditolak server.
+
+| Method | Path | Auth | Body / Query | Keterangan |
+|---|---|---|---|---|
+| `GET` | `/certificates/templates/active/:event_id` | JWT (anggota event) | — | Template aktif untuk render sertifikat (atau `null`) |
+| `GET` | `/certificates/templates/:event_id` | JWT (OWNER/COMMITTEE) | `QueryCertificateTemplateDto { page, quantity }` | Daftar template |
+| `POST` | `/certificates/templates/:event_id` | JWT (OWNER/COMMITTEE) | `CreateCertificateTemplateDto` + file? (latar) | Buat template |
+| `PUT` | `/certificates/templates/:id` | JWT (OWNER/COMMITTEE) | `UpdateCertificateTemplateDto` + file? (latar) | Simpan template |
+| `DELETE` | `/certificates/templates/:id` | JWT (OWNER/COMMITTEE) | — | Hapus template (latar S3 ikut dihapus) |
+
+### 5.17 Payments — Midtrans Snap & Settlement (A1b)
+
+> Escrow sederhana: dana peserta dipegang platform (akun Midtrans) lalu disetl
+> manual ke rekening organizer oleh **SUPERADMIN**. Sumber harga selalu
+> `ticket_types.price` (server). Detail & runbook sandbox di `docs/PAYMENT.md`.
+
+| Method | Path | Auth | Body / Query | Keterangan |
+|---|---|---|---|---|
+| `POST` | `/events/:id/checkout` | JWT (VISITOR APPROVED) | `CheckoutDto { ticket_type_id? }` | Buat/pastikan tiket + payment intent + Snap token |
+| `POST` | `/payment/notification` | tanpa guard (signature SHA512) | JSON/form | Webhook Midtrans — update status **idempotent** |
+| `GET` | `/transactions/my/:event_id` | JWT (pemilik) | — | Transaksi saya + lazy-expiry |
+| `GET` | `/transactions/:id` | JWT (pemilik/manager) | — | Status tunggal transaksi |
+| `GET` | `/events/:id/transactions` | JWT (OWNER/COMMITTEE/SUPERADMIN) | `QueryTransactionDto { page, quantity, search }` | Daftar transaksi per event |
+| `GET` | `/events/:id/settlement-summary` | JWT (OWNER/COMMITTEE/SUPERADMIN) | — | gross / fee / net / count / status / riwayat |
+| `PUT` | `/events/:id/payout` | JWT (OWNER/COMMITTEE/SUPERADMIN) | `UpdatePayoutDto` | Simpan rekening payout organizer |
+| `POST` | `/events/:id/settle` | **JWT (SUPERADMIN)** | `SettleDto { amount_transferred, note? }` + file? (bukti) | Catat settlement (jumlah harus = net) |
+| `PUT` | `/transactions/:id/refund` | JWT (OWNER/COMMITTEE/SUPERADMIN) | `RefundTransactionDto { reason }` | Refund manual |
+
+### 5.18 Contact (publik, tanpa auth)
 
 | Method | Path | Auth | Body / Query | Keterangan |
 |---|---|---|---|---|
 | `POST` | `/contact` | Tanpa auth (publik) | `CreateContactMessageDto` (`name`, `email`, `subject`, `message`) | Form kontak publik: menyimpan pesan ke tabel `contact_message` DAN mengirim email notifikasi ke `CONTACT_DESTINATION_EMAIL` (default `tefa@smktelkom-mlg.sch.id`). Rate-limit in-memory per-IP **3 pesan/jam** → HTTP 429 |
 
-### 5.17 Root / health (kesehatan aplikasi)
+### 5.19 Root / health (kesehatan aplikasi)
 
 | Method | Path | Auth | Keterangan |
 |---|---|---|---|

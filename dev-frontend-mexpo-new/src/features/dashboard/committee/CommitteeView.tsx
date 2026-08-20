@@ -3,8 +3,9 @@
 import { useRouter } from "next/navigation";
 import { Users, BookOpen, CalendarCheck2,
   Pencil, Send, Ticket, ScanLine, ClipboardCheck, Gift, BarChart3, ShieldCheck,
-  CheckCircle2, RotateCcw, CalendarClock, Mic, Handshake, Phone } from "lucide-react";
+  CheckCircle2, RotateCcw, CalendarClock, Mic, Handshake, Phone, Award, Wallet } from "lucide-react";
 import { toast } from "sonner";
+import { useAuthStore } from "@/stores/auth.store";
 
 import { Event } from "@/entities/event/event.entity";
 import { useApiMutation } from "@/lib/hooks/useApi";
@@ -28,11 +29,15 @@ import SouvenirCounterPage from "@/features/dashboard/souvenir/SouvenirCounterPa
 import WorkshopsManager from "@/features/dashboard/workshops/WorkshopsManager";
 import TeamManager from "@/features/dashboard/team/TeamManager";
 import AttendancePage from "@/features/dashboard/attendance/AttendancePage";
+import CertificateDesignerWrapper from "@/features/dashboard/certificate-designer/CertificateDesignerWrapper";
+import { PaymentsFeature } from "@/features/dashboard/payments/PaymentsFeature";
 
 interface Props { event: Event }
 
 export default function CommitteeView({ event }: Props) {
   const router = useRouter();
+  const { user } = useAuthStore();
+  const isSuperAdmin = user?.role === "SUPERADMIN";
   const isDrafted = event.status === "DRAFTED" || event.status === "REJECTED";
   const isPublished = event.status === "PUBLISHED";
   const isFinished = event.status === "FINISHED";
@@ -97,7 +102,8 @@ export default function CommitteeView({ event }: Props) {
         { id: "rundown", label: "Susunan Acara", icon: CalendarClock, content: <RundownSection eventId={event.uuid} /> },
         { id: "speakers", label: "Pembicara", icon: Mic, content: <SpeakersSection eventId={event.uuid} /> },
         { id: "sponsors", label: "Sponsor", icon: Handshake, content: <SponsorsSection eventId={event.uuid} /> },
-        { id: "contact", label: "Kontak", icon: Phone, content: <ContactsSection eventId={event.uuid} /> },
+          { id: "contact", label: "Kontak", icon: Phone, content: <ContactsSection eventId={event.uuid} /> },
+          { id: "sertifikat", label: "Sertifikat", icon: Award, content: <CertificateDesignerWrapper event={event} /> },
       ],
     },
     {
@@ -108,7 +114,8 @@ export default function CommitteeView({ event }: Props) {
         { id: "verifikasi", label: "Verifikasi Pendaftar", icon: ClipboardCheck, content: <VerificationPage event={event} /> },
         { id: "registrasi", label: "Registrasi & Tiket", icon: Ticket, content: <RegistrationManager event={event} /> },
         { id: "workshop", label: "Lokakarya", icon: BookOpen, content: <WorkshopsManager event={event} /> },
-        { id: "souvenir", label: "Syarat Souvenir", icon: Gift, content: <SouvenirCounterPage event={event} /> },
+          { id: "souvenir", label: "Syarat Souvenir", icon: Gift, content: <SouvenirCounterPage event={event} /> },
+          { id: "pembayaran", label: "Pembayaran", icon: Wallet, content: <PaymentsFeature event={event} isSuperAdmin={isSuperAdmin} /> },
       ],
     },
     {

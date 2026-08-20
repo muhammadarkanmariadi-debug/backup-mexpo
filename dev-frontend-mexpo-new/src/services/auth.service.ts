@@ -6,3 +6,7 @@ export const login = async (payload: LoginFormData) =>
 
 export const register = async (payload: RegisterFormData) =>
     await httpPost("users", JSON.stringify(payload), "Basic");
+
+/** Google Identity Services (GIS) — backend verifies the id_token. */
+export const googleLogin = async (credential: string) =>
+    await httpLogin("auth/google", JSON.stringify({ credential }), "Basic");

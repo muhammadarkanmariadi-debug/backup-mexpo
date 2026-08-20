@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { AuthService } from './auth.service';
+import { GoogleAuthService } from './google-auth.service';
 import { AuthController } from './auth.controller';
 import { JWTStrategy } from '../helper/jwt.strategy';
 import { BcryptService } from '../bcrypt/bcrypt.service';
@@ -10,7 +11,7 @@ import { ConfigService } from '@nestjs/config';
 
 @Module({
   controllers: [AuthController],
-  providers: [AuthService, JWTStrategy, BcryptService],
+  providers: [AuthService, GoogleAuthService, JWTStrategy, BcryptService],
   imports: [
     PrismaModule,
     PassportModule.register({ defaultStrategy: `jwt` }),

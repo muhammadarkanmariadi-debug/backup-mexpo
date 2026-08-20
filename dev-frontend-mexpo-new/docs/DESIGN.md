@@ -118,9 +118,9 @@ shadcn `--radius` token present; `tw-animate-css` enables animation utilities; `
 | `/auth` | Login/Register tabs, `MexpoCard` brand panel |
 | `/verify-email` | Token auto-verify on mount |
 | `/dashboard` | My Events list + server search/pagination + client status/type/sort |
-| `/dashboard/[uuid]` | Role-dispatched view (Owner/Committee/Tenant/Visitor) — tab-driven (Overview, Kelola, Registrasi, Check-in, Souvenir, Tenant, Verifikasi, Tim, Attendance, Workshop, Laporan) |
+| `/dashboard/[uuid]` | Role-dispatched view (Owner/Committee/Tenant/Visitor) — tab-driven (Overview, Kelola, Registrasi, Check-in, Souvenir, Tenant, Verifikasi, Tim, Attendance, Workshop, Laporan) — **Sertifikat tab** = Konva certificate design studio (OWNER/COMMITTEE) at `src/features/dashboard/certificate-designer/` |
 | `/dashboard/[uuid]/badge` | Printable ID badge (QR) |
-| `/dashboard/[uuid]/certificates` | My workshop certificates |
+| `/dashboard/[uuid]/certificates` | My workshop certificates — rendered from the event Konva template when one is active (else legacy HTML) |
 | `/dashboard/[uuid]/booth-checkin` | Tenant booth QR scan |
 | `/dashboard/[uuid]/apply/speaker` , `/apply/tenant` | Speaker / tenant application forms |
 | `/dashboard/create` | Create event form |

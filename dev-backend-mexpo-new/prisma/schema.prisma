@@ -9,7 +9,7 @@ generator client {
 }
 
 datasource db {
-  provider = "mysql"
+  provider = "postgresql"
 }
 
 model users {
@@ -83,6 +83,12 @@ model users {
   registrationAnswers          registration_answers[]
   creator_registration_answers registration_answers[]      @relation("creator_registration_answers")
   editor_registration_answers  registration_answers[]      @relation("editor_registration_answers")
+  creator_certificate_templates certificate_templates[]    @relation("creator_certificate_templates")
+  editor_certificate_templates  certificate_templates[]    @relation("editor_certificate_templates")
+  transactions                  transactions[]
+  creator_transactions          transactions[]             @relation("creator_transactions")
+  editor_transactions           transactions[]             @relation("editor_transactions")
+  settlementsTransferred        event_settlements[]        @relation("transfer_user_settlements")
 
   usersBio users_bio?
 }
@@ -156,6 +162,11 @@ model events {
   rejection_reason      String?
   photo                 String                      @default("")
   souvenir_rules        Json?
+  payout_bank_name      String                      @default("")
+  payout_account_number String                      @default("")
+  payout_account_holder String                      @default("")
+  payout_status         PayoutStatus                @default(NOT_SETTLED)
+  settled_at            DateTime?
   approved_by           String?
   approver              users?                      @relation("approver_event", fields: [approved_by], references: [uuid])
   created_by            String                      @default("")
@@ -168,6 +179,7 @@ model events {
   eventSpeakers         event_speakers[]
   eventSponsors         event_sponsors[]
   workshops             workshops[]
+  certificateTemplates  certificate_templates[]
   tenantEvents          tenant_events[]
   tenantProducts        tenant_products[]
   tenantTransactions    tenant_transactions[]
@@ -180,8 +192,15 @@ model events {
   souvenirs             souvenirs[]
   ticketTypes           ticket_types[]
   tickets               tickets[]
+  transactions          transactions[]
+  eventSettlements      event_settlements[]
   registrationFields    event_registration_fields[]
   registrationAnswers   registration_answers[]
+}
+
+enum PayoutStatus {
+  NOT_SETTLED
+  SETTLED
 }
 
 enum EventStatus {
@@ -618,6 +637,7 @@ model tickets {
   user              users         @relation(fields: [user_id], references: [uuid], onDelete: Cascade)
   ticket_type_id    String?       @default("")
   ticket_type       ticket_types? @relation(fields: [ticket_type_id], references: [uuid], onDelete: SetNull)
+  transactions      transactions[]
   status            TicketStatus  @default(RESERVED)
   payment_reference String        @default("")
   payment_method    String        @default("")
@@ -627,6 +647,56 @@ model tickets {
   editor            users         @relation("editor_tickets", fields: [updated_by], references: [uuid])
   created_at        DateTime      @default(now())
   updated_at        DateTime      @updatedAt
+}
+
+enum TransactionStatus {
+  PENDING
+  PAID
+  EXPIRED
+  FAILED
+  REFUNDED
+}
+
+// Payment gateway (Midtrans Snap) lifecycle — one payment intent per ticket.
+// `amount`/`platform_fee` are IDR integers taken from `ticket_types.price` at
+// checkout (never from the client). `events.payout_*` holds the organizer
+// account; `event_settlements` records each manual payout by a SUPERADMIN.
+model transactions {
+  uuid              String            @id @default(uuid())
+  event_id          String            @default("")
+  event             events            @relation(fields: [event_id], references: [uuid], onDelete: Cascade)
+  user_id           String            @default("")
+  user              users             @relation(fields: [user_id], references: [uuid], onDelete: Cascade)
+  ticket_id         String?           @default("")
+  ticket            tickets?          @relation(fields: [ticket_id], references: [uuid], onDelete: SetNull)
+  midtrans_order_id String            @unique @default("")
+  amount            Int               @default(0)
+  platform_fee      Int               @default(0)
+  status            TransactionStatus @default(PENDING)
+  payment_method    String            @default("")
+  snap_token        String            @default("") @db.Text
+  paid_at           DateTime?
+  expired_at        DateTime?
+  refunded_at       DateTime?
+  refund_reason     String            @default("")
+  created_by        String            @default("")
+  creator           users             @relation("creator_transactions", fields: [created_by], references: [uuid])
+  updated_by        String            @default("")
+  editor            users             @relation("editor_transactions", fields: [updated_by], references: [uuid])
+  created_at        DateTime          @default(now())
+  updated_at        DateTime          @updatedAt
+}
+
+model event_settlements {
+  uuid               String   @id @default(uuid())
+  event_id           String   @default("")
+  event              events   @relation(fields: [event_id], references: [uuid], onDelete: Cascade)
+  amount_transferred Int      @default(0)
+  transferred_by     String   @default("")
+  transfer_user      users    @relation("transfer_user_settlements", fields: [transferred_by], references: [uuid])
+  proof_of_transfer  String   @default("")
+  note               String   @default("")
+  created_at         DateTime @default(now())
 }
 
 model event_registration_fields {
@@ -674,4 +744,25 @@ model contact_message {
   message    String   @db.Text
   ip_address String   @default("")
   created_at DateTime @default(now())
+}
+
+// Certificate templates (A10 upgrade) — designable by OWNER/COMMITTEE via the
+// Konva designer and rendered per-recipient with bound dynamic fields.
+// `template` holds the Konva-serialized stage JSON (nodes + envelopes);
+// `background` holds an optional uploaded image URL (S3) used as the canvas bg.
+model certificate_templates {
+  uuid       String   @id @default(uuid())
+  event_id   String   @default("")
+  event      events   @relation(fields: [event_id], references: [uuid], onDelete: Cascade)
+  name       String   @default("")
+  kind       String   @default("WORKSHOP") // WORKSHOP | PARTICIPANT (future: SPEAKER/COMMITTEE)
+  template   Json?
+  background String   @default("")
+  is_active  Boolean  @default(true)
+  created_by String   @default("")
+  creator    users    @relation("creator_certificate_templates", fields: [created_by], references: [uuid])
+  updated_by String   @default("")
+  editor     users    @relation("editor_certificate_templates", fields: [updated_by], references: [uuid])
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
 }

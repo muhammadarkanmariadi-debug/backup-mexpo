@@ -7,7 +7,7 @@ import { User } from '@/entities/auth/user.entity';
 
 import { LoginFormData, RegisterFormData } from './auth.schema';
 import { deleteCookies } from '@/shared/utils/cookies';
-import { login, register } from '../../../services/auth.service';
+import { login, register, googleLogin } from '../../../services/auth.service';
 
 
 export interface AuthActionResult<T = unknown> {
@@ -55,6 +55,22 @@ export async function registerAction(data: RegisterFormData): Promise<AuthAction
 
     return { success: true, message: result.message || "Pendaftaran berhasil", data: result.data as { user: User } };
 
+  } catch {
+    return { success: false, message: 'Terjadi kesalahan server', data: null };
+  }
+}
+
+export async function googleLoginAction(credential: string): Promise<AuthActionResult<string>> {
+  if (!credential) {
+    return { success: false, message: 'Kredensial Google kosong', data: null };
+  }
+
+  try {
+    const result = await googleLogin(credential);
+    if (!result.status) {
+      return { success: false, message: result.message || "Gagal masuk dengan Google", data: null };
+    }
+    return { success: true, message: result.message || "Berhasil masuk", data: result.token ?? null };
   } catch {
     return { success: false, message: 'Terjadi kesalahan server', data: null };
   }

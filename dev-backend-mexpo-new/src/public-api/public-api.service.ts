@@ -15,6 +15,7 @@ import { MailService } from '../mail/mail.service';
 import { ConfigService } from '@nestjs/config';
 import { EventStatus, EventVisibility, Prisma } from '@prisma/client';
 import { isUuid } from '../helper/slug';
+import { PaymentsService } from '../payments/payments.service';
 
 @Injectable()
 export class PublicApiService {
@@ -23,6 +24,7 @@ export class PublicApiService {
     private readonly bcrypt: BcryptService,
     private readonly mailer: MailService,
     private readonly configService: ConfigService,
+    private readonly paymentsService: PaymentsService,
   ) {}
 
   newAccountInfoEmailTemplate(
@@ -657,6 +659,47 @@ export class PublicApiService {
             updated_by: findSuperAdmin.uuid,
           },
         });
+      }
+
+      // ── A1b — payment intent (Midtrans Snap) for paid events ──
+      // Create the PENDING transaction + Snap token so the fresh visitor can
+      // pay immediately (no login needed to open the Snap popup). Failures are
+      // non-blocking — registration still succeeds and the logged-in
+      // `POST /events/:id/checkout` can generate the intent later.
+      let payment: unknown = null;
+      if (findEvent.ticket_mode === `PAID` && ticket_type_id) {
+        const ticket = await this.prisma.tickets.findFirst({
+          where: {
+            event_id,
+            user_id: visitorUserId,
+            status: { not: `CANCELLED` },
+          },
+          include: { ticket_type: true },
+        });
+        if (ticket?.ticket_type) {
+          try {
+            payment = await this.paymentsService.createPaymentForTicket({
+              eventId: event_id,
+              ticketId: ticket.uuid,
+              userId: visitorUserId,
+              ticketName: ticket.ticket_type.name,
+              eventName: findEvent.name,
+              amount: Math.round(ticket.ticket_type.price),
+              customer: {
+                first_name: full_name,
+                email,
+                phone: phone || undefined,
+              },
+              createdBy: findSuperAdmin.uuid,
+            });
+          } catch (error) {
+            console.error(
+              `Midtrans payment intent failed for ${event_id}:`,
+              error,
+            );
+          }
+          responseData = { ...(responseData as object), payment };
+        }
       }
 
       // ── A11 — ticket confirmation email for paid events ──
