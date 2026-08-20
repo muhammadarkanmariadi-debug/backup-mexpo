@@ -71,7 +71,7 @@ const FONT_OPTIONS = [
 
 const FONT_STYLES = ["normal", "bold", "italic", "bold italic"];
 
-function emptyEnvelope(width = 1200, height = 840): CertificateTemplateEnvelope {
+function emptyEnvelope(width = 750, height = 525): CertificateTemplateEnvelope {
   return {
     version: 1,
     width,
@@ -289,6 +289,25 @@ export function CertificateDesigner({ event }: { event: Event }) {
 
   const stageRef = useRef<StageType | null>(null);
   const transformerRef = useRef<TransformerType | null>(null);
+
+  // Fit the canvas to its panel so a large certificate never overflows.
+  const canvasPanelRef = useRef<HTMLDivElement | null>(null);
+  const [canvasPanelWidth, setCanvasPanelWidth] = useState(0);
+  useEffect(() => {
+    const el = canvasPanelRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver((entries) => {
+      const w = entries[0]?.contentRect.width ?? 0;
+      if (w > 0) setCanvasPanelWidth(w);
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  const fitScale =
+    canvasPanelWidth > 0 && draft.width > 0
+      ? Math.min(canvasPanelWidth / draft.width, 1)
+      : 1;
 
   useEffect(() => {
     return () => {
@@ -603,14 +622,21 @@ export function CertificateDesigner({ event }: { event: Event }) {
       {/* Canvas + panels */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_340px]">
         {/* Canvas */}
-        <div className="overflow-auto rounded-xl border border-gray-200 bg-gray-50 p-4">
-          <div className="mx-auto" style={{ width: draft.width }}>
+        <div
+          ref={canvasPanelRef}
+          className="overflow-hidden rounded-xl border border-gray-200 bg-gray-50 p-4"
+        >
+          <div
+            className="mx-auto"
+            style={{ width: Math.round(draft.width * fitScale) }}
+          >
             <CertificateCanvas
               template={draft}
               data={renderData}
               stageRef={stageRef}
               transformerRef={transformerRef}
               interactive
+              fitScale={fitScale}
               selectedId={selectedId}
               onSelect={setSelectedId}
               onGeometry={(id, g) =>

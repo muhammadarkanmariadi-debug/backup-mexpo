@@ -108,6 +108,8 @@ export function useList<T>(
     filters,
     applyFilter,
     loading: query.isPending,
+    /** True while a fetch is in flight, including refetches (search/page/mutation). */
+    fetching: query.isFetching,
     refetch,
   };
 }

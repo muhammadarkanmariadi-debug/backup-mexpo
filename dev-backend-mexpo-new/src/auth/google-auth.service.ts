@@ -17,8 +17,10 @@ import { BcryptService } from '../bcrypt/bcrypt.service';
  * - The id_token is ALWAYS verified with `OAuth2Client.verifyIdToken` (signature,
  *   expiry, `aud` against GOOGLE_CLIENT_ID, issuer). Never trust a raw token.
  * - `email_verified === true` is required — it is Google's proof of ownership.
- * - Users are matched by email. A matching existing account is activated/linked
- *   (Google proves the email belongs to the caller).
+ * - Account linking is idempotent: look up by the stable Google `sub`
+ *   (`users.google_id`) first, then by email. A matching existing account is
+ *   activated, marked verified and **synced** with Google's name/photo, so a
+ *   Google login never creates a duplicate of a manually-registered account.
  */
 @Injectable()
 export class GoogleAuthService {
@@ -61,19 +63,33 @@ export class GoogleAuthService {
       }
 
       const email = payload.email.toLowerCase();
-      const existing = await this.prisma.users.findFirst({ where: { email } });
+      const googleId = payload.sub ?? ``;
+
+      // 1) Already-linked account (stable Google subject id).
+      let existing = googleId
+        ? await this.prisma.users.findFirst({ where: { google_id: googleId } })
+        : null;
+      // 2) Otherwise match by email so a pre-existing manual account is linked
+      //    instead of creating a duplicate.
+      if (!existing) {
+        existing = await this.prisma.users.findFirst({ where: { email } });
+      }
 
       let user: GoogleAuthedUser | null = null;
       let isNew = false;
       if (existing) {
-        // Google proves ownership of the email → activate + mark verified.
+        // Google proves ownership of the email → activate + verify, persist the
+        // link (google_id), and sync the profile (name/photo) onto the account.
         user = await this.prisma.users.update({
           where: { uuid: existing.uuid },
           data: {
+            google_id: existing.google_id || googleId || null,
+            full_name: payload.name ? payload.name : existing.full_name,
+            photo: payload.picture ? payload.picture : existing.photo,
             is_active: true,
             verify_at: existing.verify_at ?? new Date(),
           },
-          omit: { password: true },
+          omit: { password: true, google_id: true },
         });
       } else {
         isNew = true;
@@ -86,11 +102,12 @@ export class GoogleAuthService {
             email,
             full_name: payload.name || email,
             photo: payload.picture ?? ``,
+            google_id: googleId || null,
             password: randomPassword,
             is_active: true,
             verify_at: new Date(),
           },
-          omit: { password: true },
+          omit: { password: true, google_id: true },
         });
       }
 
@@ -125,6 +142,8 @@ type GoogleIdTokenPayload = {
   email_verified?: boolean;
   name?: string;
   picture?: string;
+  /** Stable Google account identifier — persisted as users.google_id. */
+  sub?: string;
 };
 
 /** Minimal shape of the (password-omitted) user we return after auth. */

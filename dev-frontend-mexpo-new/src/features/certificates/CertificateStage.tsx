@@ -48,6 +48,13 @@ export interface CertificateStageProps {
   onSelect?: (id: string | null) => void;
   onGeometry?: (id: string, geometry: NodeGeometry) => void;
   transformerRef?: React.MutableRefObject<TransformerType | null>;
+  /**
+   * Fit-to-container factor (0..1). Scales the Konva stage itself
+   * (`scaleX/scaleY` + matching canvas size) so the canvas visually fits a
+   * smaller container — Konva keeps pointer/transformer coordinates correct.
+   * Default 1 = render at logical size.
+   */
+  fitScale?: number;
 }
 
 interface NodeRendererProps {
@@ -282,17 +289,27 @@ export function CertificateStage({
   onSelect,
   onGeometry,
   transformerRef,
+  fitScale,
 }: CertificateStageProps) {
   const { width, height, background, nodes } = template;
   const bgColor =
     background.type === "color" ? (background.value ?? "#ffffff") : undefined;
   const bgImage = background.type === "image" ? background.url : undefined;
 
+  // Fit factor: shrink the canvas + scale the stage so a large certificate
+  // stays fully visible. Konva maps pointer hits through stage.scale, so
+  // drag/click/transform coordinates stay correct.
+  const scale = Math.min(Math.max(fitScale ?? 1, 0.05), 1);
+  const viewWidth = Math.round(width * scale);
+  const viewHeight = Math.round(height * scale);
+
   return (
     <Stage
       ref={stageRef as React.MutableRefObject<StageType | null>}
-      width={width}
-      height={height}
+      width={viewWidth}
+      height={viewHeight}
+      scaleX={scale}
+      scaleY={scale}
       onMouseDown={(e) => {
         if (interactive && e.target === e.target.getStage()) {
           onSelect?.(null);

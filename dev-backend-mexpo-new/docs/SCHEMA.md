@@ -157,6 +157,7 @@ All tables carry Prisma defaults where noted. `@updatedAt` means the column is a
 | `phone` | String | `@default("")` | |
 | `photo` | String | `@default("")` | S3/MinIO URL |
 | `organization` | String | `@default("")` | |
+| `google_id` | String? | **UNIQUE** (nullable) | stable Google `sub` — link akun Google ↔ user (`2026-08` migration `add_google_id`); NULL utk akun non-Google |
 | `role` | enum `UserRole` | `@default(USER)` | `SUPERADMIN \| USER` |
 | `created_at` / `updated_at` | DateTime | `@default(now())` / `@updatedAt` | |
 

@@ -144,7 +144,8 @@ Mexpo/
    - Env (sandbox by default): see `dev-backend-mexpo-new/docs/PAYMENT.md`. No cron: expiry is Snap `expiry` + webhook `expire` + lazy-expiry on read.
 29. **Google sign-in (GIS id_token) — BUILT (2026-08).** `POST /auth/google` in `src/auth/google-auth.service.ts` uses `google-auth-library` `OAuth2Client.verifyIdToken` with `audience: GOOGLE_CLIENT_ID` — this validates signature, expiry, audience and issuer, and is the **only** trust boundary for the login. Rules:
    - Never accept a raw client credential without `verifyIdToken`; require `email_verified === true`.
-   - Users are matched by **email** (find-or-create); a matching existing account is **auto-activated** (`is_active=true`, `verify_at=now`) because Google proves ownership. New users get a random unusable bcrypt password.
+   - **Account linking is idempotent:** lookup by `users.google_id` (stable Google `sub`, added by migration `2026-08 add_google_id`) first, then by **email**. A matching existing account is **auto-activated** (`is_active=true`, `verify_at=now`) and **synced** with Google's name/photo — a Google login never creates a duplicate of a manually-registered account. `google_id` is nullable-UNIQUE (NULL for non-Google users).
+   - New Google users get a random unusable bcrypt password.
    - Frontend uses Google Identity Services (`src/shared/utils/google.ts` + `GoogleButton.tsx`) and sends the id_token through the same server-action → `httpLogin` → httpOnly-cookie path as `loginAction`.
    - Requires `NEXT_PUBLIC_GOOGLE_CLIENT_ID` + the origin registered as an **Authorized JavaScript origin** in Google Cloud Console (not needed for compile/test — only for runtime popup).
 

@@ -3,14 +3,14 @@
 import { useMemo, useState } from "react";
 
 import { toast } from "sonner";
-import { Eye, Loader2, Plus, UserPlus } from "lucide-react";
+import { Eye, Loader2, Plus, Trash2, UserPlus } from "lucide-react";
 
 import Input from "@/shared/components/form/Input";
 import SearchBar from "@/shared/components/form/SearchBar";
 import Button from "@/shared/components/button/Button";
 import PageHeader from "@/shared/components/ui/PageHeader";
 import PageShell from "@/shared/components/ui/PageShell";
-import RowActions, { editAction, deleteAction } from "@/shared/components/ui/RowActions";
+import RowActions, { editAction } from "@/shared/components/ui/RowActions";
 import { LoadingSpinner } from "@/shared/components/ui/LoadingSpinner";
 import Image from "next/image";
 import EmptyState from "@/shared/components/ui/EmptyState";
@@ -56,6 +56,7 @@ const EMPTY: WorkshopPayload = {
 
 export default function WorkshopsManager({ event }: { event: Event }) {
   const [busy, setBusy] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [form, setForm] = useState<WorkshopPayload>(EMPTY);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -125,14 +126,20 @@ export default function WorkshopsManager({ event }: { event: Event }) {
   };
 
   const remove = async (w: Workshop) => {
+    if (deletingId) return; // prevent double-delete while a delete is in flight
     if (!(await confirm(`Hapus lokakarya "${w.title}"?`))) return;
-    const res = await deleteWorkshop(w.uuid);
-    if (!res.status) {
-      toast.error("Gagal menghapus lokakarya.");
-      return;
+    setDeletingId(w.uuid);
+    try {
+      const res = await deleteWorkshop(w.uuid);
+      if (!res.status) {
+        toast.error("Gagal menghapus lokakarya.");
+        return;
+      }
+      toast.success("Lokakarya dihapus.");
+      list.refetch();
+    } finally {
+      setDeletingId(null);
     }
-    toast.success("Lokakarya dihapus.");
-    list.refetch();
   };
 
   const attachSpeaker = (workshopId: string) => {
@@ -329,7 +336,25 @@ export default function WorkshopsManager({ event }: { event: Event }) {
                   >
                     <Eye className="h-3.5 w-3.5" /> Lihat Pembicara
                   </button>
-                  <RowActions actions={[editAction(() => startEdit(w)), deleteAction(() => remove(w))]} busy={busy} />
+                  <RowActions
+                    actions={[
+                      editAction(() => startEdit(w), deletingId !== null),
+                      {
+                        key: "delete",
+                        icon:
+                          deletingId === w.uuid ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-4 w-4" />
+                          ),
+                        label: "Hapus",
+                        tone: "danger",
+                        onClick: () => remove(w),
+                        disabled: deletingId !== null,
+                      },
+                    ]}
+                    busy={busy || deletingId !== null}
+                  />
                 </div>
               
               </div>

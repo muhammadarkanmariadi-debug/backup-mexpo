@@ -186,7 +186,7 @@ Response sukses (umumnya) memakai pembungkus seperti ini:
 | Method | Path | Auth | Body / Query | Keterangan |
 |---|---|---|---|---|
 | `POST` | `/auth` | Pub | `AuthDTO { email, password }` | Login → `{ token, ... }` |
-| `POST` | `/auth/google` | Pub (self-verifying) | `GoogleAuthDto { credential }` | Google GIS id_token → verifikasi (`google-auth-library`, wajib `email_verified` + `aud` = client id) → findOrCreate user by email (granted aktif otomatis) → `{ token, role, is_new, user }` |
+| `POST` | `/auth/google` | Pub (self-verifying) | `GoogleAuthDto { credential }` | Google GIS id_token → verifikasi (`google-auth-library`, wajib `email_verified` + `aud` = client id) → cari user by `google_id` lalu by email (link/idempotent, aktifkan + sync nama/foto dari Google, tanpa duplikat) → `{ token, role, is_new, user }` |
 
 ### 5.2 Users (Pengguna)
 
