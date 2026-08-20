@@ -22,7 +22,7 @@ export default async function RegisterEventPage({
   const fields = fieldsRes.data ?? [];
 
   let ticketTypes: TicketType[] = [];
-  if (event.ticket_mode === "PAID") {
+  if (event.ticket_mode === "PAID" || event.features?.paidTicket === true) {
     const ttRes = await getTicketTypes(event.uuid);
     ticketTypes = ttRes.data ?? [];
   }

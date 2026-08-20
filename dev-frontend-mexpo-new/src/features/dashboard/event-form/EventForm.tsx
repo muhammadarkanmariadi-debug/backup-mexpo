@@ -135,6 +135,8 @@ export default function EventForm({ event }: Props) {
         quota: Number(form.quota) || 0,
         visibility: form.visibility,
         event_type: form.event_type,
+        // Keep the paid/free flag in sync: "Tiket Berbayar" toggle → ticket_mode.
+        ticket_mode: form.features.paidTicket ? ("PAID" as const) : ("FREE" as const),
         features: form.features,
         souvenir_rules: {
           minVisitedBooth: Number(souvenirRules.minVisitedBooth) || 0,

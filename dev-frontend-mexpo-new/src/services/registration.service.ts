@@ -10,7 +10,8 @@ export interface RegistrationAnswer {
 export interface RegisterVisitorPayload {
   full_name: string;
   email: string;
-  phone: string;
+  /** Optional — a profile/Google account may not have a phone yet. */
+  phone?: string;
   organization?: string;
   ticket_type_id?: string;
   payment_reference?: string;

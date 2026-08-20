@@ -45,7 +45,9 @@ const FIELD_TYPES: { value: RegistrationFieldType; label: string }[] = [
 type Tab = "types" | "fields";
 
 export default function RegistrationManager({ event }: { event: Event }) {
-  const [tab, setTab] = useState<Tab>(event.ticket_mode === "PAID" ? "types" : "fields");
+  const isPaid =
+    event.ticket_mode === "PAID" || event.features?.paidTicket === true;
+  const [tab, setTab] = useState<Tab>(isPaid ? "types" : "fields");
 
   return (
     <PageShell className="py-8">
@@ -53,7 +55,7 @@ export default function RegistrationManager({ event }: { event: Event }) {
 
       <SegmentedTabs<Tab>
         items={[
-          ...(event.ticket_mode === "PAID" ? [{ id: "types" as Tab, label: "Tiket" }] : []),
+          ...(isPaid ? [{ id: "types" as Tab, label: "Tiket" }] : []),
           { id: "fields" as Tab, label: "Form Pendaftaran" },
         ]}
         value={tab}
@@ -61,7 +63,7 @@ export default function RegistrationManager({ event }: { event: Event }) {
         className="mb-6"
       />
 
-      {tab === "types" && event.ticket_mode === "PAID" && (
+      {tab === "types" && isPaid && (
         <TicketTypesPanel eventId={event.uuid} />
       )}
       {tab === "fields" && <FieldsPanel eventId={event.uuid} />}

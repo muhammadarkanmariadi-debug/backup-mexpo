@@ -81,7 +81,8 @@ export default function RegistrationForm({ event, fields, ticketTypes }: Props) 
     };
   }, [isAuthenticated, user, event.uuid, event.slug, router]);
 
-  const isPaid = event.ticket_mode === "PAID";
+  const isPaid =
+    event.ticket_mode === "PAID" || event.features?.paidTicket === true;
 
   const setAnswer = (key: string, value: string) =>
     setAnswers((a) => ({ ...a, [key]: value }));

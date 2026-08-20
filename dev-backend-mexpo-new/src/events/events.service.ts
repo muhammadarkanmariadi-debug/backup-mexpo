@@ -20,6 +20,15 @@ import { EventRole, EventStatus, Prisma, UserRole } from '@prisma/client';
 import { buildOrderBy } from '../helper/sort';
 import { isUuid, uniqueSlug } from '../helper/slug';
 
+/** True when the event's feature flag marks it as a paid-ticket event. */
+function isPaidTicketFeature(features?: unknown): boolean {
+  return (
+    !!features &&
+    typeof features === 'object' &&
+    (features as { paidTicket?: unknown }).paidTicket === true
+  );
+}
+
 const EVENT_SORTABLE: Record<
   string,
   (dir: 'asc' | 'desc') => Prisma.eventsOrderByWithRelationInput
@@ -101,7 +110,10 @@ export class EventsService {
             | undefined,
           visibility: visibility ?? `PUBLIC`,
           event_type: event_type ?? `OTHER`,
-          ticket_mode: ticket_mode ?? `FREE`,
+          // The admin "Tiket Berbayar" toggle lives in features.paidTicket; keep
+          // the ticket_mode column in sync so public pages & payment gating agree.
+          ticket_mode:
+            ticket_mode ?? (isPaidTicketFeature(features) ? `PAID` : `FREE`),
           features: features as unknown as Prisma.InputJsonValue | undefined,
           userEventRoles: {
             create: {
@@ -377,7 +389,6 @@ export class EventsService {
           nextStatus === `PUBLISHED` ? userId : findExistingEvent.approved_by,
         visibility: visibility ?? findExistingEvent.visibility,
         event_type: event_type ?? findExistingEvent.event_type,
-        ticket_mode: ticket_mode ?? findExistingEvent.ticket_mode,
         // Clear the rejection reason whenever the event leaves REJECTED.
         rejection_reason:
           nextStatus === `REJECTED` ? findExistingEvent.rejection_reason : null,
@@ -390,6 +401,16 @@ export class EventsService {
       }
       if (features !== undefined) {
         updateData.features = features as unknown as Prisma.InputJsonValue;
+        // Keep ticket_mode in sync with the paidTicket toggle when the admin
+        // saves the event config (create already follows the same rule).
+        updateData.ticket_mode = isPaidTicketFeature(features)
+          ? `PAID`
+          : `FREE`;
+      } else if (ticket_mode !== undefined) {
+        // Explicit ticket_mode wins over the stored value (e.g. API callers).
+        updateData.ticket_mode = ticket_mode;
+      } else {
+        updateData.ticket_mode = findExistingEvent.ticket_mode;
       }
       // Keep slug in sync when the name changes (never on unrelated updates).
       if (name !== undefined && name !== findExistingEvent.name) {

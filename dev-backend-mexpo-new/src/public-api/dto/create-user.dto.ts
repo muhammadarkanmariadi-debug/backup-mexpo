@@ -20,9 +20,11 @@ export class CreateUserDto {
   @IsEmail()
   email: string;
 
-  @IsNotEmpty()
+  // Phone is optional on event registration — a fresh/Google account may not
+  // have one yet, and the public form doesn't necessarily collect it.
+  @IsOptional()
   @IsString()
-  phone: string;
+  phone?: string;
 
   @IsOptional()
   @IsString()
