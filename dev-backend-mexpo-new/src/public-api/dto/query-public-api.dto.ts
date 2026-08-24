@@ -21,4 +21,23 @@ export class QueryPublicEventDto {
   @IsOptional()
   @IsEnum(EventType)
   event_type?: EventType;
+
+  /** Filter by ticket mode: FREE | PAID */
+  @IsOptional()
+  @IsString()
+  ticket_mode?: string;
+
+  /** Filter by time category: ALL | ON_GOING | UPCOMING | PAST */
+  @IsOptional()
+  @IsString()
+  category?: string;
+
+  /** Sort option: date-asc | date-desc | name-asc | name-desc | created-desc */
+  @IsOptional()
+  @IsString()
+  sort_by?: string;
+
+  @IsOptional()
+  @IsString()
+  sort_dir?: 'asc' | 'desc';
 }

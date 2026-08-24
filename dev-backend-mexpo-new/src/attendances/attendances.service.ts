@@ -252,19 +252,31 @@ export class AttendancesService {
       const take = quantity ?? undefined;
       const skip = page && quantity ? (page - 1) * quantity : undefined;
 
-      const counts = await this.prisma.log_attendances.count({
-        where: {
-          event_id,
-          created_at:
-            start_date && end_date
-              ? {
-                  gte: start_date,
-                  lte: new Date(end_date.getTime() + 24 * 60 * 60 * 1000),
-                }
-              : undefined,
-          OR: [{ user: { full_name: { contains: search || '' } } }],
-        },
-      });
+      const dateFilter =
+        start_date && end_date
+          ? {
+              gte: start_date,
+              lte: new Date(end_date.getTime() + 24 * 60 * 60 * 1000),
+            }
+          : undefined;
+
+      const searchFilter: Prisma.log_attendancesWhereInput = search?.trim()
+        ? {
+            OR: [
+              { user: { full_name: { contains: search.trim() } } },
+              { user: { email: { contains: search.trim() } } },
+              { user: { phone: { contains: search.trim() } } },
+            ],
+          }
+        : {};
+
+      const where: Prisma.log_attendancesWhereInput = {
+        event_id,
+        created_at: dateFilter,
+        ...searchFilter,
+      };
+
+      const counts = await this.prisma.log_attendances.count({ where });
 
       const attendances = await this.prisma.log_attendances.findMany({
         take,
@@ -275,17 +287,7 @@ export class AttendancesService {
           ATTENDANCE_SORTABLE,
           { created_at: `desc` },
         ) as Prisma.log_attendancesOrderByWithRelationInput,
-        where: {
-          event_id,
-          created_at:
-            start_date && end_date
-              ? {
-                  gte: start_date,
-                  lte: new Date(end_date.getTime() + 24 * 60 * 60 * 1000),
-                }
-              : undefined,
-          OR: [{ user: { full_name: { contains: search || '' } } }],
-        },
+        where,
         include: {
           user: { omit: { password: true } },
         },

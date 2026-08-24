@@ -40,25 +40,22 @@ export default function EventList() {
   const user = useAuthStore((s) => s.user);
   const isSuperAdmin = user?.role === "SUPERADMIN";
 
-  // Server-backed list: page / quantity / search go to the backend
-  // (GET /events/me supports page, quantity, search). Status, type and sort
-  // are NOT backend query params, so they stay as client-side refinements.
-  const list = useList<Event>((q) => getMyEvents(q), []);
+  // Full server-side list: page / quantity / search / status / event_type / sort
+  // are all evaluated and paginated by the backend database.
+  const list = useList<Event>((q) => getMyEvents(q), [], 10);
 
-  const [statusFilter, setStatusFilter] = useState<string>("ALL");
-  const [typeFilter, setTypeFilter] = useState<string>("ALL");
   const [sortBy, setSortBy] = useState<"latest" | "name_asc" | "name_desc">("latest");
 
-  const visible = useMemo(() => {
-    const filtered = (list.items ?? []).filter((e) => {
-      const matchStatus = statusFilter === "ALL" || e.status === statusFilter;
-      const matchType = typeFilter === "ALL" || e.event_type === typeFilter;
-      return matchStatus && matchType;
-    });
-    if (sortBy === "name_asc") return [...filtered].sort((a, b) => a.name.localeCompare(b.name));
-    if (sortBy === "name_desc") return [...filtered].sort((a, b) => b.name.localeCompare(a.name));
-    return [...filtered].sort((a, b) => (b.created_at ?? "").localeCompare(a.created_at ?? "")); // latest first
-  }, [list.items, statusFilter, typeFilter, sortBy]);
+  const handleSortChange = (val: "latest" | "name_asc" | "name_desc") => {
+    setSortBy(val);
+    if (val === "name_asc") {
+      list.applySort("name", "asc");
+    } else if (val === "name_desc") {
+      list.applySort("name", "desc");
+    } else {
+      list.applySort("created_at", "desc");
+    }
+  };
 
   // Refresh after a DashboardCard photo update (data mutation → refetch).
   const handlePhotoUpdated = () => list.refetch();
@@ -109,59 +106,60 @@ export default function EventList() {
           </p>
         </div>
 
-        {!list.loading && (list.items ?? []).length > 0 && (
-          <div className="space-y-3">
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="min-w-[200px] flex-1">
-                <SearchBar
-                  search={list.search}
-                  setSearch={list.applySearch}
-                  placeholder="Cari event..."
-                />
-              </div>
-              <select
-                value={sortBy}
-                onChange={(e) => {
-                  setSortBy(e.target.value as typeof sortBy);
-                }}
-                className="h-10 rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-700"
-              >
-                <option value="latest">Terbaru</option>
-                <option value="name_asc">Nama A–Z</option>
-                <option value="name_desc">Nama Z–A</option>
-              </select>
+        <div className="space-y-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="min-w-[200px] flex-1">
+              <SearchBar
+                search={list.search}
+                setSearch={list.applySearch}
+                placeholder="Cari event..."
+              />
             </div>
-
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs font-medium text-gray-500">Status:</span>
-              {EVENT_STATUS_FILTERS.map((s) => (
-                <button
-                  key={s}
-                  onClick={() => setStatusFilter(s)}
-                  className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
-                    statusFilter === s
-                      ? "bg-secondary text-white"
-                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                  }`}
-                >
-                  {s === "ALL" ? "Semua" : labelFor(EVENT_STATUS_LABELS, s, s)}
-                </button>
-              ))}
-              <select
-                value={typeFilter}
-                onChange={(e) => setTypeFilter(e.target.value)}
-                className="ml-auto h-9 rounded-lg border border-gray-200 bg-white px-3 text-xs text-gray-600"
-              >
-                <option value="ALL">Semua Tipe Event</option>
-                {EVENT_TYPE_FILTERS.map((t) => (
-                  <option key={t} value={t}>
-                    {labelFor(EVENT_TYPE_LABELS, t, t)}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <select
+              value={sortBy}
+              onChange={(e) => handleSortChange(e.target.value as typeof sortBy)}
+              className="h-10 rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-700"
+            >
+              <option value="latest">Terbaru</option>
+              <option value="name_asc">Nama A–Z</option>
+              <option value="name_desc">Nama Z–A</option>
+            </select>
           </div>
-        )}
+
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs font-medium text-gray-500">Status:</span>
+            {EVENT_STATUS_FILTERS.map((s) => (
+              <button
+                key={s}
+                onClick={() => list.applyFilter("status", s === "ALL" ? "" : s)}
+                className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                  (list.filters.status || "ALL") === s
+                    ? "bg-secondary text-white"
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                }`}
+              >
+                {s === "ALL" ? "Semua" : labelFor(EVENT_STATUS_LABELS, s, s)}
+              </button>
+            ))}
+            <select
+              value={list.filters.event_type || "ALL"}
+              onChange={(e) =>
+                list.applyFilter(
+                  "event_type",
+                  e.target.value === "ALL" ? "" : e.target.value,
+                )
+              }
+              className="ml-auto h-9 rounded-lg border border-gray-200 bg-white px-3 text-xs text-gray-600"
+            >
+              <option value="ALL">Semua Tipe Event</option>
+              {EVENT_TYPE_FILTERS.map((t) => (
+                <option key={t} value={t}>
+                  {labelFor(EVENT_TYPE_LABELS, t, t)}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
 
         <div className="mt-6 flex flex-col gap-2">
           {list.loading ? (
@@ -169,36 +167,35 @@ export default function EventList() {
               <Loader2 className="w-7 h-7 animate-spin mb-3" />
               <p className="text-sm">Memuat event...</p>
             </div>
-          ) : visible.length > 0 ? (
+          ) : list.items.length > 0 ? (
             <>
-              {visible.map((item) => (
+              {list.items.map((item) => (
                 <DashboardCard
                   key={item.uuid}
                   data={item}
                   onPhotoUpdated={handlePhotoUpdated}
                 />
               ))}
-              <div className="mt-4">
-                <DataPagination
-                  currentPage={list.page}
-                  totalPages={list.totalPages}
-                  itemsPerPage={list.pageSize}
-                  totalItems={list.total}
-                  onPageChange={list.setPage}
-                  onItemsPerPageChange={(size) => {
-                    list.setPageSize(size);
-                    list.setPage(1);
-                  }}
-                />
-              </div>
+
+              <DataPagination
+                currentPage={list.page}
+                totalPages={list.totalPages}
+                itemsPerPage={list.pageSize}
+                totalItems={list.total}
+                onPageChange={list.setPage}
+                onItemsPerPageChange={list.setPageSize}
+              />
             </>
           ) : (
             <div className="flex flex-col items-center justify-center py-24 text-gray-400">
-              <Frown className="w-10 h-10 mb-3" />
-              <p className="text-sm">
-                {list.search || statusFilter !== "ALL" || typeFilter !== "ALL"
-                  ? "Tidak ada event yang cocok dengan pencarianmu."
-                  : "Belum ada event."}
+              <Frown className="w-12 h-12 stroke-[1.5] mb-3 text-gray-300" />
+              <p className="font-semibold text-gray-600 text-base">
+                Tidak ada event ditemukan
+              </p>
+              <p className="text-xs text-gray-400 mt-1 max-w-xs text-center">
+                {list.search
+                  ? `Tidak ada event dengan kata kunci "${list.search}"`
+                  : "Mulai buat event baru untuk melihatnya di sini."}
               </p>
             </div>
           )}

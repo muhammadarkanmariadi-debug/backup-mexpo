@@ -229,18 +229,25 @@ export class EventUsersService {
       const take = quantity ?? undefined;
       const skip = page && quantity ? (page - 1) * quantity : undefined;
 
-      const counts = await this.prisma.user_event_roles.count({
-        where: {
-          event_id,
-          status,
-          role,
-          OR: [
-            {
-              user: { full_name: { contains: search ?? `` } },
-            },
-          ],
-        },
-      });
+      const searchFilter: Prisma.user_event_rolesWhereInput = search?.trim()
+        ? {
+            OR: [
+              { user: { full_name: { contains: search.trim() } } },
+              { user: { email: { contains: search.trim() } } },
+              { user: { phone: { contains: search.trim() } } },
+              { user: { organization: { contains: search.trim() } } },
+            ],
+          }
+        : {};
+
+      const where: Prisma.user_event_rolesWhereInput = {
+        event_id,
+        status: status ?? undefined,
+        role: role ?? undefined,
+        ...searchFilter,
+      };
+
+      const counts = await this.prisma.user_event_roles.count({ where });
 
       const users = await this.prisma.user_event_roles.findMany({
         take,
@@ -251,16 +258,7 @@ export class EventUsersService {
           EVENT_USER_SORTABLE,
           { user: { full_name: `asc` } },
         ) as Prisma.user_event_rolesOrderByWithRelationInput,
-        where: {
-          event_id,
-          status,
-          role,
-          OR: [
-            {
-              user: { full_name: { contains: search ?? `` } },
-            },
-          ],
-        },
+        where,
         include: {
           user: { omit: { password: true } },
           event: true,

@@ -22,10 +22,18 @@ import EventsGrid from './EventsGrid'
 type Category = 'All Events' | 'On Going' | 'Upcoming' | 'Past'
 
 interface EventsLayoutProps {
-  category: Category
-  search: string
-  events: Event[]
-  isLoading: boolean
+  category: Category;
+  search: string;
+  events: Event[];
+  isLoading: boolean;
+  serverPagination?: {
+    currentPage: number;
+    totalPages: number;
+    totalItems: number;
+    itemsPerPage?: number;
+    onPageChange: (page: number) => void;
+    onItemsPerPageChange?: (size: number) => void;
+  };
 }
 
 const SECTION_META = {
@@ -44,44 +52,46 @@ const SECTION_META = {
     title: 'Kenang Kembali Momen-Momen Berkesan!',
     emptyMessage: 'Tidak ada event yang sudah selesai.',
   },
-} as const
+} as const;
 
 const fadeUp = {
   initial: { opacity: 0, y: 30 },
   whileInView: { opacity: 1, y: 0 },
   viewport: { once: true as const },
   transition: { duration: 0.6 },
-}
+};
 
-const EventsLayout = ({ category, search, events, isLoading }: EventsLayoutProps) => {
-
+const EventsLayout = ({
+  category,
+  search,
+  events,
+  isLoading,
+  serverPagination,
+}: EventsLayoutProps) => {
   const grouped = useGroupedEvents(events, search);
 
   const isEmpty =
     category === 'All Events'
       ? Object.values(grouped).every((arr) => arr.length === 0)
-      : grouped[category]?.length === 0
+      : events.length === 0;
 
-  if (isLoading) return <LoadingSpinner />
+  if (isLoading) return <LoadingSpinner />;
 
   if (isEmpty) {
     return (
-      <div className='mx-5'>
+      <div className='mx-5 py-12'>
         <ContentTitle1
           title='Tidak Ada '
           spanText='Event'
-          description='Maaf, kami tidak menemukan event yang sesuai dengan kriteria Anda.'
+          description='Maaf, kami tidak menemukan event yang sesuai dengan filter atau pencarian Anda.'
         />
       </div>
-    )
+    );
   }
 
   return (
     <div>
-  
-
       {category === 'All Events' ? (
-        // AllEvents.tsx dihapus — render langsung di sini
         <div className='flex flex-col gap-20'>
           {(['Upcoming', 'On Going', 'Past'] as const).map((cat) =>
             grouped[cat].length > 0 ? (
@@ -96,16 +106,21 @@ const EventsLayout = ({ category, search, events, isLoading }: EventsLayoutProps
           )}
         </div>
       ) : (
-        <div>
+        <div className="px-4 sm:px-6 md:px-8">
           <ContentTitle2
             category={SECTION_META[category].label}
             title={SECTION_META[category].title}
           />
-          <EventsGrid events={grouped[category]} />
+          <div className="mt-6">
+            <EventsGrid
+              events={events}
+              serverPagination={serverPagination}
+            />
+          </div>
         </div>
       )}
     </div>
-  )
-}
+  );
+};
 
-export default EventsLayout
+export default EventsLayout;

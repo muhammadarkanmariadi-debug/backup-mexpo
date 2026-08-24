@@ -35,11 +35,26 @@ const SNAP_JS_URL = MIDTRANS_IS_PRODUCTION
  */
 export function loadSnapScript(): Promise<boolean> {
   return new Promise((resolve) => {
+    if (typeof window === "undefined") {
+      resolve(false);
+      return;
+    }
     if (window.snap) {
       resolve(true);
       return;
     }
+    const existing = document.getElementById("midtrans-snap-script");
+    if (existing) {
+      if (window.snap) {
+        resolve(true);
+        return;
+      }
+      existing.addEventListener("load", () => resolve(true));
+      existing.addEventListener("error", () => resolve(false));
+      return;
+    }
     const script = document.createElement("script");
+    script.id = "midtrans-snap-script";
     script.src = SNAP_JS_URL;
     script.setAttribute("data-client-key", MIDTRANS_CLIENT_KEY);
     script.async = true;
@@ -51,7 +66,12 @@ export function loadSnapScript(): Promise<boolean> {
 
 /** Opens the Snap payment popup for a token, firing the right callbacks. */
 export function payWithSnap(token: string, handlers: SnapCallbacks): boolean {
-  if (!window.snap) return false;
-  window.snap.pay(token, handlers);
-  return true;
+  if (typeof window === "undefined" || !window.snap) return false;
+  try {
+    window.snap.pay(token, handlers);
+    return true;
+  } catch (err) {
+    console.error("Midtrans payWithSnap error:", err);
+    return false;
+  }
 }

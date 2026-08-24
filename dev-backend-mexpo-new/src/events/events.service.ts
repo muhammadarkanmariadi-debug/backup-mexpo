@@ -147,30 +147,32 @@ export class EventsService {
     userId?: string,
   ) {
     try {
-      const { page, quantity, search } = query;
+      const { page, quantity, search, status, event_type } = query;
       const take = quantity ?? undefined;
       const skip = page && quantity ? (page - 1) * quantity : undefined;
 
-      const counts = await this.prisma.events.count({
-        where: {
-          userEventRoles: userId
-            ? {
-                some: {
-                  role: { in: role },
-                  user_id: userId,
-                  status: `APPROVED`,
-                },
-              }
-            : undefined,
-          OR: [
-            { name: { contains: search ?? `` } },
-            { description: { contains: search ?? `` } },
-            { organizer_name: { contains: search ?? `` } },
-            { location: { contains: search ?? `` } },
-            { creator: { full_name: { contains: search ?? `` } } },
-          ],
-        },
-      });
+      const where: Prisma.eventsWhereInput = {
+        status: status ?? undefined,
+        event_type: event_type ?? undefined,
+        userEventRoles: userId
+          ? {
+              some: {
+                role: { in: role },
+                user_id: userId,
+                status: `APPROVED`,
+              },
+            }
+          : undefined,
+        OR: [
+          { name: { contains: search ?? `` } },
+          { description: { contains: search ?? `` } },
+          { organizer_name: { contains: search ?? `` } },
+          { location: { contains: search ?? `` } },
+          { creator: { full_name: { contains: search ?? `` } } },
+        ],
+      };
+
+      const counts = await this.prisma.events.count({ where });
 
       const events = await this.prisma.events.findMany({
         take,
@@ -178,24 +180,7 @@ export class EventsService {
         orderBy: buildOrderBy(query.sort_by, query.sort_dir, EVENT_SORTABLE, {
           created_at: `desc`,
         }) as Prisma.eventsOrderByWithRelationInput,
-        where: {
-          userEventRoles: userId
-            ? {
-                some: {
-                  role: { in: role },
-                  user_id: userId,
-                  status: `APPROVED`,
-                },
-              }
-            : undefined,
-          OR: [
-            { name: { contains: search ?? `` } },
-            { description: { contains: search ?? `` } },
-            { organizer_name: { contains: search ?? `` } },
-            { location: { contains: search ?? `` } },
-            { creator: { full_name: { contains: search ?? `` } } },
-          ],
-        },
+        where,
         include: {
           creator: { select: { full_name: true } },
           editor: { select: { full_name: true } },

@@ -1,5 +1,6 @@
+import { EventStatus, EventType } from '@prisma/client';
 import { Type } from 'class-transformer';
-import { IsIn, IsNumber, IsOptional, IsString } from 'class-validator';
+import { IsEnum, IsIn, IsNumber, IsOptional, IsString } from 'class-validator';
 
 export class QueryEventDto {
   @IsOptional()
@@ -15,6 +16,14 @@ export class QueryEventDto {
   @IsOptional()
   @IsString()
   search?: string;
+
+  @IsOptional()
+  @IsEnum(EventStatus)
+  status?: EventStatus;
+
+  @IsOptional()
+  @IsEnum(EventType)
+  event_type?: EventType;
 
   @IsOptional()
   @IsString()

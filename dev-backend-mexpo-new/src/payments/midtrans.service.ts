@@ -74,13 +74,20 @@ export class MidtransService {
     const body = {
       transaction_details: {
         order_id: params.orderId,
-        gross_amount: params.grossAmount,
+        gross_amount: Math.round(params.grossAmount),
       },
-      item_details: params.itemDetails,
+      item_details: (params.itemDetails ?? []).map((it) => ({
+        id: it.id ? it.id.slice(0, 50) : `item-1`,
+        price: Math.round(it.price),
+        quantity: it.quantity,
+        name: (it.name || `Tiket Event`).slice(0, 50),
+      })),
       customer_details: {
-        first_name: params.customerDetails.first_name,
+        first_name: (params.customerDetails.first_name || `Visitor`).slice(0, 50),
         email: params.customerDetails.email,
-        phone: params.customerDetails.phone ?? undefined,
+        phone: params.customerDetails.phone
+          ? params.customerDetails.phone.slice(0, 19)
+          : undefined,
       },
       credit_card: { secure: this.is3ds },
       expiry: { unit: `minutes`, duration: this.paymentExpiryMinutes },

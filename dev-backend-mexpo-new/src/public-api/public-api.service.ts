@@ -174,38 +174,118 @@ export class PublicApiService {
     type: 'ACTIVE' | 'UPCOMING' | 'ALL' = 'ALL',
   ) {
     try {
-      const { page, quantity, search, event_type } = query;
-      const take = quantity ?? undefined;
-      const skip = page && quantity ? (page - 1) * quantity : undefined;
+      const {
+        page,
+        quantity,
+        search,
+        event_type,
+        ticket_mode,
+        category,
+        sort_by,
+        sort_dir,
+      } = query;
+      const take = quantity ? Number(quantity) : undefined;
+      const skip =
+        page && quantity ? (Number(page) - 1) * Number(quantity) : undefined;
+
+      const now = new Date();
+      let dateFilter: Prisma.eventsWhereInput | undefined = undefined;
+
+      // Handle category filter (On Going, Upcoming, Past, or active/upcoming legacy)
+      const rawCategory = category || type || `ALL`;
+      const normCat = rawCategory.toUpperCase().replace(/\s+/g, `_`);
+
+      if (normCat === `ON_GOING` || normCat === `ACTIVE`) {
+        dateFilter = {
+          start_date: { lte: now },
+          end_date: { gte: now },
+        };
+      } else if (normCat === `UPCOMING`) {
+        dateFilter = {
+          start_date: { gt: now },
+        };
+      } else if (normCat === `PAST`) {
+        dateFilter = {
+          end_date: { lt: now },
+        };
+      }
+
+      // Handle ticket mode filter
+      let ticketFilter: Prisma.eventsWhereInput | undefined = undefined;
+      if (ticket_mode === `PAID`) {
+        ticketFilter = {
+          OR: [
+            { ticket_mode: `PAID` },
+            { features: { path: [`paidTicket`], equals: true } },
+          ],
+        };
+      } else if (ticket_mode === `FREE`) {
+        ticketFilter = {
+          AND: [
+            { ticket_mode: { not: `PAID` } },
+            {
+              OR: [
+                { features: { path: [`paidTicket`], equals: false } },
+                { features: { equals: Prisma.AnyNull } },
+              ],
+            },
+          ],
+        };
+      }
+
+      // Handle search filter
+      let searchFilter: Prisma.eventsWhereInput | undefined = undefined;
+      if (search && search.trim()) {
+        const q = search.trim();
+        searchFilter = {
+          OR: [
+            { name: { contains: q } },
+            { description: { contains: q } },
+            { organizer_name: { contains: q } },
+            { location: { contains: q } },
+          ],
+        };
+      }
 
       const where: Prisma.eventsWhereInput = {
         status: EventStatus.PUBLISHED,
         // A7 — private events are not exposed on the public site.
         visibility: EventVisibility.PUBLIC,
         event_type: event_type ?? undefined,
-        registration_start:
-          type === `ALL`
-            ? undefined
-            : type === `ACTIVE`
-              ? {
-                  lte: new Date(),
-                }
-              : { gte: new Date() },
-        end_date: type === `ALL` ? undefined : { gte: new Date() },
-        OR: [
-          { name: { contains: search ?? `` } },
-          { description: { contains: search ?? `` } },
-          { organizer_name: { contains: search ?? `` } },
-          { location: { contains: search ?? `` } },
-        ],
+        ...dateFilter,
+        ...ticketFilter,
+        ...searchFilter,
       };
 
       const counts = await this.prisma.events.count({ where });
 
+      // Handle sorting
+      let orderBy: Prisma.eventsOrderByWithRelationInput = {
+        created_at: `desc`,
+      };
+      if (sort_by === `date-asc`) {
+        orderBy = { start_date: `asc` };
+      } else if (sort_by === `date-desc`) {
+        orderBy = { start_date: `desc` };
+      } else if (sort_by === `name-asc`) {
+        orderBy = { name: `asc` };
+      } else if (sort_by === `name-desc`) {
+        orderBy = { name: `desc` };
+      } else if (sort_by === `created-asc`) {
+        orderBy = { created_at: `asc` };
+      } else if (sort_by === `created-desc`) {
+        orderBy = { created_at: `desc` };
+      } else if (
+        sort_by &&
+        ['name', 'start_date', 'end_date', 'created_at'].includes(sort_by)
+      ) {
+        orderBy = { [sort_by]: sort_dir ?? `asc` };
+      }
+
       const events = await this.prisma.events.findMany({
         take,
         skip,
-        orderBy: { created_at: `desc` },
+        orderBy,
         where,
         include: {
           creator: { select: { full_name: true } },
@@ -224,11 +304,18 @@ export class PublicApiService {
         },
       });
 
+      const totalPages = take ? Math.ceil(counts / take) : 1;
+
       return {
         success: true,
         message: `Events retrieved successfully`,
         data: events,
-        meta: { page, quantity, counts },
+        meta: {
+          page: page ? Number(page) : 1,
+          quantity: take ?? counts,
+          counts,
+          totalPages,
+        },
       };
     } catch (error) {
       if (error instanceof HttpException) {

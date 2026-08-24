@@ -1,47 +1,29 @@
-import React, { useState } from "react";
+import React from "react";
 import { EventSpeaker } from "@/entities/event/speaker.entity";
-import { usePagination } from "@/shared/hooks/usePagination";
+import { useClientList } from "@/shared/hooks/useClientList";
 import { DataPagination } from "@/shared/components/ui/DataPagination";
 import { SpeakerCard } from "../cards/SpeakerCard";
 import TabListShell from "./TabListShell";
 
-const SpeakersTab = ({ speakers }: { speakers: EventSpeaker[] }) => {
-  const [search, setSearch] = useState("");
-
-  const filteredSpeakers = speakers.filter((speaker) =>
-    speaker.name.toLowerCase().includes(search.toLowerCase())
-  );
-
-  const {
-    currentPage,
-    totalPages,
-    itemsPerPage,
-    totalItems,
-    setPage,
-    setItemsPerPage,
-    paginate,
-  } = usePagination<EventSpeaker>({
-    totalItems: filteredSpeakers.length,
-    initialPageSize: 4,
-    resetDeps: [search],
+const SpeakersTab = ({ speakers = [] }: { speakers: EventSpeaker[] }) => {
+  const list = useClientList<EventSpeaker>({
+    items: speakers,
+    pageSize: 8,
+    getSearch: (s) => `${s.name} ${s.bio || ""}`,
+    getSortValue: (s) => s.name,
   });
-
-
-
-
-  const paginatedSpeakers: EventSpeaker[] = paginate(filteredSpeakers);
 
   return (
     <TabListShell
       category="Pembicara"
       title="Pembicara Kami"
       searchPlaceholder="Cari Pembicara..."
-      search={search}
-      setSearch={setSearch}
+      search={list.search}
+      setSearch={list.applySearch}
     >
-      {filteredSpeakers.length > 0 ? (
+      {list.paged.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
-          {paginatedSpeakers.map((speaker) => (
+          {list.paged.map((speaker) => (
             <SpeakerCard key={speaker.uuid} speaker={speaker} />
           ))}
         </div>
@@ -49,16 +31,15 @@ const SpeakersTab = ({ speakers }: { speakers: EventSpeaker[] }) => {
         <div className="text-center text-gray-500">Tidak ada pembicara ditemukan</div>
       )}
 
-
       {/* Pagination Controls */}
-      {filteredSpeakers.length > 4 && (
+      {list.totalItems > 8 && (
         <DataPagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          itemsPerPage={itemsPerPage}
-          totalItems={totalItems}
-          onPageChange={setPage}
-          onItemsPerPageChange={setItemsPerPage}
+          currentPage={list.page}
+          totalPages={list.totalPages}
+          itemsPerPage={list.itemsPerPage}
+          totalItems={list.totalItems}
+          onPageChange={list.setPage}
+          onItemsPerPageChange={() => {}}
           pageSizeOptions={[4, 8, 12, 16]}
         />
       )}

@@ -1,45 +1,30 @@
 import { EventSponsor } from "@/entities/event/sponsor.entity";
-import React, { useState } from "react";
-import { usePagination } from "@/shared/hooks/usePagination";
+import React from "react";
+import { useClientList } from "@/shared/hooks/useClientList";
 import { DataPagination } from "@/shared/components/ui/DataPagination";
 import { SponsorCard } from "../cards/SponsorCard";
 import TabListShell from "./TabListShell";
 
-const SponsorsTab = ({ sponsors }: { sponsors: EventSponsor[] }) => {
-  const {
-    currentPage,
-    totalPages,
-    itemsPerPage,
-    totalItems,
-    setPage,
-    setItemsPerPage,
-    paginate,
-  } = usePagination<EventSponsor>({
-    totalItems: sponsors?.length || 0,
-    initialPageSize: 4,
+const SponsorsTab = ({ sponsors = [] }: { sponsors: EventSponsor[] }) => {
+  const list = useClientList<EventSponsor>({
+    items: sponsors,
+    pageSize: 8,
+    getSearch: (s) => `${s.name} ${s.level || ""}`,
+    getSortValue: (s) => s.name,
   });
-
-  const [search, setSearch] = useState("");
-
-  const filteredSponsors = sponsors.filter((sponsor) =>
-    sponsor.name.toLowerCase().includes(search.toLowerCase())
-  );
-
-
-  const paginatedSponsors = paginate(filteredSponsors);
 
   return (
     <TabListShell
       category="Sponsor"
       title="Sponsor Kami"
       searchPlaceholder="Cari Sponsor..."
-      search={search}
-      setSearch={setSearch}
+      search={list.search}
+      setSearch={list.applySearch}
     >
       {/* Grid Container */}
-      {filteredSponsors.length > 0 ? (
+      {list.paged.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-          {paginatedSponsors.map((sponsor, index) => (
+          {list.paged.map((sponsor, index) => (
             <div key={sponsor.uuid || index}>
               <SponsorCard sponsor={sponsor} />
             </div>
@@ -49,16 +34,15 @@ const SponsorsTab = ({ sponsors }: { sponsors: EventSponsor[] }) => {
         <div className="text-center text-gray-500">Tidak ada sponsor ditemukan</div>
       )}
 
-
       {/* Pagination Controls */}
-      {filteredSponsors.length > 3 && (
+      {list.totalItems > 8 && (
         <DataPagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          itemsPerPage={itemsPerPage}
-          totalItems={totalItems}
-          onPageChange={setPage}
-          onItemsPerPageChange={setItemsPerPage}
+          currentPage={list.page}
+          totalPages={list.totalPages}
+          itemsPerPage={list.itemsPerPage}
+          totalItems={list.totalItems}
+          onPageChange={list.setPage}
+          onItemsPerPageChange={() => {}}
           pageSizeOptions={[4, 8, 12, 16]}
         />
       )}
