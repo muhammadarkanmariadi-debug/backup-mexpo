@@ -17,7 +17,7 @@ import {
 import { QueryCertificateTemplateDto } from './dto/query-certificate-template.dto';
 
 /**
- * Dynamic certificate fields a template can bind to. Anything else is rejected
+ * Dynamic certificate & badge fields a template can bind to. Anything else is rejected
  * server-side so a crafted payload can never reference arbitrary data.
  */
 export const CERTIFICATE_BINDING_KEYS = [
@@ -27,6 +27,10 @@ export const CERTIFICATE_BINDING_KEYS = [
   `date`,
   `organizer_name`,
   `certificate_number`,
+  `organization`,
+  `role`,
+  `email`,
+  `qr_code`,
 ] as const;
 
 /** Konva node classNames the shared renderer understands. */
@@ -298,19 +302,24 @@ export class CertificatesService {
       if (!event) throw new NotFoundException(`Event doesn't exists`);
       await this.assertManager(event_id, userId, role);
 
-      const { page, quantity } = query;
+      const { page, quantity, kind } = query;
       const take = quantity ? Number(quantity) : undefined;
       const skip =
         page && quantity ? (Number(page) - 1) * Number(quantity) : undefined;
 
+      const where: Prisma.certificate_templatesWhereInput = {
+        event_id,
+        ...(kind ? { kind } : {}),
+      };
+
       const counts = await this.prisma.certificate_templates.count({
-        where: { event_id },
+        where,
       });
       const data = await this.prisma.certificate_templates.findMany({
         take,
         skip,
         orderBy: [{ is_active: `desc` }, { created_at: `desc` }],
-        where: { event_id },
+        where,
       });
       return {
         success: true,
@@ -328,8 +337,13 @@ export class CertificatesService {
     }
   }
 
-  /** The active template used to render certificates for an event (or null). */
-  async findActive(event_id: string, userId: string, role?: UserRole) {
+  /** The active template used to render certificates/badges for an event (or null). */
+  async findActive(
+    event_id: string,
+    userId: string,
+    role?: UserRole,
+    kind?: string,
+  ) {
     try {
       const event = await this.prisma.events.findFirst({
         where: { uuid: event_id },
@@ -338,7 +352,11 @@ export class CertificatesService {
       await this.assertMember(event_id, userId, role);
 
       const template = await this.prisma.certificate_templates.findFirst({
-        where: { event_id, is_active: true },
+        where: {
+          event_id,
+          is_active: true,
+          ...(kind ? { kind } : {}),
+        },
         orderBy: { created_at: `desc` },
       });
       return {

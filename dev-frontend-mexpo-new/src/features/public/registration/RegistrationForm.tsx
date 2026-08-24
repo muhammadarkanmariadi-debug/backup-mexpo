@@ -54,7 +54,7 @@ export default function RegistrationForm({ event, fields, ticketTypes }: Props) 
     }
   }, [isAuthenticated, user, router]);
 
-  // If the caller is already a participant of this event (OWNER / COMMITTEE /
+  // If the caller is already an approved participant of this event (OWNER / COMMITTEE /
   // TENANT / VISITOR), block re-registration and send them to the dashboard.
   useEffect(() => {
     if (!isAuthenticated || !user) return;
@@ -64,7 +64,8 @@ export default function RegistrationForm({ event, fields, ticketTypes }: Props) 
         const res = await getEventByUuidByMe(event.uuid);
         const roles = (res.data as Event | null)?.userEventRoles;
         if (cancelled) return;
-        if (res.status && roles && roles.length > 0) {
+        const approvedRole = roles?.find((r) => r.status === "APPROVED");
+        if (res.status && approvedRole) {
           toast.info("Kamu sudah terdaftar di event ini.");
           router.push(`/dashboard/${event.slug ?? event.uuid}`);
           return;
@@ -93,10 +94,67 @@ export default function RegistrationForm({ event, fields, ticketTypes }: Props) 
     return (answers[f.condition.field_key] ?? "") === f.condition.value;
   });
 
+  // A1b — poll the transaction so the submitted screen reflects the real
+  // status after the user pays (or abandons) the Snap popup.
+  const pollTransaction = async (txUuid: string, attempts = 10) => {
+    for (let i = 0; i < attempts; i++) {
+      await new Promise((r) => setTimeout(r, 3000));
+      try {
+        const res = await getTransaction(txUuid);
+        if (!res.status || !res.data) continue;
+        setPaymentStatus(res.data.status);
+        if (["PAID", "EXPIRED", "FAILED", "REFUNDED"].includes(res.data.status)) {
+          return;
+        }
+      } catch {
+        // transient — keep polling
+      }
+    }
+  };
+
+  const triggerSnap = async (intent: PaymentIntent) => {
+    if (!intent?.snap_token) return;
+    setPaymentBusy(true);
+    try {
+      const ready = await loadSnapScript();
+      if (!ready) {
+        toast.error("Gagal memuat Midtrans Snap. Coba lagi nanti.");
+        return;
+      }
+      payWithSnap(intent.snap_token, {
+        onSuccess: () => {
+          setPaymentStatus("PAID");
+          toast.success("Pembayaran berhasil!");
+          void pollTransaction(intent.transaction_uuid, 5);
+        },
+        onPending: () => {
+          setPaymentStatus("PENDING");
+          void pollTransaction(intent.transaction_uuid, 20);
+        },
+        onClose: () => {
+          void pollTransaction(intent.transaction_uuid, 10);
+        },
+        onError: () => {
+          toast.error("Pembayaran gagal. Silakan coba lagi.");
+        },
+      });
+    } catch {
+      toast.error("Gagal membuka pembayaran.");
+    } finally {
+      setPaymentBusy(false);
+    }
+  };
+
+  const openSnap = async () => {
+    if (paymentIntent) {
+      await triggerSnap(paymentIntent);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
-    
+
     setSubmitting(true);
     try {
       const payload: RegisterVisitorPayload = {
@@ -122,63 +180,16 @@ export default function RegistrationForm({ event, fields, ticketTypes }: Props) 
       // events, so the fresh visitor can pay right away (no login needed).
       const paymentData = (res.data as { payment?: unknown } | null)?.payment;
       if (isPaid && paymentData && typeof paymentData === "object") {
-        setPaymentIntent(paymentData as unknown as PaymentIntent);
+        const intent = paymentData as unknown as PaymentIntent;
+        setPaymentIntent(intent);
         setPaymentStatus("PENDING");
+        // Automatically open Snap popup for immediate checkout
+        void triggerSnap(intent);
       }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Terjadi kesalahan server");
     } finally {
       setSubmitting(false);
-    }
-  };
-
-  // A1b — poll the transaction so the submitted screen reflects the real
-  // status after the user pays (or abandons) the Snap popup.
-  const pollTransaction = async (txUuid: string, attempts = 10) => {
-    for (let i = 0; i < attempts; i++) {
-      await new Promise((r) => setTimeout(r, 3000));
-      try {
-        const res = await getTransaction(txUuid);
-        if (!res.status || !res.data) continue;
-        setPaymentStatus(res.data.status);
-        if (["PAID", "EXPIRED", "FAILED", "REFUNDED"].includes(res.data.status)) {
-          return;
-        }
-      } catch {
-        // transient — keep polling
-      }
-    }
-  };
-
-  const openSnap = async () => {
-    if (!paymentIntent) return;
-    setPaymentBusy(true);
-    try {
-      const ready = await loadSnapScript();
-      if (!ready) {
-        toast.error("Gagal memuat Midtrans Snap. Coba lagi nanti.");
-        return;
-      }
-      payWithSnap(paymentIntent.snap_token, {
-        onSuccess: () => {
-          setPaymentStatus("PAID");
-          void pollTransaction(paymentIntent.transaction_uuid, 5);
-        },
-        onPending: () => {
-          setPaymentStatus("PENDING");
-          void pollTransaction(paymentIntent.transaction_uuid, 20);
-        },
-        onClose: () => {
-          void pollTransaction(paymentIntent.transaction_uuid, 10);
-        },
-        onError: () => {
-          toast.error("Pembayaran gagal. Silakan coba lagi.");
-        },
-      });
-    } catch {
-      toast.error("Gagal membuka pembayaran.");
-    } finally {
-      setPaymentBusy(false);
     }
   };
 

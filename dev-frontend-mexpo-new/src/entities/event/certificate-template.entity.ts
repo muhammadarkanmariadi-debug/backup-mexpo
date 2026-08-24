@@ -2,14 +2,18 @@
 // Certificate template types (A10 — Konva designer / renderer)
 // ============================================================
 
-/** Dynamic certificate values a text element can bind to. */
+/** Dynamic certificate and badge values a text/image element can bind to. */
 export type CertificateFieldKey =
   | "participant_name"
   | "event_name"
   | "workshop_title"
   | "date"
   | "organizer_name"
-  | "certificate_number";
+  | "certificate_number"
+  | "organization"
+  | "role"
+  | "email"
+  | "qr_code";
 
 /**
  * Text binding = "default value vs custom value":

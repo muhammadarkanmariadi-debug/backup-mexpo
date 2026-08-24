@@ -446,6 +446,13 @@ export class PublicApiService {
         payment_method,
         answers,
       } = createUserDto;
+
+      const isPaid =
+        findEvent.ticket_mode === `PAID` ||
+        (findEvent.features as { paidTicket?: boolean })?.paidTicket === true;
+      const initialRoleStatus =
+        isPaid && !payment_reference ? `PENDING` : `APPROVED`;
+
       const findExistingEmail = await this.prisma.users.findFirst({
         where: { email },
         include: { userEventRoles: true },
@@ -455,6 +462,9 @@ export class PublicApiService {
       let responseMessage: string;
       let responseData: unknown;
       if (findExistingEmail) {
+        const existingRole = findExistingEmail.userEventRoles.find(
+          (it) => it.event_id === event_id,
+        );
         const updateUser = await this.prisma.users.update({
           where: { uuid: findExistingEmail.uuid },
           data: {
@@ -464,21 +474,21 @@ export class PublicApiService {
             userEventRoles: {
               upsert: {
                 where: {
-                  uuid:
-                    findExistingEmail.userEventRoles.find(
-                      (it) => it.event_id === event_id,
-                    )?.uuid || '',
+                  uuid: existingRole?.uuid || '',
                 },
                 create: {
                   created_by: findSuperAdmin.uuid,
                   updated_by: findSuperAdmin.uuid,
                   event_id,
                   role: `VISITOR`,
-                  status: `APPROVED`,
+                  status: initialRoleStatus,
                 },
                 update: {
                   event_id,
-                  status: `APPROVED`,
+                  status:
+                    existingRole?.status === `APPROVED`
+                      ? `APPROVED`
+                      : initialRoleStatus,
                 },
               },
             },
@@ -486,28 +496,29 @@ export class PublicApiService {
           omit: { password: true },
         });
         if (isBioRequired) {
-          if (isBioRequired) {
-            await this.prisma.users_bio.upsert({
-              where: { user_id: findExistingEmail.uuid },
-              create: {
-                user_id: findExistingEmail.uuid,
-                city,
-                role_type,
-                destination_country,
-                departure_month: departure_month,
-              },
-              update: {
-                city,
-                role_type,
-                destination_country,
-                departure_month: departure_month,
-              },
-            });
-          }
+          await this.prisma.users_bio.upsert({
+            where: { user_id: findExistingEmail.uuid },
+            create: {
+              user_id: findExistingEmail.uuid,
+              city,
+              role_type,
+              destination_country,
+              departure_month: departure_month,
+            },
+            update: {
+              city,
+              role_type,
+              destination_country,
+              departure_month: departure_month,
+            },
+          });
         }
 
         visitorUserId = findExistingEmail.uuid;
-        responseMessage = `You have already registered, enjoy this event`;
+        responseMessage =
+          isPaid && !payment_reference
+            ? `Pendaftaran disimpan. Silakan selesaikan pembayaran tiket Anda.`
+            : `You have already registered, enjoy this event`;
         responseData = updateUser;
       } else {
         const defaultPassword = this.bcrypt.createRandomPassword();
@@ -523,7 +534,7 @@ export class PublicApiService {
               create: {
                 event_id,
                 role: `VISITOR`,
-                status: `APPROVED`,
+                status: initialRoleStatus,
                 created_by: findSuperAdmin.uuid,
                 updated_by: findSuperAdmin.uuid,
               },
@@ -562,7 +573,10 @@ export class PublicApiService {
           });
 
         visitorUserId = createUser.uuid;
-        responseMessage = `New Visitor has been registered, check your email to view credential for access system`;
+        responseMessage =
+          isPaid && !payment_reference
+            ? `Pendaftaran berhasil. Silakan selesaikan pembayaran tiket Anda.`
+            : `New Visitor has been registered, check your email to view credential for access system`;
         responseData = createUser;
       }
 
@@ -615,7 +629,7 @@ export class PublicApiService {
           status: { not: `CANCELLED` },
         },
       });
-      if (findEvent.ticket_mode === `PAID`) {
+      if (isPaid) {
         if (ticket_type_id) {
           const type = await this.prisma.ticket_types.findFirst({
             where: { uuid: ticket_type_id, event_id },
@@ -667,7 +681,7 @@ export class PublicApiService {
       // non-blocking — registration still succeeds and the logged-in
       // `POST /events/:id/checkout` can generate the intent later.
       let payment: unknown = null;
-      if (findEvent.ticket_mode === `PAID` && ticket_type_id) {
+      if (isPaid && ticket_type_id) {
         const ticket = await this.prisma.tickets.findFirst({
           where: {
             event_id,
@@ -703,7 +717,7 @@ export class PublicApiService {
       }
 
       // ── A11 — ticket confirmation email for paid events ──
-      if (findEvent.ticket_mode === `PAID` && ticket_type_id) {
+      if (isPaid && ticket_type_id) {
         const ticketType = await this.prisma.ticket_types.findFirst({
           where: { uuid: ticket_type_id, event_id },
         });

@@ -371,6 +371,20 @@ export class PaymentsService {
             payment_method: payment_type || `MIDTRANS`,
           },
         });
+
+        // Promote visitor role to APPROVED once payment succeeds
+        await this.prisma.user_event_roles.updateMany({
+          where: {
+            event_id: transaction.event_id,
+            user_id: transaction.user_id,
+            role: `VISITOR`,
+            status: `PENDING`,
+          },
+          data: {
+            status: `APPROVED`,
+            verify_at: new Date(),
+          },
+        });
       }
 
       return {

@@ -30,6 +30,7 @@ import WorkshopsManager from "@/features/dashboard/workshops/WorkshopsManager";
 import TeamManager from "@/features/dashboard/team/TeamManager";
 import AttendancePage from "@/features/dashboard/attendance/AttendancePage";
 import CertificateDesignerWrapper from "@/features/dashboard/certificate-designer/CertificateDesignerWrapper";
+import BadgeDesignerWrapper from "@/features/dashboard/badge-designer/BadgeDesignerWrapper";
 import { PaymentsFeature } from "@/features/dashboard/payments/PaymentsFeature";
 
 interface Props { event: Event }
@@ -121,8 +122,9 @@ export default function OwnerView({ event }: Props) {
         { id: "rundown", label: "Susunan Acara", icon: CalendarClock, content: <RundownSection eventId={event.uuid} /> },
         { id: "speakers", label: "Pembicara", icon: Mic, content: <SpeakersSection eventId={event.uuid} /> },
         { id: "sponsors", label: "Sponsor", icon: Handshake, content: <SponsorsSection eventId={event.uuid} /> },
-          { id: "contact", label: "Kontak", icon: Phone, content: <ContactsSection eventId={event.uuid} /> },
-          { id: "sertifikat", label: "Sertifikat", icon: Award, content: <CertificateDesignerWrapper event={event} /> },
+        { id: "contact", label: "Kontak", icon: Phone, content: <ContactsSection eventId={event.uuid} /> },
+        { id: "sertifikat", label: "Sertifikat", icon: Award, content: <CertificateDesignerWrapper event={event} /> },
+        { id: "id-badge", label: "Desain ID Badge", icon: Ticket, content: <BadgeDesignerWrapper event={event} /> },
       ],
     },
     {

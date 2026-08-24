@@ -1,0 +1,292 @@
+{
+  "version": 1,
+  "width": 600,
+  "height": 900,
+  "background": {
+    "type": "color",
+    "value": "#f8fafc"
+  },
+  "nodes": [
+    {
+      "className": "Layer",
+      "attrs": {
+        "id": "badge-main-layer"
+      },
+      "children": [
+        {
+          "className": "Rect",
+          "attrs": {
+            "id": "badge-header-bg",
+            "x": 0,
+            "y": 0,
+            "width": 600,
+            "height": 220,
+            "fill": "#3c85f3",
+            "cornerRadius": [0, 0, 30, 30]
+          }
+        },
+        {
+          "className": "Rect",
+          "attrs": {
+            "id": "badge-header-accent",
+            "x": 0,
+            "y": 215,
+            "width": 600,
+            "height": 5,
+            "fill": "#2563eb"
+          }
+        },
+        {
+          "className": "Text",
+          "attrs": {
+            "id": "badge-pass-label",
+            "x": 50,
+            "y": 35,
+            "width": 500,
+            "fontSize": 13,
+            "fontFamily": "Poppins, sans-serif",
+            "fontStyle": "bold",
+            "fill": "#dbeafe",
+            "letterSpacing": 2,
+            "align": "center",
+            "text": "MEXPO VISITOR PASS",
+            "binding": {
+              "type": "static",
+              "value": "MEXPO VISITOR PASS"
+            }
+          }
+        },
+        {
+          "className": "Text",
+          "attrs": {
+            "id": "badge-event-name",
+            "x": 40,
+            "y": 70,
+            "width": 520,
+            "height": 60,
+            "fontSize": 22,
+            "fontFamily": "Poppins, sans-serif",
+            "fontStyle": "bold",
+            "fill": "#ffffff",
+            "align": "center",
+            "text": "MEXPO 2026",
+            "binding": {
+              "type": "dynamic",
+              "key": "event_name",
+              "value": "MEXPO 2026"
+            }
+          }
+        },
+        {
+          "className": "Text",
+          "attrs": {
+            "id": "badge-event-date",
+            "x": 50,
+            "y": 140,
+            "width": 500,
+            "fontSize": 14,
+            "fontFamily": "Inter, sans-serif",
+            "fill": "#eff6ff",
+            "align": "center",
+            "text": "24 Agustus 2026",
+            "binding": {
+              "type": "dynamic",
+              "key": "date",
+              "value": "24 Agustus 2026"
+            }
+          }
+        },
+        {
+          "className": "Circle",
+          "attrs": {
+            "id": "badge-avatar-circle",
+            "x": 300,
+            "y": 250,
+            "radius": 60,
+            "fill": "#3c85f3",
+            "stroke": "#ffffff",
+            "strokeWidth": 4
+          }
+        },
+        {
+          "className": "Text",
+          "attrs": {
+            "id": "badge-avatar-text",
+            "x": 240,
+            "y": 220,
+            "width": 120,
+            "fontSize": 52,
+            "fontFamily": "Poppins, sans-serif",
+            "fontStyle": "bold",
+            "fill": "#ffffff",
+            "align": "center",
+            "text": "V",
+            "binding": {
+              "type": "static",
+              "value": "V"
+            }
+          }
+        },
+        {
+          "className": "Text",
+          "attrs": {
+            "id": "badge-name",
+            "x": 30,
+            "y": 335,
+            "width": 540,
+            "height": 45,
+            "fontSize": 28,
+            "fontFamily": "Poppins, sans-serif",
+            "fontStyle": "bold",
+            "fill": "#0f172a",
+            "align": "center",
+            "text": "Rizky Pratama",
+            "binding": {
+              "type": "dynamic",
+              "key": "participant_name",
+              "value": "Rizky Pratama"
+            }
+          }
+        },
+        {
+          "className": "Text",
+          "attrs": {
+            "id": "badge-org",
+            "x": 40,
+            "y": 385,
+            "width": 520,
+            "fontSize": 16,
+            "fontFamily": "Inter, sans-serif",
+            "fontStyle": "bold",
+            "fill": "#475569",
+            "align": "center",
+            "text": "SMK Telkom Malang",
+            "binding": {
+              "type": "dynamic",
+              "key": "organization",
+              "value": "SMK Telkom Malang"
+            }
+          }
+        },
+        {
+          "className": "Text",
+          "attrs": {
+            "id": "badge-email",
+            "x": 40,
+            "y": 412,
+            "width": 520,
+            "fontSize": 13,
+            "fontFamily": "Inter, sans-serif",
+            "fill": "#94a3b8",
+            "align": "center",
+            "text": "rizky.pratama@example.com",
+            "binding": {
+              "type": "dynamic",
+              "key": "email",
+              "value": "rizky.pratama@example.com"
+            }
+          }
+        },
+        {
+          "className": "Rect",
+          "attrs": {
+            "id": "badge-role-bg",
+            "x": 225,
+            "y": 450,
+            "width": 150,
+            "height": 32,
+            "fill": "#dbeafe",
+            "cornerRadius": 16
+          }
+        },
+        {
+          "className": "Text",
+          "attrs": {
+            "id": "badge-role-text",
+            "x": 225,
+            "y": 458,
+            "width": 150,
+            "fontSize": 13,
+            "fontFamily": "Poppins, sans-serif",
+            "fontStyle": "bold",
+            "fill": "#1d4ed8",
+            "align": "center",
+            "text": "VISITOR",
+            "binding": {
+              "type": "dynamic",
+              "key": "role",
+              "value": "VISITOR"
+            }
+          }
+        },
+        {
+          "className": "Rect",
+          "attrs": {
+            "id": "badge-qr-card",
+            "x": 195,
+            "y": 505,
+            "width": 210,
+            "height": 210,
+            "fill": "#ffffff",
+            "cornerRadius": 16,
+            "stroke": "#e2e8f0",
+            "strokeWidth": 1.5
+          }
+        },
+        {
+          "className": "Image",
+          "attrs": {
+            "id": "badge-qr-image",
+            "x": 215,
+            "y": 525,
+            "width": 170,
+            "height": 170,
+            "src": "https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=mexpo:sample:visitor",
+            "binding": {
+              "type": "dynamic",
+              "key": "qr_code",
+              "value": "https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=mexpo:sample:visitor"
+            }
+          }
+        },
+        {
+          "className": "Text",
+          "attrs": {
+            "id": "badge-id-caption",
+            "x": 50,
+            "y": 735,
+            "width": 500,
+            "fontSize": 12,
+            "fontFamily": "monospace",
+            "fill": "#94a3b8",
+            "align": "center",
+            "text": "mexpo:sample:visitor",
+            "binding": {
+              "type": "dynamic",
+              "key": "certificate_number",
+              "value": "mexpo:sample:visitor"
+            }
+          }
+        },
+        {
+          "className": "Text",
+          "attrs": {
+            "id": "badge-footer-instructions",
+            "x": 40,
+            "y": 810,
+            "width": 520,
+            "fontSize": 12,
+            "fontFamily": "Inter, sans-serif",
+            "fill": "#64748b",
+            "align": "center",
+            "text": "Tunjukkan tanda pengenal ini saat check-in dan kunjungan booth.",
+            "binding": {
+              "type": "static",
+              "value": "Tunjukkan tanda pengenal ini saat check-in dan kunjungan booth."
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

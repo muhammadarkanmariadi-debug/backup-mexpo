@@ -7,13 +7,13 @@ import dynamic from "next/dynamic";
 import type { Transformer as TransformerType } from "konva/lib/shapes/Transformer";
 import type { Stage as StageType } from "konva/lib/Stage";
 import {
-  ArrowDown,
-  ArrowUp,
-  Award,
+  Circle as CircleIcon,
   Copy,
+  CreditCard,
   Download,
   FilePlus2,
   Loader2,
+  QrCode,
   Save,
   Square,
   Trash2,
@@ -42,7 +42,7 @@ import {
   CERTIFICATE_FIELDS,
   uid,
 } from "@/features/certificates/certificate-fields";
-import { DEFAULT_CERTIFICATE_TEMPLATE } from "@/features/certificates/default-certificate";
+import { DEFAULT_BADGE_TEMPLATE } from "@/features/badges/default-badge";
 import { downloadCertificatePdf } from "@/features/certificates/export-certificate";
 
 // ── Konva stage is canvas-based — keep it out of SSR entirely. ──
@@ -57,7 +57,7 @@ const CertificateCanvas = dynamic(
 function LoaderFallback() {
   return (
     <div className="flex h-64 items-center justify-center text-sm text-gray-400">
-      Memuat kanvas…
+      Memuat kanvas badge…
     </div>
   );
 }
@@ -76,12 +76,12 @@ function cloneTemplate(tpl: CertificateTemplateEnvelope): CertificateTemplateEnv
   return JSON.parse(JSON.stringify(tpl)) as CertificateTemplateEnvelope;
 }
 
-function emptyEnvelope(width = 750, height = 525): CertificateTemplateEnvelope {
+function emptyEnvelope(width = 600, height = 900): CertificateTemplateEnvelope {
   return {
     version: 1,
     width,
     height,
-    background: { type: "color", value: "#ffffff" },
+    background: { type: "color", value: "#f8fafc" },
     nodes: [],
   };
 }
@@ -117,34 +117,13 @@ function removeNode(
   return { ...env, nodes: go(env.nodes) };
 }
 
-function moveNode(
-  env: CertificateTemplateEnvelope,
-  id: string,
-  dir: 1 | -1,
-): CertificateTemplateEnvelope {
-  const go = (nodes: CertificateTemplateNode[]): CertificateTemplateNode[] => {
-    const idx = nodes.findIndex((n) => n.attrs.id === id);
-    if (idx >= 0) {
-      const target = idx + dir;
-      if (target < 0 || target >= nodes.length) return nodes;
-      const arr = [...nodes];
-      [arr[idx], arr[target]] = [arr[target], arr[idx]];
-      return arr;
-    }
-    return nodes.map((n) =>
-      n.children ? { ...n, children: go(n.children) } : n,
-    );
-  };
-  return { ...env, nodes: go(env.nodes) };
-}
-
 function addNode(
   env: CertificateTemplateEnvelope,
   node: CertificateTemplateNode,
 ): CertificateTemplateEnvelope {
   let layers = env.nodes;
   if (layers.length === 0) {
-    layers = [{ className: "Layer", attrs: {}, children: [] }];
+    layers = [{ className: "Layer", attrs: { id: "badge-layer" }, children: [] }];
   }
   const target = layers[layers.length - 1];
   const next = [
@@ -179,35 +158,35 @@ function makeTextNode(): CertificateTemplateNode {
     className: "Text",
     attrs: {
       id: uid(),
-      x: 80,
-      y: 80,
+      x: 50,
+      y: 100,
       width: 500,
-      fontSize: 40,
+      fontSize: 20,
       fontFamily: "Poppins, sans-serif",
       fontStyle: "bold",
-      fill: "#111827",
+      fill: "#0f172a",
       align: "center",
-      text: "Teks Statis",
-      binding: { type: "static", value: "Teks Statis" },
+      text: "Teks Badge",
+      binding: { type: "static", value: "Teks Badge" },
     },
   };
 }
 
 function makeDynamicTextNode(key: CertificateFieldKey): CertificateTemplateNode {
+  const label = CERTIFICATE_FIELDS.find((f) => f.key === key)?.label ?? key;
   return {
     className: "Text",
     attrs: {
       id: uid(),
-      x: 200,
-      y: 300,
-      width: 600,
-      height: 60,
-      fontSize: 52,
+      x: 40,
+      y: 350,
+      width: 520,
+      fontSize: key === "participant_name" ? 28 : key === "organization" ? 18 : 14,
       fontFamily: "Poppins, sans-serif",
       fontStyle: "bold",
-      fill: "#111827",
+      fill: "#0f172a",
       align: "center",
-      text: "",
+      text: label,
       binding: { type: "dynamic", key },
     },
   };
@@ -218,13 +197,48 @@ function makeRectNode(): CertificateTemplateNode {
     className: "Rect",
     attrs: {
       id: uid(),
-      x: 100,
-      y: 100,
-      width: 300,
-      height: 120,
+      x: 50,
+      y: 50,
+      width: 500,
+      height: 100,
       fill: "#3c85f3",
-      cornerRadius: 12,
+      cornerRadius: 16,
       opacity: 1,
+    },
+  };
+}
+
+function makeCircleNode(): CertificateTemplateNode {
+  return {
+    className: "Circle",
+    attrs: {
+      id: uid(),
+      x: 300,
+      y: 200,
+      radius: 50,
+      fill: "#3c85f3",
+      stroke: "#ffffff",
+      strokeWidth: 3,
+      opacity: 1,
+    },
+  };
+}
+
+function makeQrNode(): CertificateTemplateNode {
+  return {
+    className: "Image",
+    attrs: {
+      id: uid(),
+      x: 215,
+      y: 525,
+      width: 170,
+      height: 170,
+      src: "https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=mexpo:sample:visitor",
+      binding: {
+        type: "dynamic",
+        key: "qr_code",
+        value: "https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=mexpo:sample:visitor",
+      },
     },
   };
 }
@@ -234,17 +248,15 @@ function makeImageNode(src: string): CertificateTemplateNode {
     className: "Image",
     attrs: {
       id: uid(),
-      x: 100,
-      y: 100,
-      width: 240,
-      height: 120,
+      x: 220,
+      y: 200,
+      width: 160,
+      height: 160,
       src,
       opacity: 1,
     },
   };
 }
-
-// ── Small field primitive ──
 
 function Field({
   label,
@@ -266,36 +278,33 @@ function Field({
 const inputCls =
   "w-full rounded-lg border border-gray-200 px-2.5 py-1.5 text-sm text-gray-900 focus:border-brand-500 focus:outline-none";
 
-// ── Main designer ──
+// ── Main Badge Designer ──
 
-export function CertificateDesigner({ event }: { event: Event }) {
+export function BadgeDesigner({ event }: { event: Event }) {
   const queryClient = useQueryClient();
-  const listKey = keys.certificateTemplates.all(event.uuid);
+  const listKey = ["badge-templates", event.uuid];
 
   const { data: templates, isLoading } = useApiQuery<CertificateTemplate[]>(
     listKey,
-    () => getCertificateTemplates(event.uuid),
+    () => getCertificateTemplates(event.uuid, { kind: "BADGE" }),
   );
 
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [name, setName] = useState("Sertifikat Mexpo (Default)");
+  const [name, setName] = useState("ID Badge Mexpo (Default)");
   const [draft, setDraft] = useState<CertificateTemplateEnvelope>(() =>
-    cloneTemplate(DEFAULT_CERTIFICATE_TEMPLATE),
+    cloneTemplate(DEFAULT_BADGE_TEMPLATE),
   );
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [sampleMode, setSampleMode] = useState(true);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
-  // Background upload is previewed via a local object URL, then the real S3
-  // URL written by the backend replaces `draft.background.url` after save.
   const [bgFile, setBgFile] = useState<File | null>(null);
   const [bgPreviewUrl, setBgPreviewUrl] = useState<string>("");
 
   const stageRef = useRef<StageType | null>(null);
   const transformerRef = useRef<TransformerType | null>(null);
 
-  // Fit the canvas to its panel so a large certificate never overflows.
   const canvasPanelRef = useRef<HTMLDivElement | null>(null);
   const [canvasPanelWidth, setCanvasPanelWidth] = useState(0);
   useEffect(() => {
@@ -322,7 +331,12 @@ export function CertificateDesigner({ event }: { event: Event }) {
 
   const sampleData = useMemo<CertificateData>(() => buildSampleData(), []);
   const renderData = useMemo<CertificateData>(
-    () => (sampleMode ? sampleData : Object.fromEntries(CERTIFICATE_FIELDS.map((f) => [f.key, ""])) as CertificateData),
+    () =>
+      sampleMode
+        ? sampleData
+        : (Object.fromEntries(
+            CERTIFICATE_FIELDS.map((f) => [f.key, ""]),
+          ) as CertificateData),
     [sampleMode, sampleData],
   );
 
@@ -331,7 +345,7 @@ export function CertificateDesigner({ event }: { event: Event }) {
     [draft, selectedId],
   );
 
-  // Bind the Transformer to the selected node.
+  // Bind Transformer to the selected node
   useEffect(() => {
     const tr = transformerRef.current;
     const stage = stageRef.current;
@@ -352,18 +366,22 @@ export function CertificateDesigner({ event }: { event: Event }) {
 
   const handleSelectDefaultTemplate = () => {
     setEditingId(null);
-    setName("Sertifikat Mexpo (Default)");
-    setDraft(cloneTemplate(DEFAULT_CERTIFICATE_TEMPLATE));
+    setName("ID Badge Mexpo (Default)");
+    setDraft(cloneTemplate(DEFAULT_BADGE_TEMPLATE));
     setSelectedId(null);
     setBgFile(null);
     setBgPreviewUrl("");
-    toast.info("Memuat template bawaan");
+    toast.info("Memuat template badge bawaan");
   };
 
   const handleSelectTemplate = (t: CertificateTemplate) => {
     setEditingId(t.uuid);
     setName(t.name);
-    setDraft(t.template ? (t.template as CertificateTemplateEnvelope) : cloneTemplate(DEFAULT_CERTIFICATE_TEMPLATE));
+    setDraft(
+      t.template
+        ? (t.template as CertificateTemplateEnvelope)
+        : cloneTemplate(DEFAULT_BADGE_TEMPLATE),
+    );
     setSelectedId(null);
     setBgFile(null);
     setBgPreviewUrl("");
@@ -371,8 +389,8 @@ export function CertificateDesigner({ event }: { event: Event }) {
 
   const handleNewTemplate = () => {
     setEditingId(null);
-    setName("Sertifikat Baru");
-    setDraft(cloneTemplate(DEFAULT_CERTIFICATE_TEMPLATE));
+    setName("ID Badge Baru");
+    setDraft(cloneTemplate(DEFAULT_BADGE_TEMPLATE));
     setSelectedId(null);
     setBgFile(null);
     setBgPreviewUrl("");
@@ -385,23 +403,24 @@ export function CertificateDesigner({ event }: { event: Event }) {
     setSelectedId(null);
     setBgFile(null);
     setBgPreviewUrl("");
-    toast.success("Template berhasil diduplikasi. Silakan edit dan simpan sebagai template baru.");
+    toast.success(
+      "Template badge berhasil diduplikasi. Silakan edit dan simpan sebagai template baru.",
+    );
   };
 
   const handleSave = async () => {
     if (saving) return;
     setSaving(true);
-    const payload = { name, kind: "WORKSHOP", template: draft, is_active: true };
+    const payload = { name, kind: "BADGE", template: draft, is_active: true };
     try {
       const res = editingId
         ? await updateCertificateTemplate(editingId, payload, bgFile ?? undefined)
         : await createCertificateTemplate(event.uuid, payload, bgFile ?? undefined);
-      if (!res.status) throw new Error(res.message ?? "Gagal menyimpan template");
-      toast.success(editingId ? "Template sertifikat diperbarui" : "Template sertifikat dibuat");
+      if (!res.status) throw new Error(res.message ?? "Gagal menyimpan template badge");
+      toast.success(
+        editingId ? "Template badge diperbarui" : "Template badge dibuat",
+      );
 
-      // Adopt the persisted record: keep edit mode bound to it and, when a
-      // background image was just uploaded, swap the local object URL for the
-      // real S3 URL the backend generated.
       const saved = res.data as CertificateTemplate | null | undefined;
       if (saved?.uuid) setEditingId(saved.uuid);
       if (saved?.background && draft.background.type === "image") {
@@ -415,23 +434,23 @@ export function CertificateDesigner({ event }: { event: Event }) {
       setBgPreviewUrl("");
       await queryClient.invalidateQueries({ queryKey: listKey });
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Gagal menyimpan template");
+      toast.error(e instanceof Error ? e.message : "Gagal menyimpan template badge");
     } finally {
       setSaving(false);
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm("Hapus template sertifikat ini?")) return;
+    if (!window.confirm("Hapus template badge ini?")) return;
     setDeleting(true);
     try {
       const res = await deleteCertificateTemplate(id);
-      if (!res.status) throw new Error(res.message ?? "Gagal menghapus template");
-      toast.success("Template sertifikat dihapus");
+      if (!res.status) throw new Error(res.message ?? "Gagal menghapus template badge");
+      toast.success("Template badge dihapus");
       if (editingId === id) handleNewTemplate();
       await queryClient.invalidateQueries({ queryKey: listKey });
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Gagal menghapus template");
+      toast.error(e instanceof Error ? e.message : "Gagal menghapus template badge");
     } finally {
       setDeleting(false);
     }
@@ -454,7 +473,6 @@ export function CertificateDesigner({ event }: { event: Event }) {
       value: current.value ?? "",
       ...patch,
     };
-    // Keep `text` in sync so the template stays readable without binding too.
     const text =
       next.type === "static" ? next.value ?? "" : (next.value ?? "");
     patchSelected({ binding: next, text });
@@ -463,16 +481,26 @@ export function CertificateDesigner({ event }: { event: Event }) {
   const handleExportPdf = (print: boolean) => {
     const stage = stageRef.current;
     if (!stage) return;
-    downloadCertificatePdf(stage, `${name.toLowerCase().replace(/[^a-z0-9]+/g, "-") || "sertifikat"}.pdf`, print);
+    downloadCertificatePdf(
+      stage,
+      `${name.toLowerCase().replace(/[^a-z0-9]+/g, "-") || "id-badge"}.pdf`,
+      print,
+    );
   };
 
   const handleExportPng = () => {
     const stage = stageRef.current;
     if (!stage) return;
-    const dataUrl = stage.toDataURL({ pixelRatio: 2, x: 0, y: 0, width: stage.width(), height: stage.height() });
+    const dataUrl = stage.toDataURL({
+      pixelRatio: 2,
+      x: 0,
+      y: 0,
+      width: stage.width(),
+      height: stage.height(),
+    });
     const a = document.createElement("a");
     a.href = dataUrl;
-    a.download = `${name || "sertifikat"}.png`;
+    a.download = `${name || "id-badge"}.png`;
     a.click();
   };
 
@@ -495,21 +523,8 @@ export function CertificateDesigner({ event }: { event: Event }) {
     }));
   };
 
-  const handleBackgroundUrl = (url: string) => {
-    if (!url.trim()) return;
-    setBgFile(null);
-    setBgPreviewUrl("");
-    setDraft((prev) => ({
-      ...prev,
-      background: { type: "image", url: url.trim() },
-    }));
-  };
-
   const addImageViaPrompt = () => {
-    const url = window.prompt(
-      "Tempel URL gambar (logo / tanda tangan / watermark):",
-      "",
-    );
+    const url = window.prompt("Tempel URL gambar (Logo / Avatar / Icon):", "");
     if (url && url.trim()) {
       setDraft((prev) => addNode(prev, makeImageNode(url.trim())));
     }
@@ -520,16 +535,15 @@ export function CertificateDesigner({ event }: { event: Event }) {
       {/* Header row */}
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
-            <Award className="h-5 w-5" />
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+            <CreditCard className="h-5 w-5" />
           </div>
           <div>
             <h2 className="text-base font-semibold text-gray-900">
-              Desain Sertifikat
+              Desain ID Badge & Name Tag
             </h2>
             <p className="text-xs text-gray-500">
-              Atur layout, latar belakang, dan teks default/kustom dengan
-              Konva.js
+              Kustomisasi tata letak, banner, avatar, dan QR code badge pengunjung
             </p>
           </div>
         </div>
@@ -591,7 +605,7 @@ export function CertificateDesigner({ event }: { event: Event }) {
         <input
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="Nama template"
+          placeholder="Nama template badge"
           className={`${inputCls} max-w-xs`}
         />
         <label className="flex cursor-pointer items-center gap-2 text-xs font-medium text-gray-600">
@@ -617,7 +631,7 @@ export function CertificateDesigner({ event }: { event: Event }) {
       {/* Template list */}
       <div className="mb-6">
         <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-500">
-          Pilihan Template
+          Pilihan Template ID Badge
         </div>
         {isLoading ? (
           <div className="flex justify-center py-4">
@@ -625,7 +639,7 @@ export function CertificateDesigner({ event }: { event: Event }) {
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {/* Non-removable default template card */}
+            {/* Non-removable default badge template */}
             <div
               className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-sm transition-colors ${
                 editingId === null && name.includes("Default")
@@ -638,7 +652,7 @@ export function CertificateDesigner({ event }: { event: Event }) {
                 onClick={handleSelectDefaultTemplate}
                 className="flex-1 truncate text-left font-medium text-blue-900"
               >
-                Template Default (Bawaan)
+                ID Badge Default (Bawaan)
                 <span className="ml-2 rounded-full bg-blue-200 px-2 py-0.5 text-[10px] font-bold text-blue-800">
                   Sistem
                 </span>
@@ -653,7 +667,7 @@ export function CertificateDesigner({ event }: { event: Event }) {
               </button>
             </div>
 
-            {/* Custom event templates */}
+            {/* Custom event badge templates */}
             {(templates ?? []).map((t) => (
               <div
                 key={t.uuid}
@@ -703,10 +717,10 @@ export function CertificateDesigner({ event }: { event: Event }) {
         {/* Canvas */}
         <div
           ref={canvasPanelRef}
-          className="overflow-hidden rounded-xl border border-gray-200 bg-gray-50 p-4"
+          className="flex items-center justify-center overflow-hidden rounded-xl border border-gray-200 bg-gray-50 p-6"
         >
           <div
-            className="mx-auto"
+            className="mx-auto shadow-md"
             style={{ width: Math.round(draft.width * fitScale) }}
           >
             <CertificateCanvas
@@ -732,7 +746,7 @@ export function CertificateDesigner({ event }: { event: Event }) {
           {/* Add elements */}
           <section className="rounded-xl border border-gray-200 p-4">
             <h3 className="mb-3 text-sm font-semibold text-gray-800">
-              Tambah Elemen
+              Tambah Elemen Badge
             </h3>
             <div className="grid grid-cols-2 gap-2">
               <button
@@ -742,16 +756,27 @@ export function CertificateDesigner({ event }: { event: Event }) {
                 }
                 className="flex items-center justify-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50"
               >
-                <Type className="h-4 w-4" /> Teks
+                <Type className="h-4 w-4" /> Teks Bebas
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  setDraft((prev) => addNode(prev, makeQrNode()))
+                }
+                className="flex items-center justify-center gap-1.5 rounded-lg border border-brand-200 bg-brand-50 px-3 py-2 text-xs font-medium text-brand-700 hover:bg-brand-100"
+              >
+                <QrCode className="h-4 w-4" /> QR Code
               </button>
               {CERTIFICATE_FIELDS.map((f) => (
                 <button
                   key={f.key}
                   type="button"
                   onClick={() =>
-                    setDraft((prev) => addNode(prev, makeDynamicTextNode(f.key)))
+                    setDraft((prev) =>
+                      addNode(prev, makeDynamicTextNode(f.key)),
+                    )
                   }
-                  className="flex items-center justify-center gap-1.5 rounded-lg border border-brand-200 bg-brand-50 px-3 py-2 text-xs font-medium text-brand-700 hover:bg-brand-100"
+                  className="flex items-center justify-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50"
                 >
                   <Type className="h-4 w-4" /> {f.label}
                 </button>
@@ -763,14 +788,23 @@ export function CertificateDesigner({ event }: { event: Event }) {
                 }
                 className="flex items-center justify-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50"
               >
-                <Square className="h-4 w-4" /> Kotak
+                <Square className="h-4 w-4" /> Kotak / Banner
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  setDraft((prev) => addNode(prev, makeCircleNode()))
+                }
+                className="flex items-center justify-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50"
+              >
+                <CircleIcon className="h-4 w-4" /> Lingkaran / Avatar
               </button>
               <button
                 type="button"
                 onClick={addImageViaPrompt}
-                className="flex items-center justify-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50"
+                className="col-span-2 flex items-center justify-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50"
               >
-                <FilePlus2 className="h-4 w-4" /> Gambar
+                <FilePlus2 className="h-4 w-4" /> Tambah Gambar / Logo
               </button>
             </div>
           </section>
@@ -778,14 +812,24 @@ export function CertificateDesigner({ event }: { event: Event }) {
           {/* Background */}
           <section className="rounded-xl border border-gray-200 p-4">
             <h3 className="mb-3 text-sm font-semibold text-gray-800">
-              Latar Belakang
+              Latar Belakang & Ukuran
             </h3>
             <div className="space-y-3">
               <div className="flex gap-2">
                 <button
                   type="button"
-                  onClick={() => handleBackgroundColor(draft.background.type === "color" ? draft.background.value ?? "#ffffff" : "#ffffff")}
-                  className={`flex-1 rounded-lg border px-3 py-2 text-xs font-medium ${draft.background.type === "color" ? "border-brand-500 bg-brand-50 text-brand-700" : "border-gray-200 text-gray-600"}`}
+                  onClick={() =>
+                    handleBackgroundColor(
+                      draft.background.type === "color"
+                        ? draft.background.value ?? "#f8fafc"
+                        : "#f8fafc",
+                    )
+                  }
+                  className={`flex-1 rounded-lg border px-3 py-2 text-xs font-medium ${
+                    draft.background.type === "color"
+                      ? "border-brand-500 bg-brand-50 text-brand-700"
+                      : "border-gray-200 text-gray-600"
+                  }`}
                 >
                   Warna
                 </button>
@@ -803,7 +847,11 @@ export function CertificateDesigner({ event }: { event: Event }) {
                       },
                     }))
                   }
-                  className={`flex-1 rounded-lg border px-3 py-2 text-xs font-medium ${draft.background.type === "image" ? "border-brand-500 bg-brand-50 text-brand-700" : "border-gray-200 text-gray-600"}`}
+                  className={`flex-1 rounded-lg border px-3 py-2 text-xs font-medium ${
+                    draft.background.type === "image"
+                      ? "border-brand-500 bg-brand-50 text-brand-700"
+                      : "border-gray-200 text-gray-600"
+                  }`}
                 >
                   Gambar
                 </button>
@@ -813,7 +861,7 @@ export function CertificateDesigner({ event }: { event: Event }) {
                 <Field label="Warna dasar">
                   <input
                     type="color"
-                    value={draft.background.value ?? "#ffffff"}
+                    value={draft.background.value ?? "#f8fafc"}
                     onChange={(e) => handleBackgroundColor(e.target.value)}
                     className="h-9 w-full cursor-pointer rounded-lg border border-gray-200"
                   />
@@ -828,16 +876,6 @@ export function CertificateDesigner({ event }: { event: Event }) {
                     }
                     className="block w-full text-xs text-gray-500 file:mr-3 file:rounded-lg file:border-0 file:bg-brand-50 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-brand-600"
                   />
-                  <input
-                    type="text"
-                    placeholder="atau tempel URL gambar…"
-                    className={inputCls}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        handleBackgroundUrl((e.target as HTMLInputElement).value);
-                      }
-                    }}
-                  />
                 </div>
               )}
 
@@ -847,7 +885,7 @@ export function CertificateDesigner({ event }: { event: Event }) {
                     type="number"
                     value={draft.width}
                     min={200}
-                    max={4000}
+                    max={2000}
                     onChange={(e) =>
                       setDraft((prev) => ({
                         ...prev,
@@ -862,7 +900,7 @@ export function CertificateDesigner({ event }: { event: Event }) {
                     type="number"
                     value={draft.height}
                     min={200}
-                    max={4000}
+                    max={2000}
                     onChange={(e) =>
                       setDraft((prev) => ({
                         ...prev,
@@ -877,342 +915,225 @@ export function CertificateDesigner({ event }: { event: Event }) {
           </section>
 
           {/* Inspector */}
-          <section className="rounded-xl border border-gray-200 p-4">
-            <h3 className="mb-3 text-sm font-semibold text-gray-800">
-              Properti
-            </h3>
-            {!selectedNode ? (
-              <p className="text-xs text-gray-400">
-                Pilih elemen di kanvas untuk mengubah propertinya.
-              </p>
-            ) : (
-              <Inspector
-                node={selectedNode}
-                onPatch={patchSelected}
-                onBindingChange={handleBindingChange}
-                onRemove={() => {
-                  if (!selectedId) return;
-                  setDraft((prev) => removeNode(prev, selectedId));
-                  setSelectedId(null);
-                }}
-                onMove={(dir) => {
-                  if (!selectedId) return;
-                  setDraft((prev) => moveNode(prev, selectedId, dir));
-                }}
-                onDuplicate={() => {
-                  if (!selectedNode) return;
-                  const clone: CertificateTemplateNode = JSON.parse(
-                    JSON.stringify(selectedNode),
-                  );
-                  clone.attrs = { ...clone.attrs, id: uid(), x: (clone.attrs.x as number) + 24, y: (clone.attrs.y as number) + 24 };
-                  setDraft((prev) => addNode(prev, clone));
-                }}
-              />
-            )}
-          </section>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ── Inspector panel ──
-
-function Inspector({
-  node,
-  onPatch,
-  onBindingChange,
-  onRemove,
-  onMove,
-  onDuplicate,
-}: {
-  node: CertificateTemplateNode;
-  onPatch: (patch: Record<string, unknown>) => void;
-  onBindingChange: (patch: Partial<CertificateBinding>) => void;
-  onRemove: () => void;
-  onMove: (dir: 1 | -1) => void;
-  onDuplicate: () => void;
-}) {
-  const a = node.attrs as Record<string, unknown>;
-  const binding = a.binding as CertificateBinding | undefined;
-  const isText = node.className === "Text";
-
-  const num = (key: string) =>
-    key in a ? String(a[key]) : "";
-
-  return (
-    <div className="space-y-3">
-      {/* Actions */}
-      <div className="flex items-center gap-1.5">
-        <button
-          type="button"
-          onClick={() => onMove(-1)}
-          className="rounded-lg border border-gray-200 p-1.5 text-gray-600 hover:bg-gray-50"
-          title="Maju (ke atas)"
-        >
-          <ArrowUp className="h-4 w-4" />
-        </button>
-        <button
-          type="button"
-          onClick={() => onMove(1)}
-          className="rounded-lg border border-gray-200 p-1.5 text-gray-600 hover:bg-gray-50"
-          title="Mundur (ke bawah)"
-        >
-          <ArrowDown className="h-4 w-4" />
-        </button>
-        <button
-          type="button"
-          onClick={onDuplicate}
-          className="rounded-lg border border-gray-200 p-1.5 text-gray-600 hover:bg-gray-50"
-          title="Duplikat"
-        >
-          <Copy className="h-4 w-4" />
-        </button>
-        <button
-          type="button"
-          onClick={onRemove}
-          className="rounded-lg border border-error-200 p-1.5 text-error-600 hover:bg-error-50"
-          title="Hapus elemen"
-        >
-          <Trash2 className="h-4 w-4" />
-        </button>
-      </div>
-
-      {/* Geometry */}
-      <div className="grid grid-cols-2 gap-2">
-        <Field label="X">
-          <input
-            type="number"
-            value={num("x")}
-            onChange={(e) => onPatch({ x: Number(e.target.value) || 0 })}
-            className={inputCls}
-          />
-        </Field>
-        <Field label="Y">
-          <input
-            type="number"
-            value={num("y")}
-            onChange={(e) => onPatch({ y: Number(e.target.value) || 0 })}
-            className={inputCls}
-          />
-        </Field>
-        <Field label="Lebar">
-          <input
-            type="number"
-            value={num("width")}
-            min={1}
-            onChange={(e) => onPatch({ width: Math.max(1, Number(e.target.value) || 1) })}
-            className={inputCls}
-          />
-        </Field>
-        <Field label="Tinggi">
-          <input
-            type="number"
-            value={num("height")}
-            min={1}
-            onChange={(e) => onPatch({ height: Math.max(1, Number(e.target.value) || 1) })}
-            className={inputCls}
-          />
-        </Field>
-        <Field label="Rotasi">
-          <input
-            type="number"
-            value={num("rotation")}
-            onChange={(e) => onPatch({ rotation: Number(e.target.value) || 0 })}
-            className={inputCls}
-          />
-        </Field>
-        <Field label="Opacity">
-          <input
-            type="number"
-            min={0}
-            max={1}
-            step={0.05}
-            value={a.opacity === undefined ? "1" : String(a.opacity)}
-            onChange={(e) => onPatch({ opacity: Math.min(1, Math.max(0, Number(e.target.value) || 0)) })}
-            className={inputCls}
-          />
-        </Field>
-      </div>
-
-      {/* Appearance */}
-      <Field label="Warna isi">
-        <input
-          type="color"
-          value={typeof a.fill === "string" ? a.fill : "#000000"}
-          onChange={(e) => onPatch({ fill: e.target.value })}
-          className="h-9 w-full cursor-pointer rounded-lg border border-gray-200"
-        />
-      </Field>
-
-      {/* Text-specific */}
-      {isText && (
-        <>
-          <div className="space-y-2">
-            <Field label="Jenis nilai">
-              <select
-                value={binding?.type ?? "static"}
-                onChange={(e) =>
-                  onBindingChange({
-                    type: e.target.value as "static" | "dynamic",
-                  })
-                }
-                className={inputCls}
-              >
-                <option value="static">Teks default (tetap)</option>
-                <option value="dynamic">Nilai kustom per peserta</option>
-              </select>
-            </Field>
-
-            {binding?.type === "dynamic" ? (
-              <Field label="Data peserta">
-                <select
-                  value={binding.key ?? ""}
-                  onChange={(e) =>
-                    onBindingChange({
-                      key: e.target.value as CertificateFieldKey,
-                    })
+          {selectedNode ? (
+            <section className="rounded-xl border border-brand-200 bg-brand-50/30 p-4">
+              <div className="mb-3 flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-brand-900">
+                  Properti: {selectedNode.className}
+                </h3>
+                <button
+                  type="button"
+                  onClick={() =>
+                    selectedId &&
+                    setDraft((prev) => removeNode(prev, selectedId))
                   }
-                  className={inputCls}
+                  className="rounded-md p-1 text-red-500 hover:bg-red-50"
+                  title="Hapus elemen"
                 >
-                  <option value="" disabled>
-                    Pilih data…
-                  </option>
-                  {CERTIFICATE_FIELDS.map((f) => (
-                    <option key={f.key} value={f.key}>
-                      {f.label}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-            ) : (
-              <Field label="Teks default">
-                <input
-                  type="text"
-                  value={
-                    typeof binding?.value === "string"
-                      ? binding.value
-                      : typeof a.text === "string"
-                        ? a.text
-                        : ""
-                  }
-                  onChange={(e) => onBindingChange({ value: e.target.value })}
-                  className={inputCls}
-                />
-              </Field>
-            )}
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
 
-            <div className="grid grid-cols-2 gap-2">
-              <Field label="Ukuran font">
-                <input
-                  type="number"
-                  min={6}
-                  value={num("fontSize")}
-                  onChange={(e) => onPatch({ fontSize: Math.max(6, Number(e.target.value) || 6) })}
-                  className={inputCls}
-                />
-              </Field>
-              <Field label="Jarak huruf">
-                <input
-                  type="number"
-                  value={num("letterSpacing")}
-                  onChange={(e) => onPatch({ letterSpacing: Number(e.target.value) || 0 })}
-                  className={inputCls}
-                />
-              </Field>
+              <div className="space-y-3">
+                {selectedNode.className === "Text" && (
+                  <>
+                    <Field label="Jenis Nilai">
+                      <select
+                        value={selectedNode.attrs.binding?.type ?? "static"}
+                        onChange={(e) =>
+                          handleBindingChange({
+                            type: e.target.value as "static" | "dynamic",
+                          })
+                        }
+                        className={inputCls}
+                      >
+                        <option value="static">Teks Tetap</option>
+                        <option value="dynamic">Data Dinamis</option>
+                      </select>
+                    </Field>
+
+                    {selectedNode.attrs.binding?.type === "dynamic" ? (
+                      <Field label="Pilih Field Dinamis">
+                        <select
+                          value={selectedNode.attrs.binding?.key ?? "participant_name"}
+                          onChange={(e) =>
+                            handleBindingChange({
+                              key: e.target.value as CertificateFieldKey,
+                            })
+                          }
+                          className={inputCls}
+                        >
+                          {CERTIFICATE_FIELDS.map((f) => (
+                            <option key={f.key} value={f.key}>
+                              {f.label}
+                            </option>
+                          ))}
+                        </select>
+                      </Field>
+                    ) : (
+                      <Field label="Teks">
+                        <input
+                          value={(selectedNode.attrs.text as string) ?? ""}
+                          onChange={(e) =>
+                            handleBindingChange({ value: e.target.value })
+                          }
+                          className={inputCls}
+                        />
+                      </Field>
+                    )}
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <Field label="Ukuran Font">
+                        <input
+                          type="number"
+                          value={(selectedNode.attrs.fontSize as number) ?? 16}
+                          min={8}
+                          max={160}
+                          onChange={(e) =>
+                            patchSelected({
+                              fontSize: Math.max(
+                                8,
+                                Number(e.target.value) || 16,
+                              ),
+                            })
+                          }
+                          className={inputCls}
+                        />
+                      </Field>
+                      <Field label="Warna Teks">
+                        <input
+                          type="color"
+                          value={
+                            (selectedNode.attrs.fill as string) ?? "#000000"
+                          }
+                          onChange={(e) =>
+                            patchSelected({ fill: e.target.value })
+                          }
+                          className="h-9 w-full cursor-pointer rounded-lg border border-gray-200"
+                        />
+                      </Field>
+                    </div>
+
+                    <Field label="Font Family">
+                      <select
+                        value={
+                          (selectedNode.attrs.fontFamily as string) ??
+                          FONT_OPTIONS[0]
+                        }
+                        onChange={(e) =>
+                          patchSelected({ fontFamily: e.target.value })
+                        }
+                        className={inputCls}
+                      >
+                        {FONT_OPTIONS.map((font) => (
+                          <option key={font} value={font}>
+                            {font.split(",")[0].replace(/['"]/g, "")}
+                          </option>
+                        ))}
+                      </select>
+                    </Field>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <Field label="Gaya Font">
+                        <select
+                          value={
+                            (selectedNode.attrs.fontStyle as string) ?? "normal"
+                          }
+                          onChange={(e) =>
+                            patchSelected({ fontStyle: e.target.value })
+                          }
+                          className={inputCls}
+                        >
+                          {FONT_STYLES.map((st) => (
+                            <option key={st} value={st}>
+                              {st}
+                            </option>
+                          ))}
+                        </select>
+                      </Field>
+                      <Field label="Perataan">
+                        <select
+                          value={
+                            (selectedNode.attrs.align as string) ?? "center"
+                          }
+                          onChange={(e) =>
+                            patchSelected({ align: e.target.value })
+                          }
+                          className={inputCls}
+                        >
+                          <option value="left">Kiri</option>
+                          <option value="center">Tengah</option>
+                          <option value="right">Kanan</option>
+                        </select>
+                      </Field>
+                    </div>
+                  </>
+                )}
+
+                {(selectedNode.className === "Rect" ||
+                  selectedNode.className === "Circle") && (
+                  <div className="space-y-3">
+                    <Field label="Warna Isian">
+                      <input
+                        type="color"
+                        value={(selectedNode.attrs.fill as string) ?? "#3c85f3"}
+                        onChange={(e) =>
+                          patchSelected({ fill: e.target.value })
+                        }
+                        className="h-9 w-full cursor-pointer rounded-lg border border-gray-200"
+                      />
+                    </Field>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Field label="Warna Garis">
+                        <input
+                          type="color"
+                          value={
+                            (selectedNode.attrs.stroke as string) ?? "#000000"
+                          }
+                          onChange={(e) =>
+                            patchSelected({ stroke: e.target.value })
+                          }
+                          className="h-9 w-full cursor-pointer rounded-lg border border-gray-200"
+                        />
+                      </Field>
+                      <Field label="Tebal Garis">
+                        <input
+                          type="number"
+                          value={
+                            (selectedNode.attrs.strokeWidth as number) ?? 0
+                          }
+                          min={0}
+                          max={30}
+                          onChange={(e) =>
+                            patchSelected({
+                              strokeWidth: Number(e.target.value) || 0,
+                            })
+                          }
+                          className={inputCls}
+                        />
+                      </Field>
+                    </div>
+                  </div>
+                )}
+
+                {selectedNode.className === "Image" && (
+                  <Field label="URL Gambar">
+                    <input
+                      value={(selectedNode.attrs.src as string) ?? ""}
+                      onChange={(e) => patchSelected({ src: e.target.value })}
+                      className={inputCls}
+                    />
+                  </Field>
+                )}
+              </div>
+            </section>
+          ) : (
+            <div className="rounded-xl border border-dashed border-gray-200 p-6 text-center text-xs text-gray-400">
+              Klik elemen pada kanvas untuk mengubah teks, ukuran, atau warnanya.
             </div>
-
-            <Field label="Font">
-              <select
-                value={(a.fontFamily as string) ?? FONT_OPTIONS[0]}
-                onChange={(e) => onPatch({ fontFamily: e.target.value })}
-                className={inputCls}
-              >
-                {FONT_OPTIONS.map((f) => (
-                  <option key={f} value={f}>
-                    {f}
-                  </option>
-                ))}
-              </select>
-            </Field>
-
-            <Field label="Gaya font">
-              <select
-                value={(a.fontStyle as string) ?? "normal"}
-                onChange={(e) => onPatch({ fontStyle: e.target.value })}
-                className={inputCls}
-              >
-                {FONT_STYLES.map((s) => (
-                  <option key={s} value={s}>
-                    {s}
-                  </option>
-                ))}
-              </select>
-            </Field>
-
-            <Field label="Perataan">
-              <select
-                value={(a.align as string) ?? "left"}
-                onChange={(e) => onPatch({ align: e.target.value })}
-                className={inputCls}
-              >
-                <option value="left">Kiri</option>
-                <option value="center">Tengah</option>
-                <option value="right">Kanan</option>
-              </select>
-            </Field>
-          </div>
-        </>
-      )}
-
-      {/* Image-specific */}
-      {node.className === "Image" && (
-        <Field label="URL gambar">
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={(a.src as string) ?? ""}
-              onChange={(e) => onPatch({ src: e.target.value })}
-              className={inputCls}
-              placeholder="https://…"
-            />
-            <button
-              type="button"
-              onClick={() => {
-                const url = window.prompt("Ganti URL gambar:", (a.src as string) ?? "");
-                if (url && url.trim()) onPatch({ src: url.trim() });
-              }}
-              className="shrink-0 rounded-lg border border-gray-200 px-3 text-xs font-medium text-gray-600 hover:bg-gray-50"
-            >
-              Ganti
-            </button>
-          </div>
-        </Field>
-      )}
-
-      {/* Rect/Image stroke */}
-      {(node.className === "Rect" || node.className === "Circle") && (
-        <div className="grid grid-cols-2 gap-2">
-          <Field label="Sudut (radius)">
-            <input
-              type="number"
-              min={0}
-              value={num("cornerRadius")}
-              onChange={(e) => onPatch({ cornerRadius: Math.max(0, Number(e.target.value) || 0) })}
-              className={inputCls}
-            />
-          </Field>
-          <Field label="Ketebalan garis">
-            <input
-              type="number"
-              min={0}
-              value={num("strokeWidth")}
-              onChange={(e) => onPatch({ strokeWidth: Math.max(0, Number(e.target.value) || 0) })}
-              className={inputCls}
-            />
-          </Field>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 }

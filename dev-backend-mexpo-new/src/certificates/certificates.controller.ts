@@ -35,16 +35,18 @@ import { QueryCertificateTemplateDto } from './dto/query-certificate-template.dt
 export class CertificatesController {
   constructor(private readonly certificatesService: CertificatesService) {}
 
-  /** The active template used to render certificates for an event. */
+  /** The active template used to render certificates/badges for an event. */
   @Get(`active/:event_id`)
   findActive(
     @Param(`event_id`) event_id: string,
+    @Query(`kind`) kind: string | undefined,
     @Request() request: authType.AuthRequest,
   ) {
     return this.certificatesService.findActive(
       event_id,
       request.user.uuid,
       request.user.role as UserRole,
+      kind,
     );
   }
 

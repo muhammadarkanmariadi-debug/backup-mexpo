@@ -126,9 +126,11 @@ export interface Event {
 
 
 export type EventRoleType = "OWNER" | "COMMITTEE" | "TENANT" | "VISITOR";
+export type UserEventRoleStatus = "PENDING" | "APPROVED" | "REJECTED";
 
 export interface UserEventRole {
   role: EventRoleType;
+  status?: UserEventRoleStatus;
 }
 
 

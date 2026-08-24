@@ -1,4 +1,4 @@
-import { IsNumberString, IsOptional } from 'class-validator';
+import { IsNumberString, IsOptional, IsString } from 'class-validator';
 
 export class QueryCertificateTemplateDto {
   @IsOptional()
@@ -8,4 +8,8 @@ export class QueryCertificateTemplateDto {
   @IsOptional()
   @IsNumberString()
   quantity?: string;
+
+  @IsOptional()
+  @IsString()
+  kind?: string;
 }

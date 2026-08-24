@@ -5,14 +5,18 @@ import {
 } from "@/entities/event/certificate-template.entity";
 import { dateFormat } from "@/shared/utils/format";
 
-/** Designer-facing list of dynamic certificate fields (whitelisted on the backend too). */
+/** Designer-facing list of dynamic certificate and badge fields (whitelisted on the backend too). */
 export const CERTIFICATE_FIELDS: { key: CertificateFieldKey; label: string }[] = [
   { key: "participant_name", label: "Nama Peserta" },
+  { key: "organization", label: "Organisasi / Instansi" },
+  { key: "role", label: "Peran / Role" },
+  { key: "email", label: "Email" },
   { key: "event_name", label: "Nama Event" },
   { key: "workshop_title", label: "Judul Workshop" },
   { key: "date", label: "Tanggal" },
   { key: "organizer_name", label: "Nama Penyelenggara" },
-  { key: "certificate_number", label: "Nomor Sertifikat" },
+  { key: "certificate_number", label: "Nomor Sertifikat / ID" },
+  { key: "qr_code", label: "Data QR Code" },
 ];
 
 export function fieldLabel(key: CertificateFieldKey): string {
@@ -28,6 +32,10 @@ export function buildSampleData(): CertificateData {
     date: dateFormat(new Date().toISOString()),
     organizer_name: "SMK Telkom Malang",
     certificate_number: "MXP/2026/0001",
+    organization: "SMK Telkom Malang",
+    role: "VISITOR",
+    email: "rizky.pratama@example.com",
+    qr_code: "mexpo:sample:visitor",
   };
 }
 
@@ -53,6 +61,10 @@ export interface CertificateSource {
   date: string;
   organizerName: string;
   certificateNumber?: string;
+  organization?: string;
+  role?: string;
+  email?: string;
+  qrCode?: string;
 }
 
 export function buildCertificateData(source: CertificateSource): CertificateData {
@@ -63,6 +75,33 @@ export function buildCertificateData(source: CertificateSource): CertificateData
     date: source.date,
     organizer_name: source.organizerName,
     certificate_number: source.certificateNumber ?? "",
+    organization: source.organization ?? "",
+    role: source.role ?? "VISITOR",
+    email: source.email ?? "",
+    qr_code: source.qrCode ?? "",
+  };
+}
+
+export function buildBadgeData(params: {
+  fullName: string;
+  eventName: string;
+  date: string;
+  organization?: string;
+  email?: string;
+  role?: string;
+  qrCodeData?: string;
+}): CertificateData {
+  return {
+    participant_name: params.fullName,
+    event_name: params.eventName,
+    workshop_title: "",
+    date: params.date,
+    organizer_name: "",
+    certificate_number: params.qrCodeData ?? "",
+    organization: params.organization || "Umum",
+    role: params.role || "VISITOR",
+    email: params.email || "",
+    qr_code: params.qrCodeData || "",
   };
 }
 

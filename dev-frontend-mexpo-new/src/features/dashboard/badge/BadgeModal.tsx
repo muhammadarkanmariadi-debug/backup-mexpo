@@ -1,22 +1,36 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { jsPDF } from "jspdf";
 import { Download, Loader2, Printer } from "lucide-react";
+import dynamic from "next/dynamic";
+import type { Stage as StageType } from "konva/lib/Stage";
 
 import { Event } from "@/entities/event/event.entity";
+import { CertificateTemplate } from "@/entities/event/certificate-template.entity";
 import { useAuthStore } from "@/stores/auth.store";
 import { useApiQuery } from "@/lib/hooks/useApi";
 import { keys } from "@/lib/query-keys";
 import { getMyQr, MyQr } from "@/services/qr.service";
+import { getActiveCertificateTemplate } from "@/services/certificate.service";
 import { dateFormat } from "@/shared/utils/format";
 import { Modal } from "@/shared/components/ui/Modal";
 import Image from "next/image";
 import { labelFor, ROLE_LABELS } from "@/shared/data/labels";
+import { buildBadgeData } from "@/features/certificates/certificate-fields";
+import { downloadCertificatePdf } from "@/features/certificates/export-certificate";
 
 const BRAND = [60, 133, 243] as const; // #3c85f3
 const BRAND_600 = [54, 65, 245] as const; // #3641f5
+
+const CertificateCanvas = dynamic(
+  () =>
+    import("@/features/certificates/CertificateStage").then(
+      (m) => m.CertificateStage,
+    ),
+  { ssr: false },
+);
 
 /** Load a remote photo to a base64 PNG via canvas. Returns null on CORS/error. */
 function loadPhotoDataUrl(src: string): Promise<string | null> {
@@ -46,9 +60,9 @@ function loadPhotoDataUrl(src: string): Promise<string | null> {
 }
 
 /**
- * ID Badge popup — replaces the old /badge page.
- * Shows a styled badge preview and renders an identical, printable PDF card
- * via jsPDF (Download / Print).
+ * ID Badge popup.
+ * Renders the organizer-customized badge template via Konva (if active)
+ * or falls back to the default ID-badge card, with 1-click PDF/print export.
  */
 export function BadgeModal({
   event,
@@ -60,20 +74,55 @@ export function BadgeModal({
   onClose: () => void;
 }) {
   const { user } = useAuthStore();
-  const { data: qr, isLoading } = useApiQuery<MyQr | null>(
+  const { data: qr, isLoading: isQrLoading } = useApiQuery<MyQr | null>(
     keys.qr.my(event.uuid),
     () => getMyQr(event.uuid),
     { retry: 0 },
   );
+
+  const { data: activeBadge, isLoading: isBadgeLoading } =
+    useApiQuery<CertificateTemplate | null>(
+      ["active-badge-template", event.uuid],
+      () => getActiveCertificateTemplate(event.uuid, "BADGE"),
+      { retry: 0 },
+    );
+
   const [busy, setBusy] = useState(false);
+  const stageRef = useRef<StageType | null>(null);
 
   const role = user?.role === "SUPERADMIN" ? "SUPERADMIN" : "VISITOR";
   const roleLabel = labelFor(ROLE_LABELS, role, role);
+
+  const badgeData = useMemo(() => {
+    return buildBadgeData({
+      fullName: user?.full_name ?? "-",
+      eventName: event.name,
+      date: dateFormat(event.start_date),
+      organization: "SMK Telkom Malang",
+      email: user?.email ?? "",
+      role: roleLabel,
+      qrCodeData: qr?.code_data ?? `mexo:${event.uuid}:${user?.uuid ?? ""}`,
+    });
+  }, [user, event, roleLabel, qr]);
+
+  const customTemplate = activeBadge?.template ?? null;
 
   const renderPdf = async (print: boolean) => {
     if (!user) return;
     setBusy(true);
     try {
+      if (customTemplate && stageRef.current) {
+        downloadCertificatePdf(
+          stageRef.current,
+          `id-badge-${(user.full_name ?? "visitor").toLowerCase().replace(/\s+/g, "-")}.pdf`,
+          print,
+        );
+        toast.success(
+          print ? "PDF badge dibuka untuk dicetak." : "PDF badge berhasil diunduh.",
+        );
+        return;
+      }
+
       const doc = new jsPDF({
         orientation: "portrait",
         unit: "mm",
@@ -93,13 +142,18 @@ export function BadgeModal({
       doc.text("MEXPO", W / 2, 13, { align: "center" });
 
       doc.setFontSize(10);
-      doc.text(doc.splitTextToSize(event.name, W - 16), W / 2, 21, { align: "center" });
+      doc.text(
+        doc.splitTextToSize(event.name, W - 16),
+        W / 2,
+        21,
+        { align: "center" },
+      );
 
       doc.setFont("helvetica", "normal");
       doc.setFontSize(8);
       doc.text(dateFormat(event.start_date), W / 2, 29, { align: "center" });
 
-      // ── Avatar (photo circle, falls back to initial) ──
+      // ── Avatar ──
       const cx = W / 2;
       const cy = 51;
       const r = 10.5;
@@ -118,7 +172,12 @@ export function BadgeModal({
         doc.setTextColor(255, 255, 255);
         doc.setFont("helvetica", "bold");
         doc.setFontSize(16);
-        doc.text(((user.full_name?.trim()[0] ?? "?").toUpperCase()), cx, cy + 5.5, { align: "center" });
+        doc.text(
+          (user.full_name?.trim()[0] ?? "?").toUpperCase(),
+          cx,
+          cy + 5.5,
+          { align: "center" },
+        );
       }
 
       // ── Identity ──
@@ -138,12 +197,12 @@ export function BadgeModal({
       y += (emailLines.length > 1 ? 4 : 2.5) + 1.5;
 
       // Role chip
-      doc.setFillColor(236, 243, 255); // brand-50
+      doc.setFillColor(236, 243, 255);
       doc.setFont("helvetica", "bold");
       doc.setFontSize(7.5);
       const chipW = doc.getTextWidth(roleLabel.toUpperCase()) + 6;
       doc.roundedRect(W / 2 - chipW / 2, y - 3, chipW, 5.5, 2.5, 2.5, "F");
-      doc.setTextColor(42, 49, 216); // brand-700
+      doc.setTextColor(42, 49, 216);
       doc.text(roleLabel.toUpperCase(), W / 2, y + 0.6, { align: "center" });
 
       // ── QR ──
@@ -154,16 +213,25 @@ export function BadgeModal({
         doc.setTextColor(120, 120, 125);
         doc.setFont("helvetica", "normal");
         doc.setFontSize(6);
-        doc.text(doc.splitTextToSize(qr.code_data ?? "", W - 10), W / 2, qy + qSize + 4, { align: "center" });
+        doc.text(
+          doc.splitTextToSize(qr.code_data ?? "", W - 10),
+          W / 2,
+          qy + qSize + 4,
+          { align: "center" },
+        );
       }
 
       if (print) {
         doc.autoPrint();
         window.open(doc.output("bloburl"), "_blank");
       } else {
-        doc.save(`id-badge-${(user.full_name ?? "user").toLowerCase().replace(/\s+/g, "-")}.pdf`);
+        doc.save(
+          `id-badge-${(user.full_name ?? "user").toLowerCase().replace(/\s+/g, "-")}.pdf`,
+        );
       }
-      toast.success(print ? "PDF badge dibuka untuk dicetak." : "PDF badge berhasil diunduh.");
+      toast.success(
+        print ? "PDF badge dibuka untuk dicetak." : "PDF badge berhasil diunduh.",
+      );
     } catch {
       toast.error("Gagal membuat PDF badge.");
     } finally {
@@ -171,45 +239,84 @@ export function BadgeModal({
     }
   };
 
+  const isLoading = isQrLoading || isBadgeLoading;
+
   return (
-    <Modal isOpen={open} onClose={onClose} title="ID Badge" maxWidth="max-w-sm">
+    <Modal
+      isOpen={open}
+      onClose={onClose}
+      title="ID Badge & Name Tag"
+      maxWidth={customTemplate ? "max-w-md" : "max-w-sm"}
+    >
       {isLoading ? (
         <div className="flex justify-center py-16">
           <Loader2 className="h-6 w-6 animate-spin text-secondary" />
         </div>
       ) : (
         <>
-          {/* Preview — same visual language as the generated PDF */}
-          <div id="badge-print" className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
-            <div className="bg-gradient-to-r from-brand-500 to-brand-600 px-4 py-4 text-center">
-              <p className="text-xs font-semibold uppercase tracking-widest text-white/90">Mexpo</p>
-              <p className="mt-0.5 truncate font-bold text-white">{event.name}</p>
-              <p className="text-xs text-white/90">{dateFormat(event.start_date)}</p>
-            </div>
-            <div className="flex flex-col items-center px-6 py-5">
-              {user?.photo ? (
-                <Image
-                  src={user.photo}
-                  alt={user.full_name}
-                  width={80}
-                  height={80}
-                  className="h-20 w-20 rounded-full object-cover ring-2 ring-brand-500"
+          {/* Custom designed badge template (if configured by event organizer) */}
+          {customTemplate ? (
+            <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white p-2 shadow-sm">
+              <div className="flex justify-center">
+                <CertificateCanvas
+                  template={customTemplate}
+                  data={badgeData}
+                  stageRef={stageRef}
+                  fitScale={Math.min(380 / customTemplate.width, 1)}
                 />
-              ) : (
-                <div className="flex h-20 w-20 items-center justify-center rounded-full bg-brand-50 text-2xl font-bold text-brand-600">
-                  {(user?.full_name ?? "?")[0]}
-                </div>
-              )}
-              <p className="mt-3 text-lg font-bold text-gray-900">{user?.full_name}</p>
-              <p className="text-xs text-gray-500">{user?.email}</p>
-              <span className="mt-2 rounded-full bg-brand-50 px-3 py-0.5 text-xs font-semibold uppercase text-brand-600">
-                {roleLabel}
-              </span>
-              {qr?.image && (
-                <Image src={qr.image} alt="QR Code" width={144} height={144} unoptimized className="mt-4 h-36 w-36" />
-              )}
+              </div>
             </div>
-          </div>
+          ) : (
+            /* Fallback ID-badge */
+            <div
+              id="badge-print"
+              className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm"
+            >
+              <div className="bg-gradient-to-r from-brand-500 to-brand-600 px-4 py-4 text-center">
+                <p className="text-xs font-semibold uppercase tracking-widest text-white/90">
+                  Mexpo
+                </p>
+                <p className="mt-0.5 truncate font-bold text-white">
+                  {event.name}
+                </p>
+                <p className="text-xs text-white/90">
+                  {dateFormat(event.start_date)}
+                </p>
+              </div>
+              <div className="flex flex-col items-center px-6 py-5">
+                {user?.photo ? (
+                  <Image
+                    src={user.photo}
+                    alt={user.full_name}
+                    width={80}
+                    height={80}
+                    className="h-20 w-20 rounded-full object-cover ring-2 ring-brand-500"
+                  />
+                ) : (
+                  <div className="flex h-20 w-20 items-center justify-center rounded-full bg-brand-50 text-2xl font-bold text-brand-600">
+                    {(user?.full_name ?? "?")[0]}
+                  </div>
+                )}
+                <p className="mt-3 text-lg font-bold text-gray-900">
+                  {user?.full_name}
+                </p>
+                <p className="text-xs text-gray-500">{user?.email}</p>
+                <span className="mt-2 rounded-full bg-brand-50 px-3 py-0.5 text-xs font-semibold uppercase text-brand-600">
+                  {roleLabel}
+                </span>
+                {qr?.image && (
+                  <Image
+                    src={qr.image}
+                    alt="QR Code"
+                    width={144}
+                    height={144}
+                    unoptimized
+                    className="mt-4 h-36 w-36"
+                  />
+                )}
+              </div>
+            </div>
+          )}
 
           <div className="mt-4 flex gap-2">
             <button
@@ -218,7 +325,11 @@ export function BadgeModal({
               disabled={busy}
               className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-secondary px-4 py-2.5 text-sm font-semibold text-white hover:bg-secondary/80 disabled:opacity-50"
             >
-              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+              {busy ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Download className="h-4 w-4" />
+              )}
               Unduh PDF
             </button>
             <button
@@ -227,7 +338,11 @@ export function BadgeModal({
               disabled={busy}
               className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-gray-200 px-4 py-2.5 text-sm font-semibold text-gray-600 hover:bg-gray-50 disabled:opacity-50"
             >
-              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Printer className="h-4 w-4" />}
+              {busy ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Printer className="h-4 w-4" />
+              )}
               Cetak
             </button>
           </div>

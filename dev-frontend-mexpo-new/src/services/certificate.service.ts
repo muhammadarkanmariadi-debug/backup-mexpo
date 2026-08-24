@@ -31,12 +31,13 @@ export async function getCertificateTemplates(
   };
 }
 
-/** The active template used to render certificates for an event (or null). */
-export async function getActiveCertificateTemplate(eventId: string) {
+/** The active template used to render certificates/badges for an event (or null). */
+export async function getActiveCertificateTemplate(eventId: string, kind?: string) {
   const res = await httpGet(
     `certificates/templates/active/${eventId}`,
     "token",
     META_DYNAMIC,
+    kind ? { kind } : undefined,
   );
   return {
     data: (res.data as CertificateTemplate | null) ?? null,
