@@ -36,6 +36,7 @@ export default function RegistrationForm({ event, fields, ticketTypes }: Props) 
   const [submitted, setSubmitted] = useState(false);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [ticketTypeId, setTicketTypeId] = useState(ticketTypes[0]?.uuid ?? "");
+  const [showManualPayment, setShowManualPayment] = useState(false);
   const [payment, setPayment] = useState({ payment_reference: "", payment_method: "CASH" });
   // Midtrans Snap intent returned by the public registration for PAID events.
   const [paymentIntent, setPaymentIntent] = useState<PaymentIntent | null>(null);
@@ -45,6 +46,23 @@ export default function RegistrationForm({ event, fields, ticketTypes }: Props) 
   const [checkingRegistration, setCheckingRegistration] = useState(
     isAuthenticated && !!user,
   );
+
+  const isPaid =
+    event.ticket_mode === "PAID" || event.features?.paidTicket === true;
+
+  // Pre-load Snap script so the checkout modal opens with zero delay
+  useEffect(() => {
+    if (isPaid) {
+      void loadSnapScript();
+    }
+  }, [isPaid]);
+
+  // Keep ticketTypeId in sync if ticketTypes prop loads/updates
+  useEffect(() => {
+    if (!ticketTypeId && ticketTypes.length > 0) {
+      setTicketTypeId(ticketTypes[0].uuid);
+    }
+  }, [ticketTypes, ticketTypeId]);
 
   useEffect(() => {
     if (!isAuthenticated || !user) {
@@ -82,9 +100,6 @@ export default function RegistrationForm({ event, fields, ticketTypes }: Props) 
     };
   }, [isAuthenticated, user, event.uuid, event.slug, router]);
 
-  const isPaid =
-    event.ticket_mode === "PAID" || event.features?.paidTicket === true;
-
   const setAnswer = (key: string, value: string) =>
     setAnswers((a) => ({ ...a, [key]: value }));
 
@@ -117,8 +132,8 @@ export default function RegistrationForm({ event, fields, ticketTypes }: Props) 
     setPaymentBusy(true);
     try {
       const ready = await loadSnapScript();
-      if (!ready) {
-        toast.error("Gagal memuat Midtrans Snap. Coba lagi nanti.");
+      if (!ready || typeof window === "undefined" || !window.snap) {
+        toast.error("Gagal memuat Midtrans Snap. Coba klik 'Lanjut ke Pembayaran' lagi.");
         return;
       }
       payWithSnap(intent.snap_token, {
@@ -169,8 +184,10 @@ export default function RegistrationForm({ event, fields, ticketTypes }: Props) 
       };
       if (isPaid) {
         payload.ticket_type_id = ticketTypeId || undefined;
-        payload.payment_reference = payment.payment_reference || undefined;
-        payload.payment_method = payment.payment_method || undefined;
+        if (showManualPayment && payment.payment_reference.trim()) {
+          payload.payment_reference = payment.payment_reference.trim();
+          payload.payment_method = payment.payment_method;
+        }
       }
       const res = await registerVisitor(event.uuid, payload);
       if (!res.status) throw new Error(res.message || "Gagal mendaftar");
@@ -317,8 +334,7 @@ export default function RegistrationForm({ event, fields, ticketTypes }: Props) 
         <div className="rounded-lg bg-blue-50/60 p-4 text-sm text-gray-700">
           {isPaid ? (
             <span>
-              Tiket berbayar — pilih tiket dan siapkan referensi pembayaran
-              (manual/POS).
+              Tiket berbayar — pembayaran online instan via Midtrans Snap (QRIS, E-Wallet, VA Bank).
             </span>
           ) : (
             <span>Event gratis — tiket otomatis diterbitkan setelah pendaftaran.</span>
@@ -341,31 +357,46 @@ export default function RegistrationForm({ event, fields, ticketTypes }: Props) 
             </select>
           </div>
         )}
+
         {isPaid && (
-          <>
-            <Input
-              label="Referensi Pembayaran (opsional)"
-              value={payment.payment_reference}
-              onChange={(e) =>
-                setPayment({ ...payment, payment_reference: e.target.value })
-              }
-              placeholder="No. invoice / bukti transfer"
-            />
-            <div>
-              <label className={LABEL_CLS}>Metode Pembayaran</label>
-              <select
-                value={payment.payment_method}
-                onChange={(e) =>
-                  setPayment({ ...payment, payment_method: e.target.value })
-                }
-                className={INPUT_CLS}
-              >
-                <option value="CASH">Cash</option>
-                <option value="QRIS">QRIS</option>
-                <option value="TRANSFER">Transfer</option>
-              </select>
-            </div>
-          </>
+          <div className="border-t border-gray-100 pt-3">
+            <button
+              type="button"
+              onClick={() => setShowManualPayment(!showManualPayment)}
+              className="text-xs font-semibold text-brand-600 hover:underline"
+            >
+              {showManualPayment
+                ? "← Kembali ke Pembayaran Online (Midtrans)"
+                : "+ Punya bukti transfer / Bayar via kasir panitia (Manual)?"}
+            </button>
+
+            {showManualPayment && (
+              <div className="mt-3 space-y-3 rounded-lg border border-gray-200 bg-gray-50/50 p-4">
+                <Input
+                  label="Referensi Pembayaran"
+                  value={payment.payment_reference}
+                  onChange={(e) =>
+                    setPayment({ ...payment, payment_reference: e.target.value })
+                  }
+                  placeholder="No. invoice / bukti transfer"
+                />
+                <div>
+                  <label className={LABEL_CLS}>Metode Pembayaran</label>
+                  <select
+                    value={payment.payment_method}
+                    onChange={(e) =>
+                      setPayment({ ...payment, payment_method: e.target.value })
+                    }
+                    className={INPUT_CLS}
+                  >
+                    <option value="CASH">Cash</option>
+                    <option value="QRIS">QRIS</option>
+                    <option value="TRANSFER">Transfer</option>
+                  </select>
+                </div>
+              </div>
+            )}
+          </div>
         )}
 
         {visibleFields.map((f) => (

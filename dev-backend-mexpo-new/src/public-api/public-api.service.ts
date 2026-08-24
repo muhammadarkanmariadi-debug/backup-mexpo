@@ -630,11 +630,15 @@ export class PublicApiService {
         },
       });
       if (isPaid) {
-        if (ticket_type_id) {
-          const type = await this.prisma.ticket_types.findFirst({
-            where: { uuid: ticket_type_id, event_id },
-          });
-          if (!type) throw new NotFoundException(`Ticket type doesn't exists`);
+        const type = ticket_type_id
+          ? await this.prisma.ticket_types.findFirst({
+              where: { uuid: ticket_type_id, event_id },
+            })
+          : await this.prisma.ticket_types.findFirst({
+              where: { event_id },
+              orderBy: { price: `asc` },
+            });
+        if (type) {
           if (existingTicket) {
             await this.prisma.tickets.update({
               where: { uuid: existingTicket.uuid },
@@ -681,7 +685,7 @@ export class PublicApiService {
       // non-blocking — registration still succeeds and the logged-in
       // `POST /events/:id/checkout` can generate the intent later.
       let payment: unknown = null;
-      if (isPaid && ticket_type_id) {
+      if (isPaid && !payment_reference) {
         const ticket = await this.prisma.tickets.findFirst({
           where: {
             event_id,
