@@ -16,9 +16,12 @@ export const BASIC_AUTH_PASSWORD =
 export const TOKEN_KEY = process.env.NEXT_PUBLIC_TOKEN_KEY || "";
 
 export const MIDTRANS_CLIENT_KEY =
-  process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY || "";
+  process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY ||
+  process.env.MIDTRANS_CLIENT_KEY ||
+  "SB-Mid-client-IiW5j-bppphCXvWE";
 export const MIDTRANS_IS_PRODUCTION =
-  process.env.NEXT_PUBLIC_MIDTRANS_IS_PRODUCTION === "true";
+  process.env.NEXT_PUBLIC_MIDTRANS_IS_PRODUCTION === "true" ||
+  process.env.MIDTRANS_IS_PRODUCTION === "true";
 
 export const GOOGLE_CLIENT_ID =
   process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "";

@@ -40,7 +40,10 @@ export class MidtransService {
   constructor(private readonly configService: ConfigService) {}
 
   private get serverKey(): string {
-    return this.configService.get<string>(`MIDTRANS_SERVER_KEY`) ?? ``;
+    return (
+      this.configService.get<string>(`MIDTRANS_SERVER_KEY`) ||
+      `SB-Mid-server-dp6l7Q5hwsmvkWsP3-kOc7Jh`
+    );
   }
 
   private get isProduction(): boolean {
