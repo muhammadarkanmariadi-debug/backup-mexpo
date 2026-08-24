@@ -14,7 +14,7 @@ import {
   RegisterVisitorPayload,
 } from "@/services/registration.service";
 import { getEventByUuidByMe } from "@/services/event.service";
-import { getTransaction } from "@/services/payment.service";
+import { checkout, getTransaction } from "@/services/payment.service";
 import { loadSnapScript, payWithSnap } from "@/shared/utils/snap";
 import { useAuthStore } from "@/stores/auth.store";
 
@@ -161,8 +161,29 @@ export default function RegistrationForm({ event, fields, ticketTypes }: Props) 
   };
 
   const openSnap = async () => {
-    if (paymentIntent) {
-      await triggerSnap(paymentIntent);
+    setPaymentBusy(true);
+    try {
+      let intent = paymentIntent;
+      if (!intent?.snap_token) {
+        const checkoutRes = await checkout(event.uuid, {
+          ticket_type_id: ticketTypeId || undefined,
+        });
+        if (checkoutRes.status && checkoutRes.data) {
+          intent = checkoutRes.data as unknown as PaymentIntent;
+          setPaymentIntent(intent);
+          setPaymentStatus("PENDING");
+        } else {
+          toast.error(checkoutRes.message || "Gagal membuat transaksi pembayaran Midtrans.");
+          return;
+        }
+      }
+      if (intent?.snap_token) {
+        await triggerSnap(intent);
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Gagal membuka pembayaran.");
+    } finally {
+      setPaymentBusy(false);
     }
   };
 
@@ -195,13 +216,28 @@ export default function RegistrationForm({ event, fields, ticketTypes }: Props) 
 
       // A1b — public registration returns the Midtrans Snap intent for paid
       // events, so the fresh visitor can pay right away (no login needed).
-      const paymentData = (res.data as { payment?: unknown } | null)?.payment;
-      if (isPaid && paymentData && typeof paymentData === "object") {
-        const intent = paymentData as unknown as PaymentIntent;
-        setPaymentIntent(intent);
-        setPaymentStatus("PENDING");
-        // Automatically open Snap popup for immediate checkout
-        void triggerSnap(intent);
+      if (isPaid && !showManualPayment) {
+        const paymentData = (res.data as { payment?: unknown } | null)?.payment;
+        let intent = paymentData as unknown as PaymentIntent | undefined;
+
+        if (!intent?.snap_token && isAuthenticated) {
+          try {
+            const checkoutRes = await checkout(event.uuid, {
+              ticket_type_id: ticketTypeId || undefined,
+            });
+            if (checkoutRes.status && checkoutRes.data) {
+              intent = checkoutRes.data as unknown as PaymentIntent;
+            }
+          } catch {
+            // fallback handled by openSnap button
+          }
+        }
+
+        if (intent?.snap_token) {
+          setPaymentIntent(intent);
+          setPaymentStatus("PENDING");
+          void triggerSnap(intent);
+        }
       }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Terjadi kesalahan server");
