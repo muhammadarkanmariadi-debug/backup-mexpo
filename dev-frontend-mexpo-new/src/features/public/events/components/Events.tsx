@@ -136,7 +136,7 @@ export default function Events({ events: initialEvents }: { events: Event[] }) {
           fill
           priority
           sizes="(max-width: 768px) 100vw, (max-width: 1280px) 100vw, 1280px"
-          className="object-cover"
+          className=" h-96"
         />
 
         <div className="relative z-10 flex w-full max-w-7xl flex-col items-center gap-4 text-center text-white sm:gap-3 md:gap-4">
@@ -160,7 +160,7 @@ export default function Events({ events: initialEvents }: { events: Event[] }) {
             <button
               className={`font-jakarta whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-semibold transition-colors sm:px-4 sm:py-2 sm:text-sm ${
                 category === "All Events"
-                  ? "bg-blue-600 text-white shadow-sm"
+                  ? "bg-secondary dark:bg-secondary text-white shadow-sm"
                   : "bg-transparent text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
               }`}
               onClick={() => selectCategory("All Events")}
@@ -170,7 +170,7 @@ export default function Events({ events: initialEvents }: { events: Event[] }) {
             <button
               className={`font-jakarta whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-semibold transition-colors sm:px-4 sm:py-2 sm:text-sm ${
                 category === "On Going"
-                  ? "bg-blue-600 text-white shadow-sm"
+                  ? "bg-secondary dark:bg-secondary text-white shadow-sm"
                   : "bg-transparent text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
               }`}
               onClick={() => selectCategory("On Going")}
@@ -180,7 +180,7 @@ export default function Events({ events: initialEvents }: { events: Event[] }) {
             <button
               className={`font-jakarta whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-semibold transition-colors sm:px-4 sm:py-2 sm:text-sm ${
                 category === "Upcoming"
-                  ? "bg-blue-600 text-white shadow-sm"
+                  ? "bg-secondary dark:bg-secondary text-white shadow-sm"
                   : "bg-transparent text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
               }`}
               onClick={() => selectCategory("Upcoming")}
@@ -190,7 +190,7 @@ export default function Events({ events: initialEvents }: { events: Event[] }) {
             <button
               className={`font-jakarta whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-semibold transition-colors sm:px-4 sm:py-2 sm:text-sm ${
                 category === "Past"
-                  ? "bg-blue-600 text-white shadow-sm"
+                  ? "bg-secondary dark:bg-secondary text-white shadow-sm"
                   : "bg-transparent text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
               }`}
               onClick={() => selectCategory("Past")}
