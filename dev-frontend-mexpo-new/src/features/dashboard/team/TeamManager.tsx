@@ -41,7 +41,7 @@ export default function TeamManager({ event }: { event: Event }) {
 
   const { confirm, dialogs } = useConfirm();
 
-  const list = useList<EventUser>((q) => getEventUsers(event.uuid, { ...q, role: "OWNER,COMMITTEE" }), [event.uuid]);
+  const list = useList<EventUser>((q) => getEventUsers(event.uuid, { ...q, role: q.role || "OWNER,COMMITTEE" }), [event.uuid]);
 
   const add = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -129,6 +129,7 @@ export default function TeamManager({ event }: { event: Event }) {
             </button>
           ))}
           <span className="ml-2 text-xs font-medium text-gray-500">Status:</span>
+          <button onClick={() => list.applyFilter("status", "")} className={`rounded-full px-2.5 py-1 text-xs font-semibold ${!list.filters.status ? "bg-secondary text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>Semua</button>
           {STATUSES.map((s) => (
             <button key={s} onClick={() => list.applyFilter("status", s)} className={`rounded-full px-2.5 py-1 text-xs font-semibold ${list.filters.status === s ? "bg-secondary text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
               {labelFor(APPROVAL_STATUS_LABELS, s, s)}

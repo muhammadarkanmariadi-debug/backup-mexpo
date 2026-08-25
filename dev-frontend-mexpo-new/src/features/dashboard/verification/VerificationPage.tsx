@@ -58,7 +58,7 @@ function TenantsTab({ event }: Props) {
           <button
             key={t}
             onClick={() => tenants.applyFilter("status", t)}
-            className={`rounded-full px-4 py-1.5 text-sm font-semibold transition-colors ${tenants.filters.status === t ? "bg-secondary text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}
+            className={`rounded-full px-4 py-1.5 text-sm font-semibold transition-colors ${(tenants.filters.status || "") === t ? "bg-secondary text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}
           >
             {tabLabel(t)}
           </button>
@@ -152,7 +152,7 @@ function UsersTab({ event }: Props) {
           <button
             key={t}
             onClick={() => requests.applyFilter("status", t)}
-            className={`rounded-full px-4 py-1.5 text-sm font-semibold transition-colors ${requests.filters.status === t ? "bg-secondary text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}
+            className={`rounded-full px-4 py-1.5 text-sm font-semibold transition-colors ${(requests.filters.status || "") === t ? "bg-secondary text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}
           >
             {tabLabel(t)}
           </button>
