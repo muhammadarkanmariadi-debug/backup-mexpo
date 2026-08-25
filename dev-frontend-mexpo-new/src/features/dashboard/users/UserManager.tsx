@@ -12,12 +12,25 @@ import SortMenu from "@/shared/components/ui/SortMenu";
 import PageHeader from "@/shared/components/ui/PageHeader";
 import PageShell from "@/shared/components/ui/PageShell";
 import Badge from "@/shared/components/ui/Badge";
+import { useEffect, useState } from "react";
 
 export default function UserManager() {
   const { user } = useAuthStore();
   const isSuperAdmin = user?.role === "SUPERADMIN";
 
+  const [status, setStatus] = useState("Aktif")
+
   const list = useList<UserListItem>((q) => getUsers(q), [isSuperAdmin]);
+
+
+  useEffect(() => {
+    if (status === "Aktif") {
+      list.applyFilter("is_active", "true")
+    } else {
+      list.applyFilter("is_active", "false")
+    } 
+  }, [status])
+
 
   if (!isSuperAdmin) {
     return (
@@ -28,7 +41,7 @@ export default function UserManager() {
   }
 
   return (
-<PageShell className="py-8">
+    <PageShell className="py-8">
       <PageHeader title="Manajemen User" subtitle="Kelola semua akun pengguna." />
 
       <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-gray-100 bg-white p-4">
@@ -37,17 +50,16 @@ export default function UserManager() {
         </div>
         <div className="flex items-center gap-2">
           <span className="text-xs font-medium text-gray-500">Status:</span>
-          {["", "true", "false"].map((v) => (
+          {[ "Aktif", "Non-aktif"].map((v) => (
             <button
               key={v}
-              onClick={() => list.applyFilter("is_active", v)}
-              className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                list.filters.is_active === v
-                  ? "bg-secondary text-white"
-                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-              }`}
+              onClick={() => setStatus(v)}
+              className={`rounded-full px-3 py-1 text-xs font-semibold ${status === v
+                ? "bg-secondary text-white"
+                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                }`}
             >
-              {v === "" ? "Semua" : v === "true" ? "Aktif" : "Non-aktif"}
+              {v}
             </button>
           ))}
         </div>
