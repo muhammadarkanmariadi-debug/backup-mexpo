@@ -78,8 +78,8 @@ export default function CategoryFilter({
               <div
                 className={`w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center rounded-full transition-all duration-300 shadow-sm ${
                   isActive
-                    ? "bg-secondary text-white scale-110 shadow-md"
-                    : "bg-white text-secondary border border-secondary/20 hover:border-secondary hover:bg-secondary/5"
+                    ? "bg-blue-600 dark:bg-blue-600 text-white scale-110 shadow-md ring-2 ring-blue-500/30"
+                    : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-700 hover:border-blue-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50/50 dark:hover:bg-blue-900/20"
                 }`}
               >
                 <Icon size={28} strokeWidth={isActive ? 2.5 : 2} />
@@ -89,8 +89,8 @@ export default function CategoryFilter({
               <div
                 className={`w-full px-2 py-1 sm:py-1.5 rounded-full text-[10px] sm:text-xs font-semibold text-center border transition-all duration-300 ${
                   isActive
-                    ? "bg-secondary border-secondary text-white"
-                    : "bg-white border-secondary/40 text-secondary group-hover:border-secondary"
+                    ? "bg-blue-600 dark:bg-blue-600 border-blue-600 text-white shadow-sm"
+                    : "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 group-hover:border-blue-500 group-hover:text-blue-600 dark:group-hover:text-blue-400"
                 }`}
               >
                 {CATEGORY_LABELS[type]}

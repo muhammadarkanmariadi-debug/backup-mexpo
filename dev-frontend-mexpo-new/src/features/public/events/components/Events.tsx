@@ -129,18 +129,13 @@ export default function Events({ events: initialEvents }: { events: Event[] }) {
 
   return (
     <div className="mx-auto max-w-7xl">
-      <motion.div
-        className="relative mt-0 flex min-h-[320px] w-full flex-col items-center justify-center overflow-hidden rounded-xl px-4 py-12 sm:px-6 md:min-h-[400px] md:px-8 lg:mt-10"
-        initial={{ opacity: 0, y: 30 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        transition={{ duration: 0.6 }}
-      >
+      <div className="relative mt-0 flex min-h-[320px] w-full flex-col items-center justify-center overflow-hidden rounded-xl px-4 py-12 sm:px-6 md:min-h-[400px] md:px-8 lg:mt-10">
         <Image
           src="/images/cards/card-e.png"
           alt="Event Header"
           fill
           priority
+          sizes="(max-width: 768px) 100vw, (max-width: 1280px) 100vw, 1280px"
           className="object-cover"
         />
 
@@ -161,12 +156,12 @@ export default function Events({ events: initialEvents }: { events: Event[] }) {
               placeholder="Cari Event..."
             />
           </div>
-          <div className="flex w-fit flex-wrap justify-center gap-2 rounded-2xl bg-white/95 p-1.5 text-gray-800 shadow-md backdrop-blur-sm sm:gap-3 sm:p-2 md:gap-4">
+          <div className="flex w-fit flex-wrap justify-center gap-2 rounded-2xl bg-white/95 dark:bg-gray-900/95 p-1.5 text-gray-800 dark:text-gray-100 shadow-md backdrop-blur-sm sm:gap-3 sm:p-2 md:gap-4">
             <button
               className={`font-jakarta whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-semibold transition-colors sm:px-4 sm:py-2 sm:text-sm ${
                 category === "All Events"
-                  ? "bg-secondary text-white"
-                  : "bg-transparent text-gray-700 hover:bg-gray-100"
+                  ? "bg-blue-600 text-white shadow-sm"
+                  : "bg-transparent text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
               }`}
               onClick={() => selectCategory("All Events")}
             >
@@ -175,8 +170,8 @@ export default function Events({ events: initialEvents }: { events: Event[] }) {
             <button
               className={`font-jakarta whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-semibold transition-colors sm:px-4 sm:py-2 sm:text-sm ${
                 category === "On Going"
-                  ? "bg-secondary text-white"
-                  : "bg-transparent text-gray-700 hover:bg-gray-100"
+                  ? "bg-blue-600 text-white shadow-sm"
+                  : "bg-transparent text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
               }`}
               onClick={() => selectCategory("On Going")}
             >
@@ -185,8 +180,8 @@ export default function Events({ events: initialEvents }: { events: Event[] }) {
             <button
               className={`font-jakarta whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-semibold transition-colors sm:px-4 sm:py-2 sm:text-sm ${
                 category === "Upcoming"
-                  ? "bg-secondary text-white"
-                  : "bg-transparent text-gray-700 hover:bg-gray-100"
+                  ? "bg-blue-600 text-white shadow-sm"
+                  : "bg-transparent text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
               }`}
               onClick={() => selectCategory("Upcoming")}
             >
@@ -195,8 +190,8 @@ export default function Events({ events: initialEvents }: { events: Event[] }) {
             <button
               className={`font-jakarta whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-semibold transition-colors sm:px-4 sm:py-2 sm:text-sm ${
                 category === "Past"
-                  ? "bg-secondary text-white"
-                  : "bg-transparent text-gray-700 hover:bg-gray-100"
+                  ? "bg-blue-600 text-white shadow-sm"
+                  : "bg-transparent text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
               }`}
               onClick={() => selectCategory("Past")}
             >
@@ -204,7 +199,7 @@ export default function Events({ events: initialEvents }: { events: Event[] }) {
             </button>
           </div>
         </div>
-      </motion.div>
+      </div>
 
       {/* When on "All Events": show title, trending events, and category filter */}
       {isAllEvents && (

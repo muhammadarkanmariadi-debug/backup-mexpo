@@ -1,7 +1,3 @@
-@import url(https://fonts.googleapis.com/css?family=Outfit:100,200,300,regular,500,600,700,800,900);
-@import url(https://fonts.googleapis.com/css?family=Plus+Jakarta+Sans:200,300,regular,500,600,700,800,200italic,300italic,italic,500italic,600italic,700italic,800italic);
-@import url(https://fonts.googleapis.com/css?family=Public+Sans:100,200,300,regular,500,600,700,800,900,100italic,200italic,300italic,italic,500italic,600italic,700italic,800italic,900italic);
-
 @import "tailwindcss";
 
 @import "tw-animate-css";
@@ -49,10 +45,10 @@
 
 @theme {
   --font-*: initial;
-  --font-outfit: Outfit, sans-serif;
+  --font-outfit: var(--font-outfit), Outfit, sans-serif;
 
-  --font-jakarta: "Plus Jakarta Sans", sans-serif;
-  --font-public-sans: "Public Sans", sans-serif;
+  --font-jakarta: var(--font-jakarta), "Plus Jakarta Sans", sans-serif;
+  --font-public-sans: var(--font-public-sans), "Public Sans", sans-serif;
 
   --color-primary: #ffffff; /* ✅ Putih */
   --color-secondary: #3c85f3;

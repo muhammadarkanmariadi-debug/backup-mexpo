@@ -29,9 +29,8 @@ const Footer = () => {
           src="/images/shape/Pattern 2.png"
           alt=""
           fill
-          priority
           sizes="(max-width: 768px) 100vw, 50vw"
-          className="w-full object-left"
+          className="object-cover object-left"
         />
       </div>
 
