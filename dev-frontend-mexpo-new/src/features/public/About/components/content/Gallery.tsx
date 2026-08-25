@@ -59,7 +59,7 @@ const Gallery = () => {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: index * 0.08 }}
-            className="relative group aspect-[4/3] overflow-hidden rounded-2xl"
+            className={`${index === 3 ? "sm:col-span-2 col-span-1" : ""} ${gallery.length - 1 === index && "sm:col-span-3 col-span-1"} relative group h-96 overflow-hidden rounded-2xl`}
           >
             <Image
               src={img(item.src)}

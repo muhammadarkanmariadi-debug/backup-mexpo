@@ -136,6 +136,7 @@ export default function RegistrationForm({ event, fields, ticketTypes }: Props) 
         toast.error("Gagal memuat Midtrans Snap. Coba klik 'Lanjut ke Pembayaran' lagi.");
         return;
       }
+      localStorage.setItem("mexpo_payment_redirect", `/dashboard/${event.slug ?? event.uuid}`);
       payWithSnap(intent.snap_token, {
         onSuccess: () => {
           setPaymentStatus("PAID");
@@ -227,8 +228,11 @@ export default function RegistrationForm({ event, fields, ticketTypes }: Props) 
             });
             if (checkoutRes.status && checkoutRes.data) {
               intent = checkoutRes.data as unknown as PaymentIntent;
+            } else {
+              console.error("Checkout fallback failed:", checkoutRes.message);
             }
-          } catch {
+          } catch (err) {
+            console.error("Checkout fallback threw error:", err);
             // fallback handled by openSnap button
           }
         }
@@ -276,22 +280,22 @@ export default function RegistrationForm({ event, fields, ticketTypes }: Props) 
           {isPaid ? " Lanjutkan ke pembayaran tiket untuk mengaktifkan tiketmu." : " Sampai jumpa di event!"}
         </p>
 
-        {isPaid && paymentIntent && (
+        {isPaid && (paymentIntent || true) && (
           <div className="mb-6 rounded-xl border border-gray-200 bg-white p-5 text-left">
             <div className="flex items-center justify-between border-b border-gray-100 pb-3">
               <span className="text-sm font-medium text-gray-600">
                 Tagihan Tiket
               </span>
               <span className="text-lg font-bold text-gray-900">
-                Rp {paymentIntent.amount.toLocaleString("id-ID")}
+                {paymentIntent ? `Rp ${paymentIntent.amount.toLocaleString("id-ID")}` : "-"}
               </span>
             </div>
             <div className="mt-3 grid grid-cols-1 gap-2 text-sm">
               <div className="flex items-center justify-between text-gray-500">
                 <span>Biaya tiket</span>
-                <span>Rp {paymentIntent.amount.toLocaleString("id-ID")}</span>
+                <span>{paymentIntent ? `Rp ${paymentIntent.amount.toLocaleString("id-ID")}` : "-"}</span>
               </div>
-              {paymentIntent.platform_fee > 0 && (
+              {paymentIntent && paymentIntent.platform_fee > 0 && (
                 <div className="flex items-center justify-between text-gray-500">
                   <span>Biaya platform</span>
                   <span>Rp {paymentIntent.platform_fee.toLocaleString("id-ID")}</span>
@@ -299,7 +303,7 @@ export default function RegistrationForm({ event, fields, ticketTypes }: Props) 
               )}
               <div className="flex items-center justify-between font-semibold text-gray-800">
                 <span>Total dibayar</span>
-                <span>Rp {paymentIntent.amount.toLocaleString("id-ID")}</span>
+                <span>{paymentIntent ? `Rp ${paymentIntent.amount.toLocaleString("id-ID")}` : "-"}</span>
               </div>
             </div>
 

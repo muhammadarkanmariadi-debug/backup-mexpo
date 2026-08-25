@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-
-import { Loader2, Award, IdCard, User, UserPlus, BookOpen, CalendarDays, Mic, Handshake, Phone, Store } from "lucide-react";
+import { toast } from "sonner";
+import { Loader2, Award, IdCard, User, UserPlus, BookOpen, CalendarDays, Mic, Handshake, Phone, Store, CreditCard } from "lucide-react";
 
 import DashboardTabs, { TabGroup } from "@/features/dashboard/shared/DashboardTabs";
 import { Info, QrCode } from "lucide-react";
@@ -26,12 +26,16 @@ import SpeakersTab from "@/shared/components/tabs/Speakers";
 import SponsorsTab from "@/shared/components/tabs/Sponsors";
 import ContactsTab from "@/shared/components/tabs/Contact";
 import { BadgeModal } from "@/features/dashboard/badge/BadgeModal";
+import { checkout } from "@/services/payment.service";
+import { loadSnapScript, payWithSnap } from "@/shared/utils/snap";
+import { PaymentIntent } from "@/entities/payment/payment.entity";
 
 interface Props { event: Event }
 
 export default function VisitorView({ event }: Props) {
   const isOpen = new Date() < new Date(event.registration_deadline);
   const [badgeOpen, setBadgeOpen] = useState(false);
+  const [paymentBusy, setPaymentBusy] = useState(false);
 
   const { data: qr, isLoading: loadingQr } = useApiQuery<MyQr | null>(
     keys.qr.my(event.uuid),
@@ -49,6 +53,37 @@ export default function VisitorView({ event }: Props) {
     () => getEventByUuidByMe(event.uuid),
     { enabled: false },
   );
+
+  const roleStatus = liveEvent?.userEventRoles?.[0]?.status ?? event.userEventRoles?.[0]?.status;
+  const isPending = roleStatus === "PENDING";
+
+  const handleResumePayment = async () => {
+    setPaymentBusy(true);
+    try {
+      const res = await checkout(event.uuid, {});
+      if (!res.status || !res.data) {
+        throw new Error(res.message || "Gagal membuat transaksi");
+      }
+      const intent = res.data as unknown as PaymentIntent;
+      
+      if (intent.snap_token) {
+        const ready = await loadSnapScript();
+        if (!ready) throw new Error("Gagal memuat Midtrans Snap");
+        
+        localStorage.setItem("mexpo_payment_redirect", `/dashboard/${event.slug ?? event.uuid}`);
+        payWithSnap(intent.snap_token, {
+          onSuccess: () => void refetchEvent(),
+          onPending: () => void refetchEvent(),
+          onError: () => toast.error("Pembayaran gagal"),
+          onClose: () => toast.info("Pembayaran belum selesai"),
+        });
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Terjadi kesalahan sistem");
+    } finally {
+      setPaymentBusy(false);
+    }
+  };
 
   const overviewContent = <EventOverview event={event} deadlineLabel="Daftar hingga" />;
 
@@ -158,6 +193,30 @@ export default function VisitorView({ event }: Props) {
       content: tenantsContent,
     }
   ];
+
+  if (isPending) {
+    return (
+      <PageShell className="py-10 flex items-center justify-center min-h-[60vh]">
+        <div className="max-w-md w-full rounded-2xl border border-amber-200 bg-amber-50 p-8 text-center shadow-sm">
+          <div className="mx-auto w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mb-4">
+            <CreditCard className="w-6 h-6 text-amber-600" />
+          </div>
+          <h2 className="text-xl font-bold text-amber-900 mb-2">Menunggu Pembayaran</h2>
+          <p className="text-amber-700 text-sm mb-6">
+            Kamu sudah terdaftar di <strong>{event.name}</strong>, tapi pembayaran tiket belum selesai. Silakan selesaikan pembayaran untuk mengakses dashboard event.
+          </p>
+          <button
+            onClick={handleResumePayment}
+            disabled={paymentBusy}
+            className="w-full inline-flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 px-6 py-3 rounded-xl font-semibold text-white transition-colors"
+          >
+            {paymentBusy ? <Loader2 className="w-5 h-5 animate-spin" /> : <CreditCard className="w-5 h-5" />}
+            Selesaikan Pembayaran
+          </button>
+        </div>
+      </PageShell>
+    );
+  }
 
   return (
     <PageShell className="py-10">
