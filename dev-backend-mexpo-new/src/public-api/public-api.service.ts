@@ -406,7 +406,7 @@ export class PublicApiService {
             some: {
               event_id,
               status,
-              role,
+              role: role as any,
             },
           },
           OR: [
@@ -426,7 +426,7 @@ export class PublicApiService {
             some: {
               event_id,
               status,
-              role,
+              role: role as any,
             },
           },
           OR: [
@@ -434,7 +434,6 @@ export class PublicApiService {
             { email: { contains: search ?? `` } },
           ],
         },
-        omit: { password: true },
         include: { userEventRoles: true },
       });
 
