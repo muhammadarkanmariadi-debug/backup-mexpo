@@ -628,7 +628,7 @@ export class UsersService {
     }
   }
 
-  async findAll(@Query() query: QueryUserDto, role: UserRole) {
+  async findAll(@Query() query: QueryUserDto, role?: UserRole) {
     try {
       const { page, quantity, search, is_active } = query;
       const take: number | undefined = quantity || undefined;
@@ -637,7 +637,7 @@ export class UsersService {
 
       const counts = await this.prisma.users.count({
         where: {
-          role,
+          role: role ? role : undefined,
           is_active: is_active !== undefined ? is_active : undefined,
           OR: [
             { full_name: { contains: search || '' } },
@@ -656,7 +656,7 @@ export class UsersService {
         }) as Prisma.usersOrderByWithRelationInput,
         omit: { password: true },
         where: {
-          role,
+          role: role ? role : undefined,
           is_active: is_active !== undefined ? is_active : undefined,
           OR: [
             { full_name: { contains: search || '' } },

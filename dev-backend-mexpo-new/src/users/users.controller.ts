@@ -86,7 +86,7 @@ export class UsersController {
   @Roles(`SUPERADMIN`)
   @UsePipes(new ValidationPipe({ exceptionFactory: FormatValidation }))
   findAll(@Query() query: QueryUserDto) {
-    return this.usersService.findAll(query, `USER`);
+    return this.usersService.findAll(query, undefined);
   }
 
   @Get(`superadmin`)

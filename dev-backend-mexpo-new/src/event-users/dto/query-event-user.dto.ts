@@ -22,8 +22,8 @@ export class QueryEventUserDto {
   status?: USER_EVENT_STATUS;
 
   @IsOptional()
-  @IsEnum(EventRole)
-  role?: EventRole;
+  @IsString()
+  role?: string;
 
   @IsOptional()
   @IsString()

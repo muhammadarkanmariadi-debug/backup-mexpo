@@ -62,7 +62,7 @@ export class PaymentsService {
         event_id,
         user_id: userId,
         role: `VISITOR`,
-        status: `APPROVED`,
+        status: { in: [`APPROVED`, `PENDING`] },
       },
     });
     if (!visitor) {
@@ -227,7 +227,11 @@ export class PaymentsService {
         where: { uuid: event_id },
       });
       if (!event) throw new NotFoundException(`Event doesn't exists`);
-      if (event.ticket_mode !== `PAID`) {
+      const isPaid =
+        event.ticket_mode === `PAID` ||
+        (event.features as { paidTicket?: boolean })?.paidTicket === true;
+      
+      if (!isPaid) {
         throw new BadRequestException(
           `This event does not require online payment`,
         );

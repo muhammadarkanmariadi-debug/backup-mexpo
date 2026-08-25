@@ -240,10 +240,11 @@ export class EventUsersService {
           }
         : {};
 
+      const rolesArray = role ? role.split(',').map((r) => r.trim() as EventRole) : undefined;
       const where: Prisma.user_event_rolesWhereInput = {
         event_id,
         status: status ?? undefined,
-        role: role ?? undefined,
+        role: rolesArray ? { in: rolesArray } : undefined,
         ...searchFilter,
       };
 

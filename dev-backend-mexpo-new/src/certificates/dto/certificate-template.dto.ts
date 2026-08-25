@@ -37,7 +37,7 @@ export class CreateCertificateTemplateDto {
 
   /** Template family. WORKSHOP = workshop-participation certificates. */
   @IsOptional()
-  @IsIn([`WORKSHOP`, `PARTICIPANT`])
+  @IsIn([`WORKSHOP`, `PARTICIPANT`, `BADGE`])
   kind?: string;
 
   /** Konva stage envelope (see above). Parsed from JSON string if needed. */
@@ -63,7 +63,7 @@ export class UpdateCertificateTemplateDto {
   name?: string;
 
   @IsOptional()
-  @IsIn([`WORKSHOP`, `PARTICIPANT`])
+  @IsIn([`WORKSHOP`, `PARTICIPANT`, `BADGE`])
   kind?: string;
 
   @IsOptional()

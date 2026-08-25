@@ -159,7 +159,7 @@ export class EventsService {
               some: {
                 role: { in: role },
                 user_id: userId,
-                status: `APPROVED`,
+                status: { in: [`APPROVED`, `PENDING`] },
               },
             }
           : undefined,
@@ -186,7 +186,7 @@ export class EventsService {
           editor: { select: { full_name: true } },
           userEventRoles: {
             where: { user_id: userId },
-            select: { role: true },
+            select: { role: true, status: true },
           },
           _count: {
             select: {
@@ -228,7 +228,7 @@ export class EventsService {
           editor: { select: { full_name: true } },
           userEventRoles: {
             where: { user_id: userId },
-            select: { role: true },
+            select: { role: true, status: true },
           },
           workshops: {
             include: {
