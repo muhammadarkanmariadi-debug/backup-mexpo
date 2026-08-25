@@ -74,4 +74,9 @@ export class PublicApiController {
   findTicketTypes(@Param(`event_id`) event_id: string) {
     return this.publicApiService.findTicketTypes(event_id);
   }
+
+  @Get(`stats`)
+  getStats() {
+    return this.publicApiService.getStats();
+  }
 }

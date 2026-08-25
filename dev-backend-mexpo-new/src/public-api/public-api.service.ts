@@ -911,4 +911,32 @@ export class PublicApiService {
       throw new InternalServerErrorException(`Something were wrong. ${error}`);
     }
   }
+
+  /** Retrieve live platform statistics (events, active users, check-in scans, modules) */
+  async getStats() {
+    try {
+      const [eventsCount, usersCount, checkInsCount] = await Promise.all([
+        this.prisma.events.count(),
+        this.prisma.users.count({ where: { is_active: true } }),
+        this.prisma.log_attendances.count(),
+      ]);
+
+      const modulesCount = 15;
+
+      return {
+        status: true,
+        message: 'Platform stats retrieved successfully',
+        data: {
+          events: eventsCount,
+          users: usersCount,
+          checkIns: checkInsCount,
+          modules: modulesCount,
+        },
+      };
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
+      throw new InternalServerErrorException(`Failed to retrieve platform stats. ${error}`);
+    }
+  }
 }
+
