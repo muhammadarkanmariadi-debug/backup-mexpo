@@ -46,7 +46,7 @@ export default function Navbar() {
 
   const pathname = usePathname()
   const { user } = useAuthStore()
-  const { theme, toggleTheme } = useTheme()
+ 
 
   const username = user?.full_name
   const userPhoto = user?.photo
@@ -322,13 +322,7 @@ export default function Navbar() {
 
         {/* Toggle + Hamburger — mobile only */}
         <div className="lg:hidden flex items-center gap-2">
-          <button
-            onClick={toggleTheme}
-            aria-label={theme === 'dark' ? 'Ubah ke mode terang' : 'Ubah ke mode gelap'}
-            className="flex justify-center items-center border border-neutral-200 dark:border-gray-700 hover:border-secondary/40 rounded-full w-9 h-9 text-gray-600 dark:text-gray-300 bg-white dark:bg-gray-800 transition-all"
-          >
-            {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
-          </button>
+    
           <button
             className="xl:hidden flex justify-center items-center border border-neutral-200 dark:border-gray-700 hover:border-secondary/40 rounded-full w-9 h-9 text-gray-600 dark:text-gray-300 bg-white dark:bg-gray-800 transition-all"
             onClick={() => setIsMobileOpen(!isMobileOpen)}
