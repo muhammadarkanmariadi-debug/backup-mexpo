@@ -110,4 +110,7 @@ export const keys = {
       ["attendance", eventUuid, "list", query] as const,
   },
   tenantCategories: () => ["tenant-categories"] as const,
+  platform: {
+    stats: ["platform", "stats"] as const,
+  },
 } as const;

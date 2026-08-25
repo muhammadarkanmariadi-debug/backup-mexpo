@@ -1,107 +1,142 @@
-// FAQ diselaraskan dengan kondisi aktual website (2026):
-// - Pembayaran berbayar = manual (CASH/QRIS/TRANSFER + referensi), TANPA gateway.
-// - Tidak ada fitur refund.
-// - Pendaftaran penyewa/pembicara via URL /dashboard/[uuid]/apply/* (belum ada tombol publik).
-// - Pembatalan lokakarya tidak tersedia untuk pengunjung (tidak ada tombol batal di UI).
-export const faqData = [
-    {
-        category: 'Umum',
-        question: 'Apa itu MEXPO?',
-        answer: 'MEXPO adalah platform manajemen event dan pameran yang memudahkan penyelenggara mengelola event, penyewa (tenant), lokakarya, pendaftaran pengunjung, kehadiran berbasis QR, sertifikat, dan laporan dalam satu tempat.'
-    },
-    {
-        category: 'Umum',
-        question: 'Siapa saja yang bisa memakai MEXPO?',
-        answer: 'Pengunjung dapat mendaftar ke event, penyewa dan pembicara dapat mengisi aplikasi per event, panitia/owner mengelola event, dan admin menyetujui publikasi event.'
-    },
-    {
-        category: 'Akun',
-        question: 'Bagaimana cara membuat akun?',
-        answer: 'Klik tombol "Masuk" di navbar, lalu pilih "Daftar". Isi nama lengkap, email, nomor HP, dan kata sandi, kemudian selesaikan verifikasi email Anda.'
-    },
-    {
-        category: 'Akun',
-        question: 'Apakah verifikasi email wajib?',
-        answer: 'Ya. Setelah mendaftar, Anda diarahkan ke halaman verifikasi untuk mengonfirmasi alamat email Anda sebelum dapat menggunakan akun.'
-    },
-    {
-        category: 'Akun',
-        question: 'Bagaimana jika saya lupa kata sandi?',
-        answer: 'Gunakan menu "Lupa kata sandi" di halaman Masuk. Tautan untuk mengatur ulang kata sandi akan dikirim ke email Anda.'
-    },
-    {
-        category: 'Event',
-        question: 'Bagaimana cara membuat event baru?',
-        answer: 'Setelah login, buka halaman "Event Saya", lalu klik tombol buat event. Isi informasi yang diperlukan seperti nama, deskripsi, lokasi, jadwal, kuota, fitur, dan tipe tiket.'
-    },
-    {
-        category: 'Event',
-        question: 'Bagaimana event saya bisa tampil publik?',
-        answer: 'Event dibuat dengan status Draft. Pemilik mengajukan publikasi, status berubah menjadi Menunggu (Pending), lalu disetujui oleh admin menjadi Terbit. Jika ditolak, statusnya menjadi Ditolak.'
-    },
-    {
-        category: 'Event',
-        question: 'Berapa lama proses persetujuan event?',
-        answer: 'Tidak ada jangka waktu pasti karena disetujui secara manual oleh admin. Pantau status event Anda di halaman "Event Saya" (Draft, Menunggu, Terbit, Ditolak, Selesai).'
-    },
-    {
-        category: 'Event',
-        question: 'Bagaimana cara mendaftar ke sebuah event?',
-        answer: 'Buka halaman event, lalu klik "Daftar" dan pastikan Anda sudah login. Isi formulir pendaftaran yang disiapkan panitia. Untuk event berbayar, pilih tipe tiket dan metode pembayaran, lalu menunggu konfirmasi panitia.'
-    },
-    {
-        category: 'Event',
-        question: 'Di mana saya melihat QR, ID badge, dan sertifikat?',
-        answer: 'Setelah terdaftar sebagai pengunjung, buka event Anda di dashboard. Tab "Tiket & Kehadiran" menampilkan QR untuk check-in, tombol "ID Badge" untuk mencetak badge, dan tombol "Sertifikat" untuk sertifikat lokakarya yang sudah diikuti.'
-    },
-    {
-        category: 'Lokakarya',
-        question: 'Bagaimana cara mengikuti lokakarya?',
-        answer: 'Buka halaman event, pilih tab "Lokakarya", lalu klik tombol "Daftar Lokakarya Sekarang". Setelah berhasil, tombol berubah menjadi "Anda Sudah Terdaftar".'
-    },
-    {
-        category: 'Lokakarya',
-        question: 'Apakah lokakarya bisa penuh?',
-        answer: 'Bisa. Jika kuota sudah tercapai, tombol pendaftaran berubah menjadi "Kuota Penuh". Kuota 0 berarti tanpa batas.'
-    },
-    {
-        category: 'Lokakarya',
-        question: 'Bagaimana cara mendapatkan sertifikat lokakarya?',
-        answer: 'Sertifikat diterbitkan setelah Anda check-in ke lokakarya. Sertifikat tersebut dapat dilihat dan dicetak dari halaman "Sertifikat" di dashboard event.'
-    },
-    {
-        category: 'Lokakarya',
-        question: 'Bisakah saya membatalkan pendaftaran lokakarya?',
-        answer: 'Saat ini belum tersedia tombol batal untuk pengunjung. Hubungi panitia event untuk pembatalan secara manual.'
-    },
-    {
-        category: 'Penyewa & Pembicara',
-        question: 'Bagaimana cara menjadi penyewa di sebuah event?',
-        answer: 'Login terlebih dahulu, lalu buka tautan pendaftaran penyewa yang dibagikan panitia (halaman /dashboard/[uuid]/apply/tenant). Isi formulir dengan lengkap dan tunggu persetujuan panitia.'
-    },
-    {
-        category: 'Penyewa & Pembicara',
-        question: 'Bagaimana cara menjadi pembicara?',
-        answer: 'Login, lalu isi formulir pendaftaran pembicara di halaman /dashboard/[uuid]/apply/speaker yang dibagikan panitia, kemudian tunggu persetujuan.'
-    },
-    {
-        category: 'Penyewa & Pembicara',
-        question: 'Apakah ada biaya untuk menjadi penyewa?',
-        answer: 'Saat ini platform tidak menyediakan mekanisme biaya. Keputusan diterima atau tidaknya aplikasi ditentukan oleh panitia setiap event.'
-    },
-    {
-        category: 'Pembayaran',
-        question: 'Bagaimana metode pembayaran untuk event berbayar?',
-        answer: 'Pembayaran bersifat manual: pilih Cash, QRIS, atau Transfer, lalu isi referensi pembayaran Anda. Belum ada pembayaran otomatis/gateway; panitia mengonfirmasi secara manual.'
-    },
-    {
-        category: 'Pembayaran',
-        question: 'Apakah saya mendapat email berisi tiket?',
-        answer: 'Belum. Setelah pendaftaran terkonfirmasi, tiket dan QR Anda dapat dilihat di dashboard event.'
-    },
-    {
-        category: 'Pembayaran',
-        question: 'Bagaimana proses refund?',
-        answer: 'Platform belum menyediakan proses refund. Untuk pengembalian dana, silakan hubungi panitia event terkait.'
-    }
-]
+export interface FAQItem {
+  category:
+    | 'Umum'
+    | 'Akun'
+    | 'Event'
+    | 'Lokakarya'
+    | 'Penyewa & Pembicara'
+    | 'Pembayaran'
+    | 'Kehadiran & Sertifikat';
+  question: string;
+  answer: string;
+}
+
+export const faqData: FAQItem[] = [
+  // ── UMUM ──
+  {
+    category: 'Umum',
+    question: 'Apa itu MEXPO?',
+    answer:
+      'MEXPO adalah platform all-in-one Event Operating System yang memudahkan penyelenggara mengelola pendaftaran peserta, tiket & pembayaran online (Midtrans Snap), check-in QR instan, portal tenant & POS kasir, lokakarya/seminar, penukaran souvenir, sertifikat digital dinamis, hingga laporan analitik.',
+  },
+  {
+    category: 'Umum',
+    question: 'Jenis event apa saja yang didukung oleh MEXPO?',
+    answer:
+      'MEXPO mendukung berbagai jenis acara mulai dari Expo & Pameran, Bursa Kerja (Career Fair), Seminar & Konferensi, Acara Kelulusan (Graduation), Marketplace/Bazaar, Acara Kampus & Sekolah, hingga acara instansi pemerintah.',
+  },
+  {
+    category: 'Umum',
+    question: 'Siapa saja yang dapat menggunakan MEXPO?',
+    answer:
+      'Platform ini dirancang untuk Pengunjung (Visitor), Pemilik Booth/Tenant (dan Staff), Pembicara, Panitia Pelaksana (Committee), Pemilik Event (Owner), dan Superadmin.',
+  },
+
+  // ── AKUN ──
+  {
+    category: 'Akun',
+    question: 'Bagaimana cara membuat akun di MEXPO?',
+    answer:
+      'Klik tombol "Masuk" di navigasi atas. Anda dapat mendaftar cepat menggunakan akun Google (1-klik Masuk dengan Google) atau mengisi formulir nama, email, nomor telepon, dan kata sandi.',
+  },
+  {
+    category: 'Akun',
+    question: 'Apakah verifikasi email wajib?',
+    answer:
+      'Untuk pendaftaran via email, Anda perlu melakukan verifikasi melalui tautan yang dikirimkan. Pengguna yang mendaftar via Google Sign-In langsung terverifikasi secara otomatis.',
+  },
+  {
+    category: 'Akun',
+    question: 'Bagaimana jika saya lupa kata sandi?',
+    answer:
+      'Klik tautan "Lupa kata sandi" pada halaman Masuk, masukkan alamat email terdaftar, dan ikuti instruksi pada email untuk menyetel ulang kata sandi Anda.',
+  },
+
+  // ── EVENT & PENDAFTARAN ──
+  {
+    category: 'Event',
+    question: 'Bagaimana cara membuat dan mempublikasikan event baru?',
+    answer:
+      'Setelah login, buat event baru melalui dashboard Anda. Event akan berada pada status DRAFT. Setelah melengkapi rincian (jadwal, lokasi, tiket, modul), ajukan permohonan publikasi untuk ditinjau dan disetujui oleh Superadmin agar tayang secara publik.',
+  },
+  {
+    category: 'Event',
+    question: 'Bagaimana cara mendaftar sebagai pengunjung ke sebuah event?',
+    answer:
+      'Buka halaman event yang ingin Anda ikuti, klik "Daftar Event", lengkapi formulir pendaftaran yang disediakan panitia, dan pilih tiket (Gratis atau Berbayar). Tiket dan QR Code Anda akan otomatis aktif.',
+  },
+  {
+    category: 'Event',
+    question: 'Apakah formulir pendaftaran setiap event berbeda-beda?',
+    answer:
+      'Ya. Penyelenggara dapat mengatur kolom pendaftaran dinamis (teks, angka, pilihan ganda, tanggal, upload berkas) dengan aturan kondisi tampilan sesuai kebutuhan registrasi acara masing-masing.',
+  },
+
+  // ── PEMBAYARAN ──
+  {
+    category: 'Pembayaran',
+    question: 'Metode pembayaran apa saja yang didukung untuk event berbayar?',
+    answer:
+      'MEXPO terintegrasi dengan Payment Gateway Midtrans Snap yang mendukung berbagai metode instan: QRIS (GoPay, ShopeePay, OVO, Dana), Virtual Account bank (BCA, Mandiri, BNI, BRI, Permata), dan transfer bank. Selain itu panitia juga dapat menerima pembayaran tunai (Cash) di kasir onsite.',
+  },
+  {
+    category: 'Pembayaran',
+    question: 'Kapan tiket saya aktif setelah melakukan pembayaran?',
+    answer:
+      'Setelah transaksi selesai diverifikasi oleh payment gateway, status pembayaran otomatis menjadi "PAID" dan e-tiket beserta QR Code langsung aktif di dashboard Anda.',
+  },
+  {
+    category: 'Pembayaran',
+    question: 'Bagaimana kebijakan pengembalian dana (refund)?',
+    answer:
+      'Kebijakan pengembalian dana ditentukan langsung oleh masing-masing penyelenggara event. Silakan hubungi kontak panitia resmi yang tertera pada halaman event terkait.',
+  },
+
+  // ── KEHADIRAN & SERTIFIKAT ──
+  {
+    category: 'Kehadiran & Sertifikat',
+    question: 'Bagaimana cara melakukan check-in di lokasi event?',
+    answer:
+      'Buka menu tiket di akun Anda untuk menampilkan QR Code unik. Tunjukkan QR Code tersebut kepada panitia di pintu masuk atau sesi seminar untuk dipindai secara instan menggunakan scanner kamera panitia.',
+  },
+  {
+    category: 'Kehadiran & Sertifikat',
+    question: 'Bagaimana cara mendapatkan dan mengunduh sertifikat digital?',
+    answer:
+      'Bagi peserta yang telah melakukan check-in kehadiran pada sesi seminar/lokakarya, sertifikat digital resmi dapat langsung dilihat dan diunduh dalam format PDF resolusi tinggi melalui dashboard akun Anda.',
+  },
+  {
+    category: 'Kehadiran & Sertifikat',
+    question: 'Bagaimana cara mendapatkan souvenir event?',
+    answer:
+      'Beberapa event menyediakan hadiah souvenir yang dapat diklaim jika Anda memenuhi syarat kunjungan stan (misal mengunjungi minimal 5 booth tenant) dan/atau menghadiri seminar. Tunjukkan QR Code Anda ke meja souvenir untuk validasi.',
+  },
+
+  // ── LOKAKARYA ──
+  {
+    category: 'Lokakarya',
+    question: 'Bagaimana cara mengikuti lokakarya atau seminar di event?',
+    answer:
+      'Buka tab "Lokakarya" pada halaman event, pilih sesi yang diminati, dan klik "Daftar Lokakarya". Sistem akan memesan kuota tempat Anda secara otomatis.',
+  },
+  {
+    category: 'Lokakarya',
+    question: 'Apa yang terjadi jika kuota lokakarya sudah penuh?',
+    answer:
+      'Jika kuota telah terpenuhi, tombol pendaftaran akan menandakan "Kuota Penuh". Penyelenggara dapat mengatur batas kuota atau membuka kuota tanpa batas.',
+  },
+
+  // ── PENYEWA & PEMBICARA ──
+  {
+    category: 'Penyewa & Pembicara',
+    question: 'Bagaimana cara mendaftar sebagai tenant/booth di sebuah event?',
+    answer:
+      'Penyelenggara dapat membagikan formulir pendaftaran tenant. Setelah disetujui, tenant mendapatkan akses ke Portal Tenant untuk mengelola katalog produk, tim kasir, pencatatan transaksi POS, dan laporan penjualan.',
+  },
+  {
+    category: 'Penyewa & Pembicara',
+    question: 'Fitur apa saja yang didapatkan tenant di MEXPO?',
+    answer:
+      'Tenant mendapatkan halaman profil stan, katalog produk, pencatatan transaksi kasir POS (termasuk mencatat pengunjung via QR), check-in kunjungan stan booth, serta laporan transaksi lengkap yang dapat diekspor ke Excel.',
+  },
+];

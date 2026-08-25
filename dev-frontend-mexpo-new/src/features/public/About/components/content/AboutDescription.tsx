@@ -1,26 +1,50 @@
-"use client";
-
+import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import CountUp from "react-countup";
 import { CalendarCheck2, UserCheck, QrCode, BarChart3 } from "lucide-react";
+import { getPlatformStats } from "@/services/public.service";
+import { keys } from "@/lib/query-keys";
 
 /**
- * About page — description section (per layout reference):
- * 2–3 short paragraphs on the left (what the product is, value proposition,
- * brief history/achievements), with a stats panel on the right — big numbers
- * + small labels, separated from the text by a thin vertical divider line.
- * Uses brand tokens (`secondary`/`brand-500`, `gray-900`, `gray-500`) and
- * `react-countup` (already a dependency) for the animated numbers.
+ * About page — description section:
+ * 2–3 short paragraphs on the left, with real live platform stats on the right.
  */
-
-const stats = [
-  { value: 120, suffix: "+", label: "Event & Expo", icon: CalendarCheck2 },
-  { value: 3500, suffix: "+", label: "Pengguna Aktif", icon: UserCheck },
-  { value: 50000, suffix: "+", label: "Pindai QR Check-in", icon: QrCode },
-  { value: 15, suffix: "+", label: "Modul & Fitur", icon: BarChart3 },
-];
-
 const AboutDescription = () => {
+  const { data: statsResponse } = useQuery({
+    queryKey: keys.platform.stats,
+    queryFn: () => getPlatformStats(),
+    staleTime: 60 * 1000,
+  });
+
+  const statsData = statsResponse?.data;
+
+  const stats = [
+    {
+      value: statsData?.events ?? 0,
+      suffix: (statsData?.events ?? 0) > 0 ? "+" : "",
+      label: "Event & Expo",
+      icon: CalendarCheck2,
+    },
+    {
+      value: statsData?.users ?? 0,
+      suffix: (statsData?.users ?? 0) > 0 ? "+" : "",
+      label: "Pengguna Aktif",
+      icon: UserCheck,
+    },
+    {
+      value: statsData?.checkIns ?? 0,
+      suffix: (statsData?.checkIns ?? 0) > 0 ? "+" : "",
+      label: "Pindai QR Check-in",
+      icon: QrCode,
+    },
+    {
+      value: statsData?.modules ?? 15,
+      suffix: "+",
+      label: "Modul & Fitur",
+      icon: BarChart3,
+    },
+  ];
+
   return (
     <motion.section
       initial={{ opacity: 0, y: 30 }}

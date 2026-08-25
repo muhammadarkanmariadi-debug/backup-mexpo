@@ -99,9 +99,35 @@ export async function getEventByUuid(uuid: string) {
         code: res.code,
         message: res.message
     };
-
-
 }
+
+export interface PlatformStats {
+  events: number;
+  users: number;
+  checkIns: number;
+  modules: number;
+}
+
+export async function getPlatformStats() {
+  const res = await httpGet(
+    "public-api/stats",
+    "Basic",
+    META_ISR(60)
+  );
+
+  return {
+    data: (res.data as PlatformStats) ?? {
+      events: 0,
+      users: 0,
+      checkIns: 0,
+      modules: 15,
+    },
+    status: res.status,
+    code: res.code,
+    message: res.message,
+  };
+}
+
 
 
 
