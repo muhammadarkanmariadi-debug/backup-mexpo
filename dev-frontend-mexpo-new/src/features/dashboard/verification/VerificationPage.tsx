@@ -124,7 +124,7 @@ function TenantsTab({ event }: Props) {
 
 function UsersTab({ event }: Props) {
   const requests = useList<EventUser>(
-    (q) => getEventUsers(event.uuid, q),
+    (q) => getEventUsers(event.uuid, { ...q, role: "VISITOR" }),
     [event.uuid],
   );
 
@@ -217,7 +217,7 @@ function UsersTab({ event }: Props) {
 }
 
 export default function VerificationPage({ event }: Props) {
-  const [activeTab, setActiveTab] = useState<"TENANT" | "USER">("TENANT");
+  const [activeTab, setActiveTab] = useState<"TENANT" | "VISITOR">("TENANT");
 
   return (
     <PageShell className="py-8">
@@ -236,21 +236,21 @@ export default function VerificationPage({ event }: Props) {
             Penyewa
           </button>
           <button
-            onClick={() => setActiveTab("USER")}
+            onClick={() => setActiveTab("VISITOR")}
             className={`whitespace-nowrap border-b-2 py-4 px-1 text-sm font-medium transition-colors ${
-              activeTab === "USER"
+              activeTab === "VISITOR"
                 ? "border-secondary text-secondary"
                 : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700"
             }`}
           >
-            Tim & Panitia
+            Pengunjung
           </button>
         </nav>
       </div>
 
-      <div>
+      <div className="mt-4">
         {activeTab === "TENANT" && <TenantsTab event={event} />}
-        {activeTab === "USER" && <UsersTab event={event} />}
+        {activeTab === "VISITOR" && <UsersTab event={event} />}
       </div>
     </PageShell>
   );

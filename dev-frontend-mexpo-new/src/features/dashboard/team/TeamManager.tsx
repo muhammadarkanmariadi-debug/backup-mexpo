@@ -31,7 +31,7 @@ import { useConfirm } from "@/shared/components/ui/ConfirmDialog";
 import PageShell from "@/shared/components/ui/PageShell";
 import { APPROVAL_STATUS_LABELS, ROLE_LABELS, labelFor } from "@/shared/data/labels";
 
-const ROLES = ["OWNER", "COMMITTEE", "TENANT", "VISITOR"] as const;
+const ROLES = ["OWNER", "COMMITTEE"] as const;
 const STATUSES = ["PENDING", "APPROVED", "REJECTED"] as const;
 
 export default function TeamManager({ event }: { event: Event }) {
@@ -41,7 +41,7 @@ export default function TeamManager({ event }: { event: Event }) {
 
   const { confirm, dialogs } = useConfirm();
 
-  const list = useList<EventUser>((q) => getEventUsers(event.uuid, q), [event.uuid]);
+  const list = useList<EventUser>((q) => getEventUsers(event.uuid, { ...q, role: "OWNER,COMMITTEE" }), [event.uuid]);
 
   const add = async (e: React.FormEvent) => {
     e.preventDefault();

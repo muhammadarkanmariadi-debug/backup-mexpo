@@ -18,6 +18,9 @@ import { checkout, getTransaction } from "@/services/payment.service";
 import { loadSnapScript, payWithSnap } from "@/shared/utils/snap";
 import { useAuthStore } from "@/stores/auth.store";
 
+import { applyCommittee } from "@/services/event-users.service";
+import TenantApplyForm from "@/features/dashboard/visitor/TenantApplyForm";
+
 interface Props {
   event: Event;
   fields: RegistrationField[];
@@ -34,6 +37,7 @@ export default function RegistrationForm({ event, fields, ticketTypes }: Props) 
   
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [registrationType, setRegistrationType] = useState<"VISITOR" | "TENANT" | "COMMITTEE">("VISITOR");
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [ticketTypeId, setTicketTypeId] = useState(ticketTypes[0]?.uuid ?? "");
   const [showManualPayment, setShowManualPayment] = useState(false);
@@ -260,10 +264,24 @@ export default function RegistrationForm({ event, fields, ticketTypes }: Props) 
 
   if (!user) return null;
 
+  const handleCommitteeApply = async () => {
+    setSubmitting(true);
+    try {
+      const res = await applyCommittee(event.uuid);
+      if (!res.status) throw new Error(res.message || "Gagal mengajukan panitia");
+      toast.success("Pengajuan panitia berhasil dikirim.");
+      router.push(`/dashboard/${event.slug ?? event.uuid}`);
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Gagal mengajukan panitia.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   if (checkingRegistration) {
     return (
-      <div className="flex min-h-[50vh] items-center justify-center">
-        <Loader2 className="h-6 w-6 animate-spin text-secondary" />
+      <div className="flex justify-center py-20">
+        <Loader2 className="h-8 w-8 animate-spin text-brand-500" />
       </div>
     );
   }
@@ -364,13 +382,75 @@ export default function RegistrationForm({ event, fields, ticketTypes }: Props) 
       >
         ← Kembali ke Event
       </Link>
-      <h1 className="mb-1 text-2xl font-bold text-gray-900">Registrasi</h1>
-      <p className="mb-6 text-sm text-gray-500">{event.name}</p>
 
-      <form
-        onSubmit={handleSubmit}
-        className="space-y-5 rounded-xl border border-gray-100 bg-white p-6"
-      >
+      <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-8 mb-8 text-center">
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">Formulir Pendaftaran</h2>
+        <p className="text-gray-500">Pilih jenis pendaftaran yang sesuai dengan peran Anda di event ini.</p>
+        
+        <div className="mt-6 flex flex-wrap justify-center gap-3">
+          <button
+            type="button"
+            onClick={() => setRegistrationType("VISITOR")}
+            className={`px-6 py-2.5 rounded-full font-medium transition-colors border ${
+              registrationType === "VISITOR"
+                ? "bg-brand-50 border-brand-200 text-brand-700"
+                : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
+            }`}
+          >
+            Pengunjung
+          </button>
+          <button
+            type="button"
+            onClick={() => setRegistrationType("TENANT")}
+            className={`px-6 py-2.5 rounded-full font-medium transition-colors border ${
+              registrationType === "TENANT"
+                ? "bg-amber-50 border-amber-200 text-amber-700"
+                : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
+            }`}
+          >
+            Penyewa (Tenant)
+          </button>
+          <button
+            type="button"
+            onClick={() => setRegistrationType("COMMITTEE")}
+            className={`px-6 py-2.5 rounded-full font-medium transition-colors border ${
+              registrationType === "COMMITTEE"
+                ? "bg-green-50 border-green-200 text-green-700"
+                : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
+            }`}
+          >
+            Panitia (Committee)
+          </button>
+        </div>
+      </div>
+
+      {registrationType === "TENANT" && (
+        <TenantApplyForm event={event} />
+      )}
+
+      {registrationType === "COMMITTEE" && (
+        <div className="bg-white rounded-xl border border-gray-100 p-8 text-center max-w-xl mx-auto">
+          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <CheckCircle2 className="w-8 h-8 text-green-600" />
+          </div>
+          <h3 className="text-xl font-bold text-gray-900 mb-2">Daftar Sebagai Panitia</h3>
+          <p className="text-gray-600 mb-8">
+            Bergabunglah menjadi bagian dari penyelenggara event <strong>{event.name}</strong>. Permintaan Anda akan ditinjau oleh manajer event.
+          </p>
+          <button
+            type="button"
+            onClick={handleCommitteeApply}
+            disabled={submitting}
+            className="w-full h-12 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white font-semibold rounded-xl flex items-center justify-center transition-colors"
+          >
+            {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : "Kirim Pengajuan"}
+          </button>
+        </div>
+      )}
+
+      {registrationType === "VISITOR" && (
+        <form onSubmit={handleSubmit} className="space-y-8">
+          <div className="bg-white rounded-xl border border-gray-100 p-6 md:p-8 space-y-6">
         <div className="rounded-lg bg-blue-50/60 p-4 text-sm text-gray-700">
           {isPaid ? (
             <span>
@@ -513,7 +593,9 @@ export default function RegistrationForm({ event, fields, ticketTypes }: Props) 
           {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <TicketIcon className="h-4 w-4" />}
           {isPaid ? "Daftar & Dapatkan Tiket" : "Daftar Sekarang"}
         </button>
+        </div>
       </form>
+      )}
     </div>
   );
 }

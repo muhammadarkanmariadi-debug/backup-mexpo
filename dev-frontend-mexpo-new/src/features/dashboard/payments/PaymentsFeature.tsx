@@ -50,14 +50,13 @@ const inputCls =
 
 export function PaymentsFeature({
   event,
-  isSuperAdmin,
 }: {
   event: Event;
-  isSuperAdmin: boolean;
 }) {
   const queryClient = useQueryClient();
   const summaryKey = keys.payments.summary(event.uuid);
   const listKey = keys.payments.list(event.uuid, { quantity: "100" });
+  const [refundingId, setRefundingId] = useState<string | null>(null);
 
   const { data: summary, isLoading: loadingSummary } = useApiQuery<
     SettlementSummary | null
@@ -68,47 +67,13 @@ export function PaymentsFeature({
       getEventTransactions(event.uuid, { quantity: "100" }),
     );
 
-  // Settle form (SUPERADMIN only).
-  const [amount, setAmount] = useState("");
-  const [note, setNote] = useState("");
-  const [proof, setProof] = useState<File | null>(null);
-  const [settling, setSettling] = useState(false);
-  const [refundingId, setRefundingId] = useState<string | null>(null);
+  // Superadmin settlement logic has been extracted to a separate page.
 
   const invalidate = () => {
     void queryClient.invalidateQueries({ queryKey: summaryKey });
     void queryClient.invalidateQueries({ queryKey: listKey });
   };
 
-  const handleSettle = async () => {
-    if (!summary) return;
-    const value = Number(amount);
-    if (!Number.isFinite(value) || value !== summary.net) {
-      toast.error(`Jumlah harus sama persis dengan dana bersih (${formatPrice(summary.net)})`);
-      return;
-    }
-    if (!window.confirm("Konfirmasi transfer manual ke rekening organizer?")) {
-      return;
-    }
-    setSettling(true);
-    try {
-      const res = await settleEvent(
-        event.uuid,
-        { amount_transferred: value, note: note || undefined },
-        proof,
-      );
-      if (!res.status) throw new Error(res.message ?? "Gagal mencatat settlement");
-      toast.success("Settlement tercatat");
-      setAmount("");
-      setNote("");
-      setProof(null);
-      invalidate();
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Gagal mencatat settlement");
-    } finally {
-      setSettling(false);
-    }
-  };
 
   const handleRefund = async (txId: string) => {
     const reason = window.prompt("Alasan refund:", "Event dibatalkan");
@@ -196,80 +161,22 @@ export function PaymentsFeature({
           onSaved={invalidate}
         />
 
-        {/* Settle (SUPERADMIN only) */}
-        {isSuperAdmin ? (
-          <section className="rounded-xl border border-gray-200 bg-white p-5">
-            <div className="mb-3 flex items-center gap-2">
-              <Wallet className="h-4 w-4 text-gray-400" />
-              <h3 className="text-sm font-semibold text-gray-800">Settlement / Payout</h3>
-            </div>
-            {summary?.payout_status === "SETTLED" ? (
-              <div className="rounded-lg bg-emerald-50 p-4 text-sm text-emerald-700">
-                Event sudah disetl pada{" "}
-                {summary.settled_at ? new Date(summary.settled_at).toLocaleString("id-ID") : "-"}.
-              </div>
-            ) : (
-              <>
-                <p className="mb-3 text-sm text-gray-600">
-                  Transfer manual ke rekening organizer sebesar{" "}
-                  <strong>{formatPrice(net)}</strong>, lalu catat di bawah ini.
-                </p>
-                <div className="grid grid-cols-1 gap-3">
-                  <div>
-                    <label className="mb-1 block text-xs font-medium text-gray-500">
-                      Jumlah ditransfer (harus sama persis dengan net)
-                    </label>
-                    <input
-                      type="number"
-                      value={amount}
-                      onChange={(e) => setAmount(e.target.value)}
-                      className={inputCls}
-                      placeholder={String(net)}
-                    />
-                  </div>
-                  <div>
-                    <label className="mb-1 block text-xs font-medium text-gray-500">Catatan</label>
-                    <input value={note} onChange={(e) => setNote(e.target.value)} className={inputCls} placeholder="Contoh: transfer via Internet Banking" />
-                  </div>
-                  <div>
-                    <label className="mb-1 block text-xs font-medium text-gray-500">Bukti transfer (opsional)</label>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => setProof(e.target.files?.[0] ?? null)}
-                      className="block w-full text-xs text-gray-500 file:mr-3 file:rounded-lg file:border-0 file:bg-brand-50 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-brand-600"
-                    />
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => void handleSettle()}
-                    disabled={settling || net <= 0}
-                    className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
-                  >
-                    {settling ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
-                    Catat Settlement
-                  </button>
-                </div>
-              </>
-            )}
-          </section>
-        ) : (
-          <section className="rounded-xl border border-gray-200 bg-white p-5">
-            <h3 className="text-sm font-semibold text-gray-800">Riwayat Settlement</h3>
-            {(summary?.settlements ?? []).length === 0 ? (
-              <p className="mt-2 text-sm text-gray-400">Belum ada settlement.</p>
-            ) : (
-              <ul className="mt-3 space-y-2">
-                {(summary?.settlements ?? []).map((s) => (
-                  <li key={s.uuid} className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2 text-sm">
-                    <span className="font-medium text-gray-700">{formatPrice(s.amount_transferred)}</span>
-                    <span className="text-xs text-gray-400">{new Date(s.created_at).toLocaleString("id-ID")}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
-        )}
+        {/* Settle History (Visible to Organizer) */}
+        <section className="rounded-xl border border-gray-200 bg-white p-5">
+          <h3 className="text-sm font-semibold text-gray-800">Riwayat Settlement</h3>
+          {(summary?.settlements ?? []).length === 0 ? (
+            <p className="mt-2 text-sm text-gray-400">Belum ada settlement.</p>
+          ) : (
+            <ul className="mt-3 space-y-2">
+              {(summary?.settlements ?? []).map((s) => (
+                <li key={s.uuid} className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2 text-sm">
+                  <span className="font-medium text-gray-700">{formatPrice(s.amount_transferred)}</span>
+                  <span className="text-xs text-gray-400">{new Date(s.created_at).toLocaleString("id-ID")}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
       </div>
 
       {/* ── Daftar transaksi ── */}

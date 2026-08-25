@@ -54,6 +54,7 @@ export default function VisitorView({ event }: Props) {
     { enabled: false },
   );
 
+  const userRole = liveEvent?.userEventRoles?.[0]?.role ?? event.userEventRoles?.[0]?.role;
   const roleStatus = liveEvent?.userEventRoles?.[0]?.status ?? event.userEventRoles?.[0]?.status;
   const isPending = roleStatus === "PENDING";
 
@@ -195,6 +196,38 @@ export default function VisitorView({ event }: Props) {
   ];
 
   if (isPending) {
+    if (userRole === "TENANT") {
+      return (
+        <PageShell className="py-10 flex items-center justify-center min-h-[60vh]">
+          <div className="max-w-md w-full rounded-2xl border border-amber-200 bg-amber-50 p-8 text-center shadow-sm">
+            <div className="mx-auto w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mb-4">
+              <Store className="w-6 h-6 text-amber-600" />
+            </div>
+            <h2 className="text-xl font-bold text-amber-900 mb-2">Menunggu Verifikasi Penyewa</h2>
+            <p className="text-amber-700 text-sm mb-6">
+              Pengajuan Anda sebagai penyewa (tenant) sedang ditinjau oleh manajer event. Silakan cek kembali nanti secara berkala.
+            </p>
+          </div>
+        </PageShell>
+      );
+    }
+
+    if (userRole === "COMMITTEE") {
+      return (
+        <PageShell className="py-10 flex items-center justify-center min-h-[60vh]">
+          <div className="max-w-md w-full rounded-2xl border border-amber-200 bg-amber-50 p-8 text-center shadow-sm">
+            <div className="mx-auto w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mb-4">
+              <UserPlus className="w-6 h-6 text-amber-600" />
+            </div>
+            <h2 className="text-xl font-bold text-amber-900 mb-2">Menunggu Persetujuan Panitia</h2>
+            <p className="text-amber-700 text-sm mb-6">
+              Pengajuan Anda sebagai panitia (committee) sedang ditinjau oleh manajer event.
+            </p>
+          </div>
+        </PageShell>
+      );
+    }
+
     return (
       <PageShell className="py-10 flex items-center justify-center min-h-[60vh]">
         <div className="max-w-md w-full rounded-2xl border border-amber-200 bg-amber-50 p-8 text-center shadow-sm">

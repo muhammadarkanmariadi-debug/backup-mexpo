@@ -33,6 +33,15 @@ export async function addCommitteeMember(eventId: string, email: string) {
   );
 }
 
+/** User applies to become a committee member (PENDING). */
+export async function applyCommittee(eventId: string) {
+  return await httpPost(
+    `event-users/committee/${eventId}`,
+    JSON.stringify({}),
+    "token",
+  );
+}
+
 /** Change a member's role (OWNER/COMMITTEE/TENANT/VISITOR). */
 export async function changeEventUserRole(
   id: string,

@@ -117,7 +117,7 @@ export default function CommitteeView({ event }: Props) {
         { id: "registrasi", label: "Registrasi & Tiket", icon: Ticket, content: <RegistrationManager event={event} /> },
         { id: "workshop", label: "Lokakarya", icon: BookOpen, content: <WorkshopsManager event={event} /> },
           { id: "souvenir", label: "Syarat Souvenir", icon: Gift, content: <SouvenirCounterPage event={event} /> },
-          { id: "pembayaran", label: "Pembayaran", icon: Wallet, content: <PaymentsFeature event={event} isSuperAdmin={isSuperAdmin} /> },
+          { id: "pembayaran", label: "Pembayaran", icon: Wallet, content: <PaymentsFeature event={event} /> },
       ],
     },
     {
