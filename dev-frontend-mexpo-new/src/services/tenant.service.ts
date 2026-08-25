@@ -67,8 +67,29 @@ export async function changeTenantMemberRole(memberId: string, role: TenantMembe
   return await httpPut(`tenants/member/${memberId}`, JSON.stringify({ role }), "token");
 }
 
-// ── Verification (B5) ──
-
 export async function verifyTenant(tenantId: string, status: TenantStatus) {
   return await httpPut(`tenants/verify/${tenantId}`, JSON.stringify({ status }), "token");
 }
+
+export interface BulkTenantItem {
+  name: string;
+  email: string;
+  pic_name?: string;
+  phone?: string;
+  booth_number?: string;
+  description?: string;
+  category_id?: string;
+}
+
+/** Organizer: bulk import tenants and PIC accounts into an event */
+export async function bulkImportTenants(
+  eventId: string,
+  tenants: BulkTenantItem[],
+) {
+  return await httpPost(
+    `tenants/bulk-import/${eventId}`,
+    JSON.stringify({ tenants }),
+    "token",
+  );
+}
+

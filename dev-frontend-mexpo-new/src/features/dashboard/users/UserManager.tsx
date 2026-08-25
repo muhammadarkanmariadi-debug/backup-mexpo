@@ -1,36 +1,68 @@
 "use client";
 
-import { Loader2 } from "lucide-react";
+import { Loader2, FileSpreadsheet } from "lucide-react";
 
 import SearchBar from "@/shared/components/form/SearchBar";
 import { DataPagination } from "@/shared/components/ui/DataPagination";
 import { useAuthStore } from "@/stores/auth.store";
-import { getUsers, UserListItem } from "@/services/user.service";
+import {
+  getUsers,
+  bulkImportUsers,
+  UserListItem,
+  BulkUserItem,
+} from "@/services/user.service";
 import { useList } from "@/shared/hooks/useList";
 import RoleBadge from "@/shared/components/ui/RoleBadge";
 import SortMenu from "@/shared/components/ui/SortMenu";
 import PageHeader from "@/shared/components/ui/PageHeader";
 import PageShell from "@/shared/components/ui/PageShell";
 import Badge from "@/shared/components/ui/Badge";
+import Button from "@/shared/components/button/Button";
+import BulkImportModal, { BulkColumnDef } from "@/shared/components/ui/BulkImportModal";
 import { useEffect, useState } from "react";
+
+const USER_IMPORT_COLUMNS: BulkColumnDef[] = [
+  { key: "full_name", label: "Nama Lengkap", required: true, placeholder: "Nama lengkap pengguna" },
+  { key: "email", label: "Email", required: true, type: "email", placeholder: "email@contoh.com" },
+  { key: "phone", label: "No Telepon", placeholder: "08123456789" },
+  { key: "organization", label: "Instansi/Organisasi", placeholder: "SMK Telkom Malang" },
+  { key: "role", label: "Role", type: "select", options: ["USER", "COMMITTEE", "TENANT", "SUPERADMIN"] },
+];
+
+const USER_SAMPLE_DATA = [
+  {
+    "Nama Lengkap": "Budi Santoso",
+    "Email": "budi.santoso@example.com",
+    "No Telepon": "081234567890",
+    "Instansi/Organisasi": "SMK Telkom Malang",
+    "Role": "USER",
+  },
+  {
+    "Nama Lengkap": "Siti Nurhaliza",
+    "Email": "siti.nur@example.com",
+    "No Telepon": "089876543210",
+    "Instansi/Organisasi": "Universitas Brawijaya",
+    "Role": "USER",
+  },
+];
 
 export default function UserManager() {
   const { user } = useAuthStore();
   const isSuperAdmin = user?.role === "SUPERADMIN";
 
-  const [status, setStatus] = useState("Aktif")
+  const [status, setStatus] = useState("Aktif");
+  const [isImportOpen, setIsImportOpen] = useState(false);
 
   const list = useList<UserListItem>((q) => getUsers(q), [isSuperAdmin]);
-
+  const { applyFilter } = list;
 
   useEffect(() => {
     if (status === "Aktif") {
-      list.applyFilter("is_active", "true")
+      applyFilter("is_active", "true");
     } else {
-      list.applyFilter("is_active", "false")
+      applyFilter("is_active", "false");
     } 
-  }, [status])
-
+  }, [status, applyFilter]);
 
   if (!isSuperAdmin) {
     return (
@@ -42,7 +74,20 @@ export default function UserManager() {
 
   return (
     <PageShell className="py-8">
-      <PageHeader title="Manajemen User" subtitle="Kelola semua akun pengguna." />
+      <PageHeader
+        title="Manajemen User"
+        subtitle="Kelola semua akun pengguna."
+        action={
+          <Button
+            variant="primary"
+            onClick={() => setIsImportOpen(true)}
+            className="gap-2 text-xs"
+          >
+            <FileSpreadsheet className="h-4 w-4" />
+            Import Excel
+          </Button>
+        }
+      />
 
       <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-gray-100 bg-white p-4">
         <div className="flex-1 min-w-[200px]">
@@ -129,6 +174,22 @@ export default function UserManager() {
           </div>
         </>
       )}
+
+      <BulkImportModal
+        isOpen={isImportOpen}
+        onClose={() => setIsImportOpen(false)}
+        title="Import Massal Pengguna"
+        description="Upload data pengguna dalam format Excel/CSV. Password default: pass1234, akun langsung aktif."
+        templateFilename="template_pengguna_mexpo.xlsx"
+        columns={USER_IMPORT_COLUMNS}
+        sampleData={USER_SAMPLE_DATA}
+        onConfirm={async (rows) => {
+          return await bulkImportUsers(rows as unknown as BulkUserItem[]);
+        }}
+        onSuccess={() => {
+          list.refetch();
+        }}
+      />
     </PageShell>
   );
-}
+}

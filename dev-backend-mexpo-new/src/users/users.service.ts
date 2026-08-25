@@ -9,6 +9,7 @@ import {
 } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { BulkImportUsersDto } from './dto/bulk-import-user.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { BcryptService } from '../bcrypt/bcrypt.service';
 import { UserRole } from '@prisma/client';
@@ -796,6 +797,83 @@ export class UsersService {
         throw error; // rethrow NestJS exceptions
       }
       throw new InternalServerErrorException(`Something were wrong. ${error}`);
+    }
+  }
+
+  /** Bulk import users from Excel with default password pass1234 and active status */
+  async bulkImportUsers(dto: BulkImportUsersDto) {
+    try {
+      const defaultPasswordHash = await this.bcrypt.hashPassword('pass1234');
+      const results = {
+        total: dto.users.length,
+        created: 0,
+        updated: 0,
+        skipped: 0,
+        details: [] as Array<{
+          email: string;
+          status: 'CREATED' | 'UPDATED' | 'SKIPPED';
+          reason?: string;
+        }>,
+      };
+
+      for (const item of dto.users) {
+        if (!item.email || !item.full_name) {
+          results.skipped++;
+          results.details.push({
+            email: item.email || '(unknown)',
+            status: 'SKIPPED',
+            reason: 'Nama atau email kosong',
+          });
+          continue;
+        }
+
+        const email = item.email.toLowerCase().trim();
+        const existing = await this.prisma.users.findUnique({
+          where: { email },
+        });
+
+        if (existing) {
+          await this.prisma.users.update({
+            where: { email },
+            data: {
+              full_name: item.full_name || existing.full_name,
+              phone: item.phone || existing.phone,
+              organization: item.organization || existing.organization,
+              is_active: true,
+              verify_at: existing.verify_at || new Date(),
+              role: item.role || existing.role,
+            },
+          });
+          results.updated++;
+          results.details.push({ email, status: 'UPDATED' });
+        } else {
+          await this.prisma.users.create({
+            data: {
+              full_name: item.full_name,
+              email,
+              phone: item.phone || '',
+              organization: item.organization || '',
+              password: defaultPasswordHash,
+              is_active: true,
+              verify_at: new Date(),
+              role: item.role || UserRole.USER,
+            },
+          });
+          results.created++;
+          results.details.push({ email, status: 'CREATED' });
+        }
+      }
+
+      return {
+        status: true,
+        message: `Import massal selesai: ${results.created} dibuat, ${results.updated} diperbarui.`,
+        data: results,
+      };
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
+      throw new InternalServerErrorException(
+        `Gagal import massal user. ${error}`,
+      );
     }
   }
 }

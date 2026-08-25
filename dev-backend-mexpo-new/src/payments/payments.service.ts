@@ -230,7 +230,7 @@ export class PaymentsService {
       const isPaid =
         event.ticket_mode === `PAID` ||
         (event.features as { paidTicket?: boolean })?.paidTicket === true;
-      
+
       if (!isPaid) {
         throw new BadRequestException(
           `This event does not require online payment`,

@@ -17,6 +17,7 @@ import {
 import { TenantsService } from './tenants.service';
 import { CreateTenantDto } from './dto/create-tenant.dto';
 import { UpdateTenantDto } from './dto/update-tenant.dto';
+import { BulkImportTenantsDto } from './dto/bulk-import-tenant.dto';
 import { AuthGuard } from '@nestjs/passport';
 import FormatValidation from '../helper/validation.format';
 import * as authType from '../auth/auth.types';
@@ -66,6 +67,20 @@ export class TenantsController {
       request.user.uuid,
       file,
       request.user.role as UserRole,
+    );
+  }
+
+  @Post(`bulk-import/:event_id`)
+  @UsePipes(new ValidationPipe({ exceptionFactory: FormatValidation }))
+  bulkImport(
+    @Param(`event_id`) event_id: string,
+    @Body() bulkImportDto: BulkImportTenantsDto,
+    @Request() request: authType.AuthRequest,
+  ) {
+    return this.tenantsService.bulkImportTenants(
+      event_id,
+      request.user.uuid,
+      bulkImportDto,
     );
   }
 

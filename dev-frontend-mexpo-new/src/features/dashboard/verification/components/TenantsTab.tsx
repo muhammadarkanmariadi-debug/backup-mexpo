@@ -1,5 +1,6 @@
+import { useState } from "react";
 import { toast } from "sonner";
-import { CheckCircle2, XCircle } from "lucide-react";
+import { CheckCircle2, XCircle, FileSpreadsheet } from "lucide-react";
 
 import SearchBar from "@/shared/components/form/SearchBar";
 import { DataPagination } from "@/shared/components/ui/DataPagination";
@@ -7,11 +8,13 @@ import { Event } from "@/entities/event/event.entity";
 import { Tenant, TenantStatus } from "@/entities/event/tenant.entity";
 import { useApiMutation } from "@/lib/hooks/useApi";
 import { getEventTenants } from "@/services/event-data.service";
-import { verifyTenant } from "@/services/tenant.service";
+import { verifyTenant, bulkImportTenants, BulkTenantItem } from "@/services/tenant.service";
 import { useList } from "@/shared/hooks/useList";
 import { APPROVAL_STATUS_LABELS, labelFor } from "@/shared/data/labels";
 import LoadingState from "@/shared/components/ui/LoadingState";
 import EmptyState from "@/shared/components/ui/EmptyState";
+import Button from "@/shared/components/button/Button";
+import BulkImportModal, { BulkColumnDef } from "@/shared/components/ui/BulkImportModal";
 
 interface Props {
   event: Event;
@@ -19,11 +22,40 @@ interface Props {
 
 const TENANT_TABS = ["", "PENDING", "APPROVED", "REJECTED"] as const;
 
+const TENANT_IMPORT_COLUMNS: BulkColumnDef[] = [
+  { key: "name", label: "Nama Tenant/Booth", required: true, placeholder: "Contoh: Telkom Coffee" },
+  { key: "email", label: "Email PIC", required: true, type: "email", placeholder: "pic@contoh.com" },
+  { key: "pic_name", label: "Nama PIC", placeholder: "Nama lengkap penanggung jawab" },
+  { key: "phone", label: "No Telepon", placeholder: "08123456789" },
+  { key: "booth_number", label: "No Booth", placeholder: "A-01" },
+  { key: "description", label: "Deskripsi", placeholder: "Deskripsi booth atau produk" },
+];
+
+const TENANT_SAMPLE_DATA = [
+  {
+    "Nama Tenant/Booth": "Kopi Nusantara",
+    "Email PIC": "pic.kopi@example.com",
+    "Nama PIC": "Hendra Pratama",
+    "No Telepon": "081234567890",
+    "No Booth": "A-01",
+    "Deskripsi": "Stand aneka kopi khas nusantara",
+  },
+  {
+    "Nama Tenant/Booth": "Tech Innovate",
+    "Email PIC": "contact@techinnovate.id",
+    "Nama PIC": "Rina Wijaya",
+    "No Telepon": "089876543210",
+    "No Booth": "B-05",
+    "Deskripsi": "Pameran produk IoT dan Robotics",
+  },
+];
+
 function tabLabel(tab: string) {
   return tab === "" ? "Semua" : labelFor(APPROVAL_STATUS_LABELS, tab, tab);
 }
 
 export function TenantsTab({ event }: Props) {
+  const [isImportOpen, setIsImportOpen] = useState(false);
   const tenants = useList<Tenant>(
     (q) => getEventTenants(event.uuid, q),
     [event.uuid],
@@ -58,8 +90,18 @@ export function TenantsTab({ event }: Props) {
             {tabLabel(t)}
           </button>
         ))}
-        <div className="ml-auto w-full sm:w-64">
-          <SearchBar search={tenants.search} setSearch={tenants.applySearch} placeholder="Cari penyewa..." />
+        <div className="ml-auto flex items-center gap-2 w-full sm:w-auto">
+          <Button
+            variant="outline"
+            size="xs"
+            startIcon={<FileSpreadsheet className="h-4 w-4" />}
+            onClick={() => setIsImportOpen(true)}
+          >
+            Import Excel
+          </Button>
+          <div className="w-full sm:w-64">
+            <SearchBar search={tenants.search} setSearch={tenants.applySearch} placeholder="Cari penyewa..." />
+          </div>
         </div>
       </div>
       
@@ -111,6 +153,26 @@ export function TenantsTab({ event }: Props) {
           </div>
         </div>
       )}
+
+      <BulkImportModal
+        isOpen={isImportOpen}
+        onClose={() => setIsImportOpen(false)}
+        title="Import Massal Penyewa & Booth"
+        description="Upload data penyewa/booth. Akun PIC otomatis dibuatkan akun aktif dengan password default pass1234 dan ditugaskan sebagai Owner Tenant."
+        templateFilename={`template_tenant_${event.name.toLowerCase().replace(/[^a-z0-9]/g, "_")}.xlsx`}
+        columns={TENANT_IMPORT_COLUMNS}
+        sampleData={TENANT_SAMPLE_DATA}
+        onConfirm={async (rows) => {
+          return await bulkImportTenants(
+            event.uuid,
+            rows as unknown as BulkTenantItem[],
+          );
+        }}
+        onSuccess={() => {
+          tenants.refetch();
+        }}
+      />
     </div>
   );
 }
+

@@ -24,7 +24,6 @@ import {
   getEventTransactions,
   getSettlementSummary,
   refundTransaction,
-  settleEvent,
   updateEventPayout,
 } from "@/services/payment.service";
 import { formatPrice } from "@/shared/utils/format";

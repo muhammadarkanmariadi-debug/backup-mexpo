@@ -86,7 +86,10 @@ export class MidtransService {
         name: (it.name || `Tiket Event`).slice(0, 50),
       })),
       customer_details: {
-        first_name: (params.customerDetails.first_name || `Visitor`).slice(0, 50),
+        first_name: (params.customerDetails.first_name || `Visitor`).slice(
+          0,
+          50,
+        ),
         email: params.customerDetails.email,
         phone: params.customerDetails.phone
           ? params.customerDetails.phone.slice(0, 19)

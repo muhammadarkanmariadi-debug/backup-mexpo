@@ -30,7 +30,6 @@ import {
   CertificateTemplateNode,
 } from "@/entities/event/certificate-template.entity";
 import { useApiQuery } from "@/lib/hooks/useApi";
-import { keys } from "@/lib/query-keys";
 import {
   createCertificateTemplate,
   deleteCertificateTemplate,
@@ -74,16 +73,6 @@ const FONT_STYLES = ["normal", "bold", "italic", "bold italic"];
 
 function cloneTemplate(tpl: CertificateTemplateEnvelope): CertificateTemplateEnvelope {
   return JSON.parse(JSON.stringify(tpl)) as CertificateTemplateEnvelope;
-}
-
-function emptyEnvelope(width = 600, height = 900): CertificateTemplateEnvelope {
-  return {
-    version: 1,
-    width,
-    height,
-    background: { type: "color", value: "#f8fafc" },
-    nodes: [],
-  };
 }
 
 // ── Immutable tree helpers over the template envelope ──

@@ -13,7 +13,12 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { BcryptService } from '../bcrypt/bcrypt.service';
 import { MailService } from '../mail/mail.service';
 import { ConfigService } from '@nestjs/config';
-import { EventStatus, EventVisibility, Prisma } from '@prisma/client';
+import {
+  EventRole,
+  EventStatus,
+  EventVisibility,
+  Prisma,
+} from '@prisma/client';
 import { isUuid } from '../helper/slug';
 import { PaymentsService } from '../payments/payments.service';
 
@@ -406,7 +411,7 @@ export class PublicApiService {
             some: {
               event_id,
               status,
-              role: role as any,
+              role: role ? (role as EventRole) : undefined,
             },
           },
           OR: [
@@ -426,7 +431,7 @@ export class PublicApiService {
             some: {
               event_id,
               status,
-              role: role as any,
+              role: role ? (role as EventRole) : undefined,
             },
           },
           OR: [
@@ -935,8 +940,9 @@ export class PublicApiService {
       };
     } catch (error) {
       if (error instanceof HttpException) throw error;
-      throw new InternalServerErrorException(`Failed to retrieve platform stats. ${error}`);
+      throw new InternalServerErrorException(
+        `Failed to retrieve platform stats. ${error}`,
+      );
     }
   }
 }
-

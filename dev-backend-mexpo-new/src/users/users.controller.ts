@@ -17,6 +17,7 @@ import {
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { BulkImportUsersDto } from './dto/bulk-import-user.dto';
 import { BasicGuard } from '../helper/basic-auth';
 import FormatValidation from '../helper/validation.format';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -58,6 +59,14 @@ export class UsersController {
     @UploadedFile() file?: Express.Multer.File,
   ) {
     return this.usersService.create(createUserDto, `SUPERADMIN`, file);
+  }
+
+  @Post(`bulk-import`)
+  @UseGuards(AuthGuard(`jwt`), RoleGuard)
+  @Roles(`SUPERADMIN`)
+  @UsePipes(new ValidationPipe({ exceptionFactory: FormatValidation }))
+  bulkImport(@Body() bulkImportDto: BulkImportUsersDto) {
+    return this.usersService.bulkImportUsers(bulkImportDto);
   }
 
   @Post(`reset-password`)

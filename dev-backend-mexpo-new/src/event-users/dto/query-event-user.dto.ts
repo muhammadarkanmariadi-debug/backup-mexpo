@@ -1,4 +1,4 @@
-import { EventRole, USER_EVENT_STATUS } from '@prisma/client';
+import { USER_EVENT_STATUS } from '@prisma/client';
 import { Type } from 'class-transformer';
 import { IsEnum, IsIn, IsNumber, IsOptional, IsString } from 'class-validator';
 

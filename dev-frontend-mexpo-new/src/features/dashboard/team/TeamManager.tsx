@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { Loader2, UserPlus } from "lucide-react";
+import { Loader2, UserPlus, FileSpreadsheet } from "lucide-react";
 
 import Input from "@/shared/components/form/Input";
 import Button from "@/shared/components/button/Button";
@@ -16,8 +16,11 @@ import {
   verifyEventUser,
   changeEventUserRole,
   removeEventUser,
+  bulkImportEventUsers,
   EventUser,
+  BulkEventUserItem,
 } from "@/services/event-users.service";
+import BulkImportModal, { BulkColumnDef } from "@/shared/components/ui/BulkImportModal";
 import { useList } from "@/shared/hooks/useList";
 import EmptyState from "@/shared/components/ui/EmptyState";
 import { useConfirm } from "@/shared/components/ui/ConfirmDialog";
@@ -26,10 +29,36 @@ import LoadingState from "@/shared/components/ui/LoadingState";
 import { TeamMemberRow } from "./components/TeamMemberRow";
 import { TeamFilterBar } from "./components/TeamFilterBar";
 
+const EVENT_USER_IMPORT_COLUMNS: BulkColumnDef[] = [
+  { key: "full_name", label: "Nama Lengkap", required: true, placeholder: "Nama lengkap" },
+  { key: "email", label: "Email", required: true, type: "email", placeholder: "email@example.com" },
+  { key: "phone", label: "No Telepon", placeholder: "08123456789" },
+  { key: "organization", label: "Instansi/Organisasi", placeholder: "SMK Telkom Malang" },
+  { key: "role", label: "Role di Event", type: "select", options: ["VISITOR", "COMMITTEE"] },
+];
+
+const EVENT_USER_SAMPLE_DATA = [
+  {
+    "Nama Lengkap": "Ahmad Fauzi",
+    "Email": "ahmad.fauzi@example.com",
+    "No Telepon": "081234567890",
+    "Instansi/Organisasi": "SMK Telkom Malang",
+    "Role di Event": "VISITOR",
+  },
+  {
+    "Nama Lengkap": "Dewi Lestari",
+    "Email": "dewi.lestari@example.com",
+    "No Telepon": "089876543210",
+    "Instansi/Organisasi": "Alumni",
+    "Role di Event": "COMMITTEE",
+  },
+];
+
 export default function TeamManager({ event }: { event: Event }) {
   const [busy, setBusy] = useState(false);
   const [email, setEmail] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isBulkImportOpen, setIsBulkImportOpen] = useState(false);
 
   const { confirm, dialogs } = useConfirm();
 
@@ -90,9 +119,23 @@ export default function TeamManager({ event }: { event: Event }) {
         title="Tim & Panitia"
         subtitle={event.name}
         action={
-          <Button size="xs" startIcon={<UserPlus className="h-4 w-4" />} onClick={() => setIsModalOpen(true)}>
-            Tambah
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="xs"
+              startIcon={<FileSpreadsheet className="h-4 w-4" />}
+              onClick={() => setIsBulkImportOpen(true)}
+            >
+              Import Excel
+            </Button>
+            <Button
+              size="xs"
+              startIcon={<UserPlus className="h-4 w-4" />}
+              onClick={() => setIsModalOpen(true)}
+            >
+              Tambah Panitia
+            </Button>
+          </div>
         }
       />
 
@@ -151,6 +194,25 @@ export default function TeamManager({ event }: { event: Event }) {
           </div>
         </>
       )}
+
+      <BulkImportModal
+        isOpen={isBulkImportOpen}
+        onClose={() => setIsBulkImportOpen(false)}
+        title="Import Massal Peserta & Panitia Event"
+        description="Upload data peserta atau panitia event. Pengguna baru otomatis dibuatkan akun aktif dengan password default pass1234."
+        templateFilename={`template_peserta_${event.name.toLowerCase().replace(/[^a-z0-9]/g, "_")}.xlsx`}
+        columns={EVENT_USER_IMPORT_COLUMNS}
+        sampleData={EVENT_USER_SAMPLE_DATA}
+        onConfirm={async (rows) => {
+          return await bulkImportEventUsers(
+            event.uuid,
+            rows as unknown as BulkEventUserItem[],
+          );
+        }}
+        onSuccess={() => {
+          list.refetch();
+        }}
+      />
 
       {dialogs}
     </PageShell>

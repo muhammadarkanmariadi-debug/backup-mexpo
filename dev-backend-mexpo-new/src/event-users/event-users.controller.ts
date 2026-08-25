@@ -15,6 +15,7 @@ import {
 import { EventUsersService } from './event-users.service';
 import { CreateEventUserDto } from './dto/create-event-user.dto';
 import { UpdateEventUserDto } from './dto/update-event-user.dto';
+import { BulkImportEventUsersDto } from './dto/bulk-import-event-user.dto';
 import { AuthGuard } from '@nestjs/passport';
 import FormatValidation from '../helper/validation.format';
 import * as authType from '../auth/auth.types';
@@ -70,6 +71,20 @@ export class EventUsersController {
       request.user.uuid,
       createEventUserDto,
       `TENANT`,
+    );
+  }
+
+  @Post(`bulk-import/:event_id`)
+  @UsePipes(new ValidationPipe({ exceptionFactory: FormatValidation }))
+  bulkImport(
+    @Param(`event_id`) event_id: string,
+    @Body() bulkImportDto: BulkImportEventUsersDto,
+    @Request() request: authType.AuthRequest,
+  ) {
+    return this.eventUsersService.bulkImportEventUsers(
+      event_id,
+      request.user.uuid,
+      bulkImportDto,
     );
   }
 

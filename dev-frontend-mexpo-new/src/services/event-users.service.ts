@@ -55,3 +55,24 @@ export async function removeEventUser(id: string) {
   return await httpDelete(`event-users/${id}`, "token");
 }
 
+export interface BulkEventUserItem {
+  full_name: string;
+  email: string;
+  phone?: string;
+  organization?: string;
+  role?: "VISITOR" | "COMMITTEE";
+}
+
+/** Organizer: bulk import and enroll users/visitors into an event */
+export async function bulkImportEventUsers(
+  eventId: string,
+  users: BulkEventUserItem[],
+) {
+  return await httpPost(
+    `event-users/bulk-import/${eventId}`,
+    JSON.stringify({ users }),
+    "token",
+  );
+}
+
+

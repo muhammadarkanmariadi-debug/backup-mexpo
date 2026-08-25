@@ -5,7 +5,6 @@ import { Users, BookOpen, CalendarCheck2,
   Pencil, Send, Trash2, Crown, Ticket, ScanLine, ClipboardCheck, Gift, BarChart3,
   CheckCircle2, RotateCcw, CalendarClock, Mic, Handshake, Phone, Award, Wallet } from "lucide-react";
 import { toast } from "sonner";
-import { useAuthStore } from "@/stores/auth.store";
 
 import { Event } from "@/entities/event/event.entity";
 import { useApiMutation } from "@/lib/hooks/useApi";
@@ -37,8 +36,6 @@ interface Props { event: Event }
 
 export default function OwnerView({ event }: Props) {
   const router = useRouter();
-  const { user } = useAuthStore();
-  const isSuperAdmin = user?.role === "SUPERADMIN";
   const isDrafted = event.status === "DRAFTED" || event.status === "REJECTED";
   const isPublished = event.status === "PUBLISHED";
   const isFinished = event.status === "FINISHED";

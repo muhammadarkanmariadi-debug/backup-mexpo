@@ -61,13 +61,6 @@ export default function RegistrationForm({ event, fields, ticketTypes }: Props) 
     }
   }, [isPaid]);
 
-  // Keep ticketTypeId in sync if ticketTypes prop loads/updates
-  useEffect(() => {
-    if (!ticketTypeId && ticketTypes.length > 0) {
-      setTicketTypeId(ticketTypes[0].uuid);
-    }
-  }, [ticketTypes, ticketTypeId]);
-
   useEffect(() => {
     if (!isAuthenticated || !user) {
       const current = `${window.location.pathname}${window.location.search}`;

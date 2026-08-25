@@ -4,7 +4,6 @@ import { EventSpeaker } from "@/entities/event/speaker.entity";
 import { EventSponsor } from "@/entities/event/sponsor.entity";
 import { EventRundown } from "@/entities/event/rundown.entity";
 import { EventContact } from "@/entities/event/contact.entity";
-import ContentTitle1 from "@/shared/components/ui/ContentTitle1";
 import { Event } from "@/entities/event/event.entity";
 import { WorkshopTab } from "../../../../../shared/components/tabs/Workshop";
 import { Workshop } from "@/entities/event/workshop.entity";

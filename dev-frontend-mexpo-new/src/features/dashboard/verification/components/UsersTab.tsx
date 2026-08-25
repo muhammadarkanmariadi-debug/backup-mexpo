@@ -1,15 +1,24 @@
+import { useState } from "react";
 import { toast } from "sonner";
-import { CheckCircle2, XCircle } from "lucide-react";
+import { CheckCircle2, XCircle, FileSpreadsheet } from "lucide-react";
 
 import SearchBar from "@/shared/components/form/SearchBar";
 import { DataPagination } from "@/shared/components/ui/DataPagination";
 import { Event } from "@/entities/event/event.entity";
 import { useApiMutation } from "@/lib/hooks/useApi";
-import { getEventUsers, verifyEventUser, EventUser } from "@/services/event-users.service";
+import {
+  getEventUsers,
+  verifyEventUser,
+  bulkImportEventUsers,
+  EventUser,
+  BulkEventUserItem,
+} from "@/services/event-users.service";
 import { useList } from "@/shared/hooks/useList";
 import { APPROVAL_STATUS_LABELS, ROLE_LABELS, labelFor } from "@/shared/data/labels";
 import LoadingState from "@/shared/components/ui/LoadingState";
 import EmptyState from "@/shared/components/ui/EmptyState";
+import Button from "@/shared/components/button/Button";
+import BulkImportModal, { BulkColumnDef } from "@/shared/components/ui/BulkImportModal";
 
 interface Props {
   event: Event;
@@ -17,11 +26,34 @@ interface Props {
 
 const REQUEST_TABS = ["", "PENDING", "APPROVED", "REJECTED"] as const;
 
+const VISITOR_IMPORT_COLUMNS: BulkColumnDef[] = [
+  { key: "full_name", label: "Nama Lengkap", required: true, placeholder: "Nama lengkap" },
+  { key: "email", label: "Email", required: true, type: "email", placeholder: "email@example.com" },
+  { key: "phone", label: "No Telepon", placeholder: "08123456789" },
+  { key: "organization", label: "Instansi/Organisasi", placeholder: "SMK Telkom Malang" },
+];
+
+const VISITOR_SAMPLE_DATA = [
+  {
+    "Nama Lengkap": "Ahmad Fauzi",
+    "Email": "ahmad.fauzi@example.com",
+    "No Telepon": "081234567890",
+    "Instansi/Organisasi": "SMK Telkom Malang",
+  },
+  {
+    "Nama Lengkap": "Dewi Lestari",
+    "Email": "dewi.lestari@example.com",
+    "No Telepon": "089876543210",
+    "Instansi/Organisasi": "Universitas Brawijaya",
+  },
+];
+
 function tabLabel(tab: string) {
   return tab === "" ? "Semua" : labelFor(APPROVAL_STATUS_LABELS, tab, tab);
 }
 
 export function UsersTab({ event }: Props) {
+  const [isImportOpen, setIsImportOpen] = useState(false);
   const requests = useList<EventUser>(
     (q) => getEventUsers(event.uuid, { ...q, role: "VISITOR" }),
     [event.uuid],
@@ -56,8 +88,18 @@ export function UsersTab({ event }: Props) {
             {tabLabel(t)}
           </button>
         ))}
-        <div className="ml-auto w-full sm:w-64">
-          <SearchBar search={requests.search} setSearch={requests.applySearch} placeholder="Cari nama/email..." />
+        <div className="ml-auto flex items-center gap-2 w-full sm:w-auto">
+          <Button
+            variant="outline"
+            size="xs"
+            startIcon={<FileSpreadsheet className="h-4 w-4" />}
+            onClick={() => setIsImportOpen(true)}
+          >
+            Import Excel
+          </Button>
+          <div className="w-full sm:w-64">
+            <SearchBar search={requests.search} setSearch={requests.applySearch} placeholder="Cari nama/email..." />
+          </div>
         </div>
       </div>
       
@@ -109,6 +151,26 @@ export function UsersTab({ event }: Props) {
           </div>
         </>
       )}
+
+      <BulkImportModal
+        isOpen={isImportOpen}
+        onClose={() => setIsImportOpen(false)}
+        title="Import Massal Pengunjung / Peserta Event"
+        description="Upload data pengunjung untuk event ini. Pengguna baru otomatis dibuatkan akun aktif dengan password default pass1234."
+        templateFilename={`template_pengunjung_${event.name.toLowerCase().replace(/[^a-z0-9]/g, "_")}.xlsx`}
+        columns={VISITOR_IMPORT_COLUMNS}
+        sampleData={VISITOR_SAMPLE_DATA}
+        onConfirm={async (rows) => {
+          return await bulkImportEventUsers(
+            event.uuid,
+            rows as unknown as BulkEventUserItem[],
+          );
+        }}
+        onSuccess={() => {
+          requests.refetch();
+        }}
+      />
     </div>
   );
 }
+

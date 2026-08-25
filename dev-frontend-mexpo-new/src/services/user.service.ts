@@ -84,3 +84,21 @@ export async function changeEmail(email: string, current_password: string) {
     "token",
   );
 }
+
+export interface BulkUserItem {
+  full_name: string;
+  email: string;
+  phone?: string;
+  organization?: string;
+  role?: string;
+}
+
+/** Superadmin: bulk import users from Excel */
+export async function bulkImportUsers(users: BulkUserItem[]) {
+  return await httpPost(
+    "users/bulk-import",
+    JSON.stringify({ users }),
+    "token",
+  );
+}
+

@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { motion } from "framer-motion";
 import { useSearchParams } from "next/navigation";
 import { ArrowUpDown, Filter, RotateCcw } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";

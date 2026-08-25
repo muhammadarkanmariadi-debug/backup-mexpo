@@ -8,6 +8,7 @@ import {
 } from '@nestjs/common';
 import { CreateTenantDto } from './dto/create-tenant.dto';
 import { UpdateTenantDto } from './dto/update-tenant.dto';
+import { BulkImportTenantsDto } from './dto/bulk-import-tenant.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
 import { S3Service } from '../s3/s3.service';
@@ -1085,6 +1086,222 @@ export class TenantsService {
     } catch (error) {
       if (error instanceof HttpException) throw error;
       throw new InternalServerErrorException(`Something were wrong: ${error}`);
+    }
+  }
+
+  /** Bulk import tenants and PIC accounts into an event */
+  async bulkImportTenants(
+    event_id: string,
+    currentUserId: string,
+    dto: BulkImportTenantsDto,
+  ) {
+    try {
+      const event = await this.prisma.events.findUnique({
+        where: { uuid: event_id },
+      });
+      if (!event) throw new NotFoundException('Event tidak ditemukan');
+
+      // Verify permission: SUPERADMIN or APPROVED OWNER/COMMITTEE
+      const currentUser = await this.prisma.users.findUnique({
+        where: { uuid: currentUserId },
+      });
+      if (currentUser?.role !== 'SUPERADMIN') {
+        const isOrganizer = await this.prisma.user_event_roles.findFirst({
+          where: {
+            event_id,
+            user_id: currentUserId,
+            status: 'APPROVED',
+            role: { in: ['OWNER', 'COMMITTEE'] },
+          },
+        });
+        if (!isOrganizer) {
+          throw new ForbiddenException(
+            'Hanya Owner atau Panitia yang dapat mengimpor tenant event.',
+          );
+        }
+      }
+
+      const defaultPasswordHash = await this.bcrypt.hashPassword('pass1234');
+      const results = {
+        total: dto.tenants.length,
+        created: 0,
+        updated: 0,
+        skipped: 0,
+        details: [] as Array<{
+          name: string;
+          email: string;
+          status: 'CREATED' | 'UPDATED' | 'SKIPPED';
+          reason?: string;
+        }>,
+      };
+
+      for (const item of dto.tenants) {
+        if (!item.name || !item.email) {
+          results.skipped++;
+          results.details.push({
+            name: item.name || '(unknown)',
+            email: item.email || '(unknown)',
+            status: 'SKIPPED',
+            reason: 'Nama tenant atau email PIC kosong',
+          });
+          continue;
+        }
+
+        const email = item.email.toLowerCase().trim();
+
+        // 1. Find or create PIC user
+        let picUser = await this.prisma.users.findUnique({
+          where: { email },
+        });
+
+        if (!picUser) {
+          picUser = await this.prisma.users.create({
+            data: {
+              full_name: item.pic_name || item.name,
+              email,
+              phone: item.phone || '',
+              password: defaultPasswordHash,
+              is_active: true,
+              verify_at: new Date(),
+              role: 'USER',
+            },
+          });
+        }
+
+        // 2. Find or create tenant record
+        const slug = await uniqueSlug(
+          item.name,
+          async (s) =>
+            !!(await this.prisma.tenants.findUnique({ where: { slug: s } })),
+        );
+        const existingTenant = await this.prisma.tenants.findFirst({
+          where: {
+            event_id,
+            OR: [{ email }, { name: item.name }],
+          },
+        });
+
+        let tenantRecordId = '';
+
+        if (existingTenant) {
+          await this.prisma.tenants.update({
+            where: { uuid: existingTenant.uuid },
+            data: {
+              name: item.name,
+              phone: item.phone || existingTenant.phone,
+              booth_number: item.booth_number || existingTenant.booth_number,
+              description: item.description || existingTenant.description,
+              status: 'APPROVED',
+              category_id: item.category_id || existingTenant.category_id,
+              updated_by: currentUserId,
+            },
+          });
+          tenantRecordId = existingTenant.uuid;
+          results.updated++;
+        } else {
+          const newTenant = await this.prisma.tenants.create({
+            data: {
+              name: item.name,
+              slug,
+              event_id,
+              email,
+              phone: item.phone || '',
+              booth_number: item.booth_number || '',
+              description: item.description || `Tenant ${item.name}`,
+              status: 'APPROVED',
+              category_id: item.category_id || null,
+              created_by: currentUserId,
+              updated_by: currentUserId,
+            },
+          });
+          tenantRecordId = newTenant.uuid;
+          results.created++;
+        }
+
+        // 3. Ensure tenant_events link
+        const existingTenantEvent = await this.prisma.tenant_events.findFirst({
+          where: { tenant_id: tenantRecordId, event_id },
+        });
+        if (!existingTenantEvent) {
+          await this.prisma.tenant_events.create({
+            data: {
+              tenant_id: tenantRecordId,
+              event_id,
+              created_by: currentUserId,
+              updated_by: currentUserId,
+            },
+          });
+        }
+
+        // 4. Ensure tenant_members link (PIC as OWNER)
+        const existingMember = await this.prisma.tenant_members.findFirst({
+          where: { tenant_id: tenantRecordId, user_id: picUser.uuid },
+        });
+        if (existingMember) {
+          await this.prisma.tenant_members.update({
+            where: { uuid: existingMember.uuid },
+            data: {
+              status: 'APPROVED',
+              role: 'OWNER',
+              updated_by: currentUserId,
+            },
+          });
+        } else {
+          await this.prisma.tenant_members.create({
+            data: {
+              tenant_id: tenantRecordId,
+              user_id: picUser.uuid,
+              role: 'OWNER',
+              status: 'APPROVED',
+              created_by: currentUserId,
+              updated_by: currentUserId,
+            },
+          });
+        }
+
+        // 5. Also link PIC to user_event_roles as TENANT (APPROVED)
+        const existingUserEventRole =
+          await this.prisma.user_event_roles.findFirst({
+            where: { event_id, user_id: picUser.uuid },
+          });
+        if (existingUserEventRole) {
+          await this.prisma.user_event_roles.update({
+            where: { uuid: existingUserEventRole.uuid },
+            data: {
+              status: 'APPROVED',
+              role: 'TENANT',
+              updated_by: currentUserId,
+            },
+          });
+        } else {
+          await this.prisma.user_event_roles.create({
+            data: {
+              event_id,
+              user_id: picUser.uuid,
+              role: 'TENANT',
+              status: 'APPROVED',
+              created_by: currentUserId,
+              updated_by: currentUserId,
+              verify_at: new Date(),
+            },
+          });
+        }
+
+        results.details.push({
+          name: item.name,
+          email,
+          status: existingTenant ? 'UPDATED' : 'CREATED',
+        });
+      }
+
+      return {
+        status: true,
+        message: `Import tenant selesai: ${results.created} dibuat, ${results.updated} diperbarui.`,
+        data: results,
+      };
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
+      throw new InternalServerErrorException(`Gagal import tenant. ${error}`);
     }
   }
 }

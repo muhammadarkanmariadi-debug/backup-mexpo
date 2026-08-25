@@ -9,15 +9,12 @@ import PageShell from "@/shared/components/ui/PageShell";
 export default function PaymentSuccessPage() {
   const router = useRouter();
   const [countdown, setCountdown] = useState(5);
-  const [targetSlug, setTargetSlug] = useState<string | null>(null);
-
-  useEffect(() => {
-    // Read the intended redirect target from local storage
-    const slug = localStorage.getItem("mexpo_payment_redirect");
-    if (slug) {
-      setTargetSlug(slug);
+  const [targetSlug] = useState<string | null>(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("mexpo_payment_redirect");
     }
-  }, []);
+    return null;
+  });
 
   useEffect(() => {
     if (countdown <= 0) {

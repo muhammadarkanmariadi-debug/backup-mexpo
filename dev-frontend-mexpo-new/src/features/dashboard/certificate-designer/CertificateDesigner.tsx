@@ -76,15 +76,7 @@ function cloneTemplate(tpl: CertificateTemplateEnvelope): CertificateTemplateEnv
   return JSON.parse(JSON.stringify(tpl)) as CertificateTemplateEnvelope;
 }
 
-function emptyEnvelope(width = 750, height = 525): CertificateTemplateEnvelope {
-  return {
-    version: 1,
-    width,
-    height,
-    background: { type: "color", value: "#ffffff" },
-    nodes: [],
-  };
-}
+// ── Immutable tree helpers over the template envelope ──
 
 // ── Immutable tree helpers over the template envelope ──
 

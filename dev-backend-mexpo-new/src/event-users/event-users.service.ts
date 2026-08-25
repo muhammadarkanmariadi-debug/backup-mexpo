@@ -8,7 +8,9 @@ import {
 } from '@nestjs/common';
 import { CreateEventUserDto } from './dto/create-event-user.dto';
 import { UpdateEventUserDto } from './dto/update-event-user.dto';
+import { BulkImportEventUsersDto } from './dto/bulk-import-event-user.dto';
 import { PrismaService } from '../prisma/prisma.service';
+import { BcryptService } from '../bcrypt/bcrypt.service';
 import { EventRole } from '@prisma/client';
 import { QueryEventUserDto } from './dto/query-event-user.dto';
 import { buildOrderBy } from '../helper/sort';
@@ -25,7 +27,10 @@ const EVENT_USER_SORTABLE: Record<
 
 @Injectable()
 export class EventUsersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly bcrypt: BcryptService,
+  ) {}
   async create(
     event_id: string,
     userId: string,
@@ -240,7 +245,9 @@ export class EventUsersService {
           }
         : {};
 
-      const rolesArray = role ? role.split(',').map((r) => r.trim() as EventRole) : undefined;
+      const rolesArray = role
+        ? role.split(',').map((r) => r.trim() as EventRole)
+        : undefined;
       const where: Prisma.user_event_rolesWhereInput = {
         event_id,
         status: status ?? undefined,
@@ -431,6 +438,136 @@ export class EventUsersService {
         throw error; // rethrow NestJS exceptions
       }
       throw new InternalServerErrorException(`Something were wrong. ${error}`);
+    }
+  }
+
+  /** Bulk import participants/visitors into an event */
+  async bulkImportEventUsers(
+    event_id: string,
+    currentUserId: string,
+    dto: BulkImportEventUsersDto,
+  ) {
+    try {
+      const event = await this.prisma.events.findUnique({
+        where: { uuid: event_id },
+      });
+      if (!event) throw new NotFoundException('Event tidak ditemukan');
+
+      // Verify permission: SUPERADMIN or APPROVED OWNER/COMMITTEE
+      const currentUser = await this.prisma.users.findUnique({
+        where: { uuid: currentUserId },
+      });
+      if (currentUser?.role !== 'SUPERADMIN') {
+        const isOrganizer = await this.prisma.user_event_roles.findFirst({
+          where: {
+            event_id,
+            user_id: currentUserId,
+            status: 'APPROVED',
+            role: { in: ['OWNER', 'COMMITTEE'] },
+          },
+        });
+        if (!isOrganizer) {
+          throw new ForbiddenException(
+            'Hanya Owner atau Panitia yang dapat mengimpor peserta event.',
+          );
+        }
+      }
+
+      const defaultPasswordHash = await this.bcrypt.hashPassword('pass1234');
+      const results = {
+        total: dto.users.length,
+        created: 0,
+        enrolled: 0,
+        skipped: 0,
+        details: [] as Array<{
+          email: string;
+          status: 'CREATED_AND_ENROLLED' | 'ENROLLED' | 'SKIPPED';
+          reason?: string;
+        }>,
+      };
+
+      for (const item of dto.users) {
+        if (!item.email || !item.full_name) {
+          results.skipped++;
+          results.details.push({
+            email: item.email || '(unknown)',
+            status: 'SKIPPED',
+            reason: 'Nama atau email kosong',
+          });
+          continue;
+        }
+
+        const email = item.email.toLowerCase().trim();
+        let targetUser = await this.prisma.users.findUnique({
+          where: { email },
+        });
+
+        let isNewUser = false;
+        if (!targetUser) {
+          targetUser = await this.prisma.users.create({
+            data: {
+              full_name: item.full_name,
+              email,
+              phone: item.phone || '',
+              organization: item.organization || '',
+              password: defaultPasswordHash,
+              is_active: true,
+              verify_at: new Date(),
+              role: 'USER',
+            },
+          });
+          isNewUser = true;
+          results.created++;
+        }
+
+        // Check if user is already enrolled in this event
+        const existingEventRole = await this.prisma.user_event_roles.findFirst({
+          where: { event_id, user_id: targetUser.uuid },
+        });
+
+        const targetRole = item.role || 'VISITOR';
+
+        if (existingEventRole) {
+          await this.prisma.user_event_roles.update({
+            where: { uuid: existingEventRole.uuid },
+            data: {
+              status: 'APPROVED',
+              role: targetRole,
+              updated_by: currentUserId,
+              verify_at: existingEventRole.verify_at || new Date(),
+            },
+          });
+        } else {
+          await this.prisma.user_event_roles.create({
+            data: {
+              event_id,
+              user_id: targetUser.uuid,
+              role: targetRole,
+              status: 'APPROVED',
+              created_by: currentUserId,
+              updated_by: currentUserId,
+              verify_at: new Date(),
+            },
+          });
+        }
+
+        results.enrolled++;
+        results.details.push({
+          email,
+          status: isNewUser ? 'CREATED_AND_ENROLLED' : 'ENROLLED',
+        });
+      }
+
+      return {
+        status: true,
+        message: `Import peserta berhasil: ${results.enrolled} peserta didaftarkan ke event.`,
+        data: results,
+      };
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
+      throw new InternalServerErrorException(
+        `Gagal import peserta event. ${error}`,
+      );
     }
   }
 }

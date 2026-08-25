@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { Loader2, ArrowRight } from "lucide-react";
 import Link from "next/link";
 
@@ -15,7 +14,6 @@ import PageHeader from "@/shared/components/ui/PageHeader";
 import PageShell from "@/shared/components/ui/PageShell";
 
 export default function SettlementList() {
-  const router = useRouter();
   const { user } = useAuthStore();
 
   const isSuperAdmin = user?.role === "SUPERADMIN";
