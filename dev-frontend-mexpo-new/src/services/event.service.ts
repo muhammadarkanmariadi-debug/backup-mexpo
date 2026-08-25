@@ -52,9 +52,20 @@ export async function reopenEvent(uuid: string) {
   return await httpPut(`events/${uuid}/reopen`, "", "token");
 }
 
-/** A3 — super admin approval queue. */
 export async function getApprovalQueue(query?: Record<string, string>) {
   const res = await httpGet(`events/approval-queue`, "token", META_DYNAMIC, query);
+  return {
+    data: res.data as Event[],
+    status: res.status,
+    code: res.code,
+    message: res.message,
+    meta: res.meta,
+  };
+}
+
+/** Super admin list of all events (for settlements etc.) */
+export async function getAllEvents(query?: Record<string, string>) {
+  const res = await httpGet(`events`, "token", META_DYNAMIC, query);
   return {
     data: res.data as Event[],
     status: res.status,

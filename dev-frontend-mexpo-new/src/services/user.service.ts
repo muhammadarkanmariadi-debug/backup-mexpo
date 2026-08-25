@@ -29,7 +29,7 @@ export async function getProfile() {
 export async function getUsers(query?: Record<string, string>) {
   const res = await httpGet("users", "token", META_DYNAMIC, query);
   return {
-    data: (res.data as UserListItem[]) ?? [],
+    data: (Array.isArray(res.data) ? res.data : []) as UserListItem[],
     status: res.status,
     message: res.message,
     meta: res.meta,

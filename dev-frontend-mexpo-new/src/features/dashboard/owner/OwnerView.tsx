@@ -134,7 +134,7 @@ export default function OwnerView({ event }: Props) {
         { id: "tim", label: "Daftar Tim", icon: Users, content: <TeamManager event={event} /> },
         { id: "verifikasi", label: "Verifikasi Pendaftar", icon: ClipboardCheck, content: <VerificationPage event={event} /> },
         { id: "registrasi", label: "Registrasi & Tiket", icon: Ticket, content: <RegistrationManager event={event} /> },
-        { id: "workshop", label: "Lokakarya", icon: BookOpen, content: <WorkshopsManager event={event} /> },
+          { id: "workshop", label: "Lokakarya", icon: BookOpen, content: <WorkshopsManager event={event} /> },
           { id: "souvenir", label: "Syarat Souvenir", icon: Gift, content: <SouvenirCounterPage event={event} /> },
           { id: "pembayaran", label: "Pembayaran", icon: Wallet, content: <PaymentsFeature event={event} /> },
       ],

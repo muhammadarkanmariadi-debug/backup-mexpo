@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useState } from "react";
 import Link from "next/link";
-import { Frown, Loader2, Plus, ShieldCheck, Users } from "lucide-react";
+import { Frown, Loader2, Plus, ShieldCheck, Users, Wallet } from "lucide-react";
 
 import { useAuthStore } from "@/stores/auth.store";
 import { useList } from "@/shared/hooks/useList";
@@ -92,6 +92,13 @@ export default function EventList() {
             >
               <Users className="w-4 h-4" />
               Manajemen Pengguna
+            </Link>
+            <Link
+              href="/dashboard/settlements"
+              className="inline-flex items-center gap-2 bg-white/95 text-secondary font-semibold text-sm px-5 py-2.5 rounded-xl hover:scale-[1.02] active:scale-95 transition-all duration-200 shadow-md"
+            >
+              <Wallet className="w-4 h-4" />
+              Settlement
             </Link>
           </div>
         )}
