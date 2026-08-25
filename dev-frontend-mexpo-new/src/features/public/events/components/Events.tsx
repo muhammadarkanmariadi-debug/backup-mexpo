@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { useSearchParams } from "next/navigation";
@@ -21,6 +20,7 @@ import {
 } from "@/shared/data/labels";
 import { getEvents } from "@/services/public.service";
 import { keys } from "@/lib/query-keys";
+import { GeometricBannerBg } from "@/shared/components/ui/GeometricBanner";
 
 type Category = "All Events" | "On Going" | "Upcoming" | "Past";
 type TicketFilter = "ALL" | "FREE" | "PAID";
@@ -129,15 +129,8 @@ export default function Events({ events: initialEvents }: { events: Event[] }) {
 
   return (
     <div className="mx-auto max-w-7xl">
-      <div className="relative mt-0 flex min-h-[320px] w-full flex-col items-center justify-center overflow-hidden rounded-xl px-4 py-12 sm:px-6 md:min-h-[400px] md:px-8 lg:mt-10">
-        <Image
-          src="/images/cards/card-e.png"
-          alt="Event Header"
-          fill
-          priority
-          sizes="(max-width: 768px) 100vw, (max-width: 1280px) 100vw, 1280px"
-          className=" h-96"
-        />
+      <div className="relative mt-0 flex min-h-[320px] w-full flex-col items-center justify-center overflow-hidden sm:rounded-xl px-4 py-12 sm:px-6 md:min-h-[400px] md:px-8 lg:mt-10">
+        <GeometricBannerBg />
 
         <div className="relative z-10 flex w-full max-w-7xl flex-col items-center gap-4 text-center text-white sm:gap-3 md:gap-4">
           <p className="font-jakarta text-xs drop-shadow-md sm:text-sm md:text-base">
