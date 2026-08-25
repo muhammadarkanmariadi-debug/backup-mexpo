@@ -14,7 +14,8 @@ import {
   changeTenantMemberRole,
   TenantMember,
 } from "@/services/tenant.service";
-import { LoadingSpinner } from "@/shared/components/ui/LoadingSpinner";
+import LoadingState from "@/shared/components/ui/LoadingState";
+import EmptyState from "@/shared/components/ui/EmptyState";
 
 export function TeamTab({ tenantId }: { tenantId: string }) {
   const [email, setEmail] = useState("");
@@ -112,11 +113,11 @@ export function TeamTab({ tenantId }: { tenantId: string }) {
       </Modal>
 
       {loading ? (
-        <LoadingSpinner className="py-10" />
+        <LoadingState type="skeleton-list" count={3} className="py-4" />
       ) : (members ?? []).length === 0 ? (
-        <p className="py-8 text-gray-500 text-sm text-center">Belum ada anggota tim.</p>
+        <EmptyState title="Belum ada anggota tim." />
       ) : list.length === 0 ? (
-        <p className="py-8 text-gray-500 text-sm text-center">Tidak ada anggota yang cocok dengan pencarian.</p>
+        <EmptyState title="Tidak ada anggota yang cocok dengan pencarian." />
       ) : (
         <div className="space-y-2">
           {list.map((m) => (

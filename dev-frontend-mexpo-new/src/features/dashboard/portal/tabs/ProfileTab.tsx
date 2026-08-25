@@ -12,7 +12,7 @@ import {
   updateTenant,
   TenantProfilePayload,
 } from "@/services/tenant.service";
-import { LoadingSpinner } from "@/shared/components/ui/LoadingSpinner";
+import LoadingState from "@/shared/components/ui/LoadingState";
 
 export function ProfileTab({ tenantId }: { tenantId: string }) {
   const [logo, setLogo] = useState<File | null>(null);
@@ -83,7 +83,7 @@ export function ProfileTab({ tenantId }: { tenantId: string }) {
     setPhotoPreview(URL.createObjectURL(file));
   };
 
-  if (loading) return <LoadingSpinner className="py-10" />;
+  if (loading) return <LoadingState type="skeleton-card" count={1} />;
 
   return (
     <div className="space-y-6">

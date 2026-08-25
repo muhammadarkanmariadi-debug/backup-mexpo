@@ -14,7 +14,8 @@ import { useApiQuery } from "@/lib/hooks/useApi";
 import { keys } from "@/lib/query-keys";
 import { getBoothReport, downloadTenantExport, BoothReportRow } from "@/services/report.service";
 import { getTransactions, Transaction } from "@/services/transaction.service";
-import { LoadingSpinner } from "@/shared/components/ui/LoadingSpinner";
+import LoadingState from "@/shared/components/ui/LoadingState";
+import EmptyState from "@/shared/components/ui/EmptyState";
 import { CHART_PRIMARY } from "@/shared/data/chart-colors";
 
 export function TenantReportsTab({ eventId, tenantId }: { eventId: string; tenantId: string }) {
@@ -53,7 +54,7 @@ export function TenantReportsTab({ eventId, tenantId }: { eventId: string; tenan
     }
   };
 
-  if (loading) return <LoadingSpinner className="py-10" />;
+  if (loading) return <LoadingState type="skeleton-card" count={3} />;
 
   return (
     <div className="space-y-5">
@@ -100,7 +101,7 @@ export function TenantReportsTab({ eventId, tenantId }: { eventId: string; tenan
       )}
 
       {(txns ?? []).length === 0 && (
-        <p className="py-8 text-center text-sm text-gray-500">Belum ada transaksi.</p>
+        <EmptyState title="Belum ada transaksi." />
       )}
     </div>
   );

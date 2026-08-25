@@ -15,7 +15,7 @@ import {
   deleteProduct,
   ProductPayload,
 } from "@/services/product.service";
-import { LoadingSpinner } from "@/shared/components/ui/LoadingSpinner";
+import LoadingState from "@/shared/components/ui/LoadingState";
 import { useConfirm } from "@/shared/components/ui/ConfirmDialog";
 import RowActions, { editAction, deleteAction } from "@/shared/components/ui/RowActions";
 import EmptyState from "@/shared/components/ui/EmptyState";
@@ -196,7 +196,7 @@ export function ProductsTab({ tenantId }: { tenantId: string }) {
       </div>
 
       {list.loading ? (
-        <LoadingSpinner className="py-10" />
+        <LoadingState type="skeleton-list" count={4} className="py-4" />
       ) : list.items.length === 0 ? (
         <EmptyState title="Belum ada produk." className="py-8" />
       ) : (

@@ -17,7 +17,7 @@ import {
   deleteTransaction,
   Transaction,
 } from "@/services/transaction.service";
-import { LoadingSpinner } from "@/shared/components/ui/LoadingSpinner";
+import LoadingState from "@/shared/components/ui/LoadingState";
 import { useConfirm } from "@/shared/components/ui/ConfirmDialog";
 import EmptyState from "@/shared/components/ui/EmptyState";
 
@@ -322,7 +322,7 @@ export function TransactionsTab({ tenantId }: { tenantId: string }) {
       </div>
 
       {list.loading ? (
-        <LoadingSpinner className="py-10" />
+        <LoadingState type="skeleton-list" count={4} className="py-4" />
       ) : list.items.length === 0 ? (
         <EmptyState title="Belum ada transaksi." className="py-8" />
       ) : (

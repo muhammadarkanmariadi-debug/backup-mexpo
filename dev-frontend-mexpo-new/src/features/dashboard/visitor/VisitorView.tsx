@@ -267,12 +267,16 @@ export default function VisitorView({ event }: Props) {
             Registrasi ditutup
           </span>
         )}
-        <ViewAction onClick={() => setBadgeOpen(true)} variant="secondary">
-          <IdCard className="w-4 h-4 text-secondary" /> ID Badge
-        </ViewAction>
-        <ViewAction href={`/dashboard/${event.slug ?? event.uuid}/certificates`} variant="secondary">
-          <Award className="w-4 h-4 text-amber-500" /> Sertifikat
-        </ViewAction>
+        {userRole && (
+          <>
+            <ViewAction onClick={() => setBadgeOpen(true)} variant="secondary">
+              <IdCard className="w-4 h-4 text-secondary" /> ID Badge
+            </ViewAction>
+            <ViewAction href={`/dashboard/${event.slug ?? event.uuid}/certificates`} variant="secondary">
+              <Award className="w-4 h-4 text-amber-500" /> Sertifikat
+            </ViewAction>
+          </>
+        )}
       </div>
 
       {/* "?"? Tabs Content "?"? */}

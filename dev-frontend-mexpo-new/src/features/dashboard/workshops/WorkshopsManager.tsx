@@ -1,17 +1,17 @@
-﻿"use client";
+"use client";
 
 import { useMemo, useState } from "react";
 
 import { toast } from "sonner";
-import { Eye, Loader2, Plus, Trash2, UserPlus } from "lucide-react";
+import { Loader2, Plus } from "lucide-react";
 
 import Input from "@/shared/components/form/Input";
 import SearchBar from "@/shared/components/form/SearchBar";
 import Button from "@/shared/components/button/Button";
 import PageHeader from "@/shared/components/ui/PageHeader";
 import PageShell from "@/shared/components/ui/PageShell";
-import RowActions, { editAction } from "@/shared/components/ui/RowActions";
-import { LoadingSpinner } from "@/shared/components/ui/LoadingSpinner";
+
+import LoadingState from "@/shared/components/ui/LoadingState";
 import Image from "next/image";
 import EmptyState from "@/shared/components/ui/EmptyState";
 import { Modal } from "@/shared/components/ui/Modal";
@@ -34,6 +34,7 @@ import { useApiQuery } from "@/lib/hooks/useApi";
 import { keys } from "@/lib/query-keys";
 import SortMenu from "@/shared/components/ui/SortMenu";
 import SearchableSelect from "@/shared/components/form/SearchableSelect";
+import { WorkshopCard } from "./components/WorkshopCard";
 
 function toLocalInputValue(dateString?: string): string {
   if (!dateString) return "";
@@ -295,58 +296,26 @@ export default function WorkshopsManager({ event }: { event: Event }) {
         />
       </div>
 
-<div className="relative">
+      <div className="relative">
         {list.loading ? (
-          <LoadingSpinner className="py-10" />
+          <LoadingState type="skeleton-list" count={4} className="py-4" />
         ) : list.items.length === 0 ? (
           <EmptyState title="Belum ada lokakarya." className="py-8" />
         ) : (
           <>
             <div className="space-y-3">
               {list.items.map((w) => (
-                <div key={w.uuid} className="rounded-xl border border-gray-100 bg-white px-4 py-3">
-                  <div className="flex items-center gap-3">
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-gray-900 text-sm">{w.title}</p>
-                      <p className="text-xs text-gray-500">
-                        {new Date(w.start_time).toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short" })}
-                        {" â€“ "}
-                        {new Date(w.end_time).toLocaleString("id-ID", { timeStyle: "short" })}
-                        {" Â· "}
-                        {w.location} Â· kuota {w.quota > 0 ? w.quota : "âˆž"}
-                      </p>
-                    </div>
-                    <button onClick={() => attachSpeaker(w.uuid)} disabled={(speakers ?? []).length === 0} className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-40">
-                      <UserPlus className="h-3.5 w-3.5" /> Pembicara
-                    </button>
-                    <button
-                      onClick={() => setViewSpeakersWorkshop(w)}
-                      className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50"
-                    >
-                      <Eye className="h-3.5 w-3.5" /> Lihat Pembicara
-                    </button>
-                    <RowActions
-                      actions={[
-                        editAction(() => startEdit(w), deletingId !== null),
-                        {
-                          key: "delete",
-                          icon:
-                            deletingId === w.uuid ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <Trash2 className="h-4 w-4" />
-                            ),
-                          label: "Hapus",
-                          tone: "danger",
-                          onClick: () => remove(w),
-                          disabled: deletingId !== null,
-                        },
-                      ]}
-                      busy={busy || deletingId !== null}
-                    />
-                  </div>
-
-                </div>
+                <WorkshopCard
+                  key={w.uuid}
+                  w={w}
+                  speakers={speakers ?? []}
+                  deletingId={deletingId}
+                  busy={busy}
+                  onAttachSpeaker={attachSpeaker}
+                  onViewSpeakers={setViewSpeakersWorkshop}
+                  onEdit={startEdit}
+                  onRemove={remove}
+                />
               ))}
             </div>
             <div className="mt-4">
