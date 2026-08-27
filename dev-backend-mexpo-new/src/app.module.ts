@@ -30,6 +30,7 @@ import { QrCodesModule } from './qr-codes/qr-codes.module';
 import { ContactMessagesModule } from './contact-messages/contact-messages.module';
 import { CertificatesModule } from './certificates/certificates.module';
 import { PaymentsModule } from './payments/payments.module';
+import { IntegrationsModule } from './integrations/integrations.module';
 
 @Module({
   imports: [
@@ -62,6 +63,7 @@ import { PaymentsModule } from './payments/payments.module';
     ContactMessagesModule,
     CertificatesModule,
     PaymentsModule,
+    IntegrationsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
-import { CheckCircle2, Loader2, Ticket as TicketIcon } from "lucide-react";
+import { ArrowLeft, CheckCircle2, ExternalLink, Loader2, Ticket as TicketIcon } from "lucide-react";
 
 import Input from "@/shared/components/form/Input";
 import { Event, RegistrationField, TicketType } from "@/entities/event/event.entity";
@@ -33,6 +33,9 @@ const LABEL_CLS = "block mb-2 font-medium text-gray-700 text-sm";
 
 export default function RegistrationForm({ event, fields, ticketTypes }: Props) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const returnUrl = searchParams.get("return_url");
+  const source = searchParams.get("source");
   const { user, isAuthenticated } = useAuthStore();
   
   const [submitting, setSubmitting] = useState(false);
@@ -349,18 +352,27 @@ export default function RegistrationForm({ event, fields, ticketTypes }: Props) 
           </div>
         )}
 
-        <div className="flex justify-center gap-3">
+        <div className="flex flex-col sm:flex-row justify-center items-center gap-3">
+          {returnUrl && (
+            <a
+              href={returnUrl}
+              className="flex items-center justify-center gap-2 rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 w-full sm:w-auto shadow-xs"
+            >
+              <ExternalLink className="h-4 w-4" />
+              Kembali ke Website Sekolah
+            </a>
+          )}
           <Link
             href={`/event/${event.slug ?? event.uuid}`}
-            className="rounded-lg bg-secondary px-4 py-2 text-sm font-semibold text-white hover:bg-secondary/80"
+            className="rounded-lg bg-secondary px-4 py-2 text-sm font-semibold text-white hover:bg-secondary/80 w-full sm:w-auto text-center"
           >
-            Lihat Event
+            Lihat Detail Event
           </Link>
           <Link
             href="/"
-            className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+            className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 w-full sm:w-auto text-center"
           >
-            Beranda
+            Beranda Mexpo
           </Link>
         </div>
       </div>

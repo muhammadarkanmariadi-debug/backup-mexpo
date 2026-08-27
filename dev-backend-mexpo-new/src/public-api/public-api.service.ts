@@ -21,6 +21,7 @@ import {
 } from '@prisma/client';
 import { isUuid } from '../helper/slug';
 import { PaymentsService } from '../payments/payments.service';
+import { WebhookService } from '../integrations/webhook.service';
 
 @Injectable()
 export class PublicApiService {
@@ -30,6 +31,7 @@ export class PublicApiService {
     private readonly mailer: MailService,
     private readonly configService: ConfigService,
     private readonly paymentsService: PaymentsService,
+    private readonly webhookService: WebhookService,
   ) {}
 
   newAccountInfoEmailTemplate(
@@ -337,12 +339,10 @@ export class PublicApiService {
           ? {
               uuid: id,
               status: EventStatus.PUBLISHED,
-              visibility: EventVisibility.PUBLIC,
             }
           : {
               slug: id,
               status: EventStatus.PUBLISHED,
-              visibility: EventVisibility.PUBLIC,
             },
         include: {
           workshops: {
@@ -843,11 +843,55 @@ export class PublicApiService {
           );
       }
 
-      return {
-        success: true,
-        message: responseMessage,
-        data: responseData,
-      };
+      // ── Webhook integration notification ──
+      const integrationConfig = (
+        findEvent.features as {
+          integration?: { callback_url?: string };
+        }
+      )?.integration;
+
+        if (integrationConfig?.callback_url) {
+          const answersMap: Record<string, string> = {};
+          (answers ?? []).forEach((a) => {
+            answersMap[a.field_key] = a.value ?? '';
+          });
+
+          this.webhookService
+            .dispatch(integrationConfig.callback_url, {
+              event: 'registration.created',
+              timestamp: new Date().toISOString(),
+              data: {
+                event_id: findEvent.uuid,
+                event_slug: findEvent.slug ?? undefined,
+                event_title: findEvent.name,
+                user: {
+                  uuid: visitorUserId,
+                  full_name,
+                  email,
+                  phone,
+                  organization,
+                },
+                answers: answersMap,
+                ticket: {
+                  ticket_id: existingTicket?.uuid ?? '',
+                  ticket_code: existingTicket?.uuid?.slice(0, 8).toUpperCase() ?? '',
+                  status: initialRoleStatus,
+                  payment_method: payment_method ?? undefined,
+                  payment_reference: payment_reference ?? undefined,
+                },
+                created_at: new Date().toISOString(),
+              },
+            })
+            .catch((err) =>
+              console.error('Failed to dispatch registration webhook:', err),
+            );
+        }
+
+        return {
+          success: true,
+          message: responseMessage,
+          data: responseData,
+        };
     } catch (error) {
       if (error instanceof HttpException) {
         throw error; // rethrow NestJS exceptions
