@@ -112,8 +112,8 @@ const Input: FC<InputProps> = ({
     return (
       <div className="flex flex-col gap-2 w-full">
         {label && (
-          <label htmlFor={name} className="font-semibold text-lg">
-            {label}
+          <label htmlFor={name} className="font-medium text-sm text-gray-700 dark:text-gray-200 block mb-1">
+            {label} {required && <span className="text-red-500">*</span>}
           </label>
         )}
 
@@ -149,8 +149,8 @@ const Input: FC<InputProps> = ({
   return (
     <div className="relative flex flex-col gap-2">
       {label && (
-        <label htmlFor={name} className="font-semibold text-lg">
-          {label}
+        <label htmlFor={name} className="font-medium text-sm text-gray-700 dark:text-gray-200 block mb-1">
+          {label} {required && <span className="text-red-500">*</span>}
         </label>
       )}
 

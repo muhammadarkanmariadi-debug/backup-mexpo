@@ -38,7 +38,7 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'mexpo-auth',
-      storage: createJSONStorage(() => sessionStorage),
+      storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         user: state.user,
         isAuthenticated: state.isAuthenticated,

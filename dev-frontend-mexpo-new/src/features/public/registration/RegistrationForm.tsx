@@ -17,6 +17,7 @@ import { getEventByUuidByMe } from "@/services/event.service";
 import { checkout, getTransaction } from "@/services/payment.service";
 import { loadSnapScript, payWithSnap } from "@/shared/utils/snap";
 import { useAuthStore } from "@/stores/auth.store";
+import { useAuth } from "@/context/AuthContext";
 
 import { applyCommittee } from "@/services/event-users.service";
 import TenantApplyForm from "@/features/dashboard/visitor/TenantApplyForm";
@@ -37,6 +38,7 @@ export default function RegistrationForm({ event, fields, ticketTypes }: Props) 
   const returnUrl = searchParams.get("return_url");
   const source = searchParams.get("source");
   const { user, isAuthenticated } = useAuthStore();
+  const { isLoadingAuth } = useAuth();
   
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -50,11 +52,18 @@ export default function RegistrationForm({ event, fields, ticketTypes }: Props) 
   const [paymentStatus, setPaymentStatus] = useState<TransactionStatus | "UNKNOWN">("UNKNOWN");
   const [paymentBusy, setPaymentBusy] = useState(false);
   // True until we've verified the caller isn't already registered in this event.
-  const [checkingRegistration, setCheckingRegistration] = useState(
-    isAuthenticated && !!user,
-  );
+  const [checkingRegistration, setCheckingRegistration] = useState(true);
 
-  const isPaid =
+  const isTrialClass =
+    Boolean(source?.toLowerCase().includes("trial")) ||
+    Boolean(returnUrl?.toLowerCase().includes("trial")) ||
+    Boolean(event.name?.toLowerCase().includes("trial")) ||
+    Boolean(event.description?.toLowerCase().includes("trial")) ||
+    searchParams.get("role") === "VISITOR" ||
+    searchParams.get("type") === "VISITOR" ||
+    searchParams.get("hide_role") === "true";
+
+  const isPaid =  
     event.ticket_mode === "PAID" || event.features?.paidTicket === true;
 
   // Pre-load Snap script so the checkout modal opens with zero delay
@@ -65,20 +74,26 @@ export default function RegistrationForm({ event, fields, ticketTypes }: Props) 
   }, [isPaid]);
 
   useEffect(() => {
+    if (isLoadingAuth) return;
+
     if (!isAuthenticated || !user) {
       const current = `${window.location.pathname}${window.location.search}`;
       toast.error("Silakan masuk terlebih dahulu untuk mendaftar.");
       router.push(`/auth?next=${encodeURIComponent(current)}`);
     }
-  }, [isAuthenticated, user, router]);
+  }, [isLoadingAuth, isAuthenticated, user, router]);
 
   // If the caller is already an approved participant of this event (OWNER / COMMITTEE /
   // TENANT / VISITOR), block re-registration and send them to the dashboard.
   useEffect(() => {
-    if (!isAuthenticated || !user) return;
+    if (isLoadingAuth || !isAuthenticated || !user) {
+      if (!isLoadingAuth) setCheckingRegistration(false);
+      return;
+    }
     let cancelled = false;
     (async () => {
       try {
+        setCheckingRegistration(true);
         const res = await getEventByUuidByMe(event.uuid);
         const roles = (res.data as Event | null)?.userEventRoles;
         if (cancelled) return;
@@ -98,7 +113,7 @@ export default function RegistrationForm({ event, fields, ticketTypes }: Props) 
     return () => {
       cancelled = true;
     };
-  }, [isAuthenticated, user, event.uuid, event.slug, router]);
+  }, [isLoadingAuth, isAuthenticated, user, event.uuid, event.slug, router]);
 
   const setAnswer = (key: string, value: string) =>
     setAnswers((a) => ({ ...a, [key]: value }));
@@ -258,6 +273,14 @@ export default function RegistrationForm({ event, fields, ticketTypes }: Props) 
     REFUNDED: { text: "Dana telah dikembalikan", cls: "text-gray-500" },
   };
 
+  if (isLoadingAuth || checkingRegistration) {
+    return (
+      <div className="flex justify-center py-20">
+        <Loader2 className="h-8 w-8 animate-spin text-brand-500" />
+      </div>
+    );
+  }
+
   if (!user) return null;
 
   const handleCommitteeApply = async () => {
@@ -273,14 +296,6 @@ export default function RegistrationForm({ event, fields, ticketTypes }: Props) 
       setSubmitting(false);
     }
   };
-
-  if (checkingRegistration) {
-    return (
-      <div className="flex justify-center py-20">
-        <Loader2 className="h-8 w-8 animate-spin text-brand-500" />
-      </div>
-    );
-  }
 
   if (submitted) {
     return (
@@ -390,43 +405,49 @@ export default function RegistrationForm({ event, fields, ticketTypes }: Props) 
 
       <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-8 mb-8 text-center">
         <h2 className="text-2xl font-bold text-gray-900 mb-2">Formulir Pendaftaran</h2>
-        <p className="text-gray-500">Pilih jenis pendaftaran yang sesuai dengan peran Anda di event ini.</p>
+        <p className="text-gray-500">
+          {isTrialClass
+            ? `Lengkapi formulir pendaftaran untuk ${event.name}.`
+            : "Pilih jenis pendaftaran yang sesuai dengan peran Anda di event ini."}
+        </p>
         
-        <div className="mt-6 flex flex-wrap justify-center gap-3">
-          <button
-            type="button"
-            onClick={() => setRegistrationType("VISITOR")}
-            className={`px-6 py-2.5 rounded-full font-medium transition-colors border ${
-              registrationType === "VISITOR"
-                ? "bg-brand-50 border-brand-200 text-brand-700"
-                : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
-            }`}
-          >
-            Pengunjung
-          </button>
-          <button
-            type="button"
-            onClick={() => setRegistrationType("TENANT")}
-            className={`px-6 py-2.5 rounded-full font-medium transition-colors border ${
-              registrationType === "TENANT"
-                ? "bg-amber-50 border-amber-200 text-amber-700"
-                : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
-            }`}
-          >
-            Penyewa (Tenant)
-          </button>
-          <button
-            type="button"
-            onClick={() => setRegistrationType("COMMITTEE")}
-            className={`px-6 py-2.5 rounded-full font-medium transition-colors border ${
-              registrationType === "COMMITTEE"
-                ? "bg-green-50 border-green-200 text-green-700"
-                : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
-            }`}
-          >
-            Panitia (Committee)
-          </button>
-        </div>
+        {!isTrialClass && (
+          <div className="mt-6 flex flex-wrap justify-center gap-3">
+            <button
+              type="button"
+              onClick={() => setRegistrationType("VISITOR")}
+              className={`px-6 py-2.5 rounded-full font-medium transition-colors border ${
+                registrationType === "VISITOR"
+                  ? "bg-brand-50 border-brand-200 text-brand-700"
+                  : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
+              }`}
+            >
+              Pengunjung
+            </button>
+            <button
+              type="button"
+              onClick={() => setRegistrationType("TENANT")}
+              className={`px-6 py-2.5 rounded-full font-medium transition-colors border ${
+                registrationType === "TENANT"
+                  ? "bg-amber-50 border-amber-200 text-amber-700"
+                  : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
+              }`}
+            >
+              Penyewa (Tenant)
+            </button>
+            <button
+              type="button"
+              onClick={() => setRegistrationType("COMMITTEE")}
+              className={`px-6 py-2.5 rounded-full font-medium transition-colors border ${
+                registrationType === "COMMITTEE"
+                  ? "bg-green-50 border-green-200 text-green-700"
+                  : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
+              }`}
+            >
+              Panitia (Committee)
+            </button>
+          </div>
+        )}
       </div>
 
       {registrationType === "TENANT" && (

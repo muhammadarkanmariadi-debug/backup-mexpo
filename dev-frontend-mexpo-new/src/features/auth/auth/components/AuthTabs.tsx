@@ -3,14 +3,28 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { LoginForm, RegisterForm } from '@/features/auth/auth';
 import { cn } from '@/shared/utils/cn';
+import { useAuthStore } from '@/stores/auth.store';
+import { useAuth } from '@/context/AuthContext';
 
 type AuthMode = 'login' | 'register';
 
 export function AuthTabs() {
+  const router = useRouter();
   const [mode, setMode] = useState<AuthMode>('login');
+  const { user, isAuthenticated } = useAuthStore();
+  const { isLoadingAuth } = useAuth();
+
+  useEffect(() => {
+    if (!isLoadingAuth && isAuthenticated && user) {
+      const raw = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('next') : null;
+      const target = (raw && raw.startsWith('/') && !raw.startsWith('//') && !raw.startsWith('/\\')) ? raw : '/dashboard';
+      router.replace(target);
+    }
+  }, [isLoadingAuth, isAuthenticated, user, router]);
 
   return (
     <div>
