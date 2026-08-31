@@ -13,16 +13,16 @@ RUN apk add --no-cache openssl libc6-compat
 COPY package*.json ./
 COPY tsconfig*.json nest-cli.json ./
 
-# Install all dependencies
+# Install all dependencies (including devDependencies for compilation)
 RUN npm ci
 
-# Copy prisma schema, configs, and application source
+# Copy Prisma schema, configs, and application source
 COPY prisma ./prisma/
 COPY src ./src
 COPY scripts ./scripts
 COPY prisma.config.ts ./
 
-# Set build-time environment fallback so prisma generation and nest build succeed
+# Provide build-time fallback environment variables so build succeeds in isolation
 ENV NODE_ENV=production
 ENV DB_PROVIDER=postgresql
 ENV DB_HOST=localhost
@@ -47,7 +47,7 @@ RUN apk add --no-cache openssl libc6-compat netcat-openbsd
 ENV NODE_ENV=production
 ENV PORT=3500
 
-# Copy application assets and node_modules
+# Copy application assets, compiled build output, and node_modules
 COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
@@ -56,7 +56,8 @@ COPY --from=builder /app/scripts ./scripts
 COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+# Fix Windows CRLF line endings if present and grant execute permission
+RUN sed -i 's/\r$//' /usr/local/bin/docker-entrypoint.sh && chmod +x /usr/local/bin/docker-entrypoint.sh
 
 EXPOSE 3500
 
