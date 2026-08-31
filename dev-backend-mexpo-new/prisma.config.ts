@@ -4,6 +4,7 @@ import "dotenv/config";
 import { defineConfig } from "prisma/config";
 import {
   getDatabaseUrl,
+  hasDbConfig,
   resolveDbProvider,
 } from "./src/helper/db-provider";
 
@@ -16,8 +17,16 @@ import {
 // selected here so each provider keeps its own migration history:
 //   - postgresql -> prisma/migrations
 //   - mysql      -> prisma/migrations-mysql
-const databaseUrl = getDatabaseUrl();
-const provider = resolveDbProvider(databaseUrl, process.env["DB_PROVIDER"]);
+const provider = resolveDbProvider(
+  process.env["DATABASE_URL"],
+  process.env["DB_PROVIDER"]
+);
+
+const databaseUrl = hasDbConfig()
+  ? getDatabaseUrl()
+  : provider === "mysql"
+    ? "mysql://root@localhost:3306/mexpo"
+    : "postgresql://postgres:postgres@localhost:5432/postgres";
 
 export default defineConfig({
   schema: "prisma/schema.prisma",
