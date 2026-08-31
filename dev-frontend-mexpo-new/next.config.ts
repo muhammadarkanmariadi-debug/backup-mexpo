@@ -14,7 +14,6 @@ const securityHeaders = [
       "frame-ancestors 'self'",
       "object-src 'none'",
       "base-uri 'self'",
-      "upgrade-insecure-requests",
     ].join("; "),
   },
   {
