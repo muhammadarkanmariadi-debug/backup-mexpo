@@ -59,7 +59,11 @@ export function buildDatabaseUrl(
   if (provider === 'mysql') {
     return `mysql://${creds}@${host}:${port}/${name}`;
   }
-  const sslMode = env.DB_SSLMODE || 'no-verify';
+  // DB_SSLMODE is used for PostgreSQL. If set to empty or 'disable', no sslmode query param is appended.
+  let sslMode = env.DB_SSLMODE !== undefined ? env.DB_SSLMODE.trim() : '';
+  if (sslMode === 'disable' || sslMode === 'false' || sslMode === 'off') {
+    sslMode = '';
+  }
   const query = sslMode ? `?sslmode=${encodeURIComponent(sslMode)}` : '';
   return `postgresql://${creds}@${host}:${port}/${name}${query}`;
 }
