@@ -1,5 +1,10 @@
-import { EventType, EventVisibility, RegistrationFieldType, TicketMode } from '@prisma/client';
-import { Transform, Type } from 'class-transformer';
+import {
+  EventType,
+  EventVisibility,
+  RegistrationFieldType,
+  TicketMode,
+} from '@prisma/client';
+import { Type } from 'class-transformer';
 import {
   IsArray,
   IsBoolean,

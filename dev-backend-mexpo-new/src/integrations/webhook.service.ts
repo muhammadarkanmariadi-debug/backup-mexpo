@@ -3,7 +3,10 @@ import { createHmac } from 'crypto';
 import { ConfigService } from '@nestjs/config';
 
 export interface WebhookRegistrationPayload {
-  event: 'registration.created' | 'registration.updated' | 'registration.cancelled';
+  event:
+    | 'registration.created'
+    | 'registration.updated'
+    | 'registration.cancelled';
   timestamp: string;
   data: {
     event_id: string;
@@ -38,7 +41,10 @@ export class WebhookService {
   /**
    * Dispatches a webhook asynchronously with HMAC signature header
    */
-  async dispatch(callbackUrl: string, payload: WebhookRegistrationPayload): Promise<boolean> {
+  async dispatch(
+    callbackUrl: string,
+    payload: WebhookRegistrationPayload,
+  ): Promise<boolean> {
     if (!callbackUrl || !callbackUrl.startsWith('http')) {
       return false;
     }
@@ -49,10 +55,14 @@ export class WebhookService {
       'mexpo_secret';
 
     const bodyString = JSON.stringify(payload);
-    const signature = createHmac('sha256', secret).update(bodyString).digest('hex');
+    const signature = createHmac('sha256', secret)
+      .update(bodyString)
+      .digest('hex');
 
     try {
-      this.logger.log(`Dispatching webhook to ${callbackUrl} for event ${payload.event}`);
+      this.logger.log(
+        `Dispatching webhook to ${callbackUrl} for event ${payload.event}`,
+      );
 
       const response = await fetch(callbackUrl, {
         method: 'POST',
@@ -76,7 +86,9 @@ export class WebhookService {
       this.logger.log(`Webhook successfully delivered to ${callbackUrl}`);
       return true;
     } catch (error) {
-      this.logger.error(`Failed to dispatch webhook to ${callbackUrl}: ${error}`);
+      this.logger.error(
+        `Failed to dispatch webhook to ${callbackUrl}: ${error}`,
+      );
       return false;
     }
   }

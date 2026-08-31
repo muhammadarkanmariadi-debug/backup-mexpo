@@ -13,7 +13,7 @@ export class ApiKeyGuard implements CanActivate {
 
   canActivate(context: ExecutionContext): boolean {
     const request = context.switchToHttp().getRequest<Request>();
-    
+
     // Check X-API-Key header or Authorization: Bearer <key>
     const apiKeyHeader = request.headers['x-api-key'] as string;
     const authHeader = request.headers.authorization;

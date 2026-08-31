@@ -104,7 +104,8 @@ export class IntegrationsService {
       const ticketType = await this.prisma.ticket_types.create({
         data: {
           event_id: event.uuid,
-          name: dto.ticket_name || (isPaid ? 'Paid Trial Pass' : 'Free Trial Pass'),
+          name:
+            dto.ticket_name || (isPaid ? 'Paid Trial Pass' : 'Free Trial Pass'),
           price: isPaid ? (dto.ticket_price ?? 0) : 0,
           created_by: systemUserId,
           updated_by: systemUserId,
@@ -120,21 +121,22 @@ export class IntegrationsService {
             ? slugify(field.field_key)
             : slugify(field.label, `field_${i + 1}`);
 
-          const createdField = await this.prisma.event_registration_fields.create({
-            data: {
-              event_id: event.uuid,
-              field_key,
-              label: field.label,
-              type: field.type || RegistrationFieldType.TEXT,
-              required: field.required ?? false,
-              options: field.options
-                ? (field.options as unknown as Prisma.InputJsonValue)
-                : undefined,
-              position: field.position ?? i,
-              created_by: systemUserId,
-              updated_by: systemUserId,
-            },
-          });
+          const createdField =
+            await this.prisma.event_registration_fields.create({
+              data: {
+                event_id: event.uuid,
+                field_key,
+                label: field.label,
+                type: field.type || RegistrationFieldType.TEXT,
+                required: field.required ?? false,
+                options: field.options
+                  ? (field.options as unknown as Prisma.InputJsonValue)
+                  : undefined,
+                position: field.position ?? i,
+                created_by: systemUserId,
+                updated_by: systemUserId,
+              },
+            });
           customFieldsCreated.push(createdField);
         }
       }
@@ -167,7 +169,10 @@ export class IntegrationsService {
         },
       };
     } catch (error) {
-      if (error instanceof NotFoundException || error instanceof BadRequestException) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
         throw error;
       }
       throw new InternalServerErrorException(
@@ -185,7 +190,8 @@ export class IntegrationsService {
         throw new NotFoundException(`Event ${id} does not exist`);
       }
 
-      const existingFeatures = (event.features as Record<string, unknown>) || {};
+      const existingFeatures =
+        (event.features as Record<string, unknown>) || {};
       const updatedFeatures = {
         ...existingFeatures,
         ...(dto.extra_features || {}),
@@ -243,7 +249,10 @@ export class IntegrationsService {
         },
       };
     } catch (error) {
-      if (error instanceof NotFoundException || error instanceof BadRequestException) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
         throw error;
       }
       throw new InternalServerErrorException(
@@ -303,7 +312,9 @@ export class IntegrationsService {
           ...event,
           total_registered: totalRegistrations,
           remaining_quota:
-            event.quota > 0 ? Math.max(0, event.quota - totalRegistrations) : null,
+            event.quota > 0
+              ? Math.max(0, event.quota - totalRegistrations)
+              : null,
           public_url: `${this.frontendUrl}/event/${eventSlug}`,
           register_url: `${this.frontendUrl}/event/${eventSlug}/register`,
         },

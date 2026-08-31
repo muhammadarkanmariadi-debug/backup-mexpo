@@ -850,48 +850,49 @@ export class PublicApiService {
         }
       )?.integration;
 
-        if (integrationConfig?.callback_url) {
-          const answersMap: Record<string, string> = {};
-          (answers ?? []).forEach((a) => {
-            answersMap[a.field_key] = a.value ?? '';
-          });
+      if (integrationConfig?.callback_url) {
+        const answersMap: Record<string, string> = {};
+        (answers ?? []).forEach((a) => {
+          answersMap[a.field_key] = a.value ?? '';
+        });
 
-          this.webhookService
-            .dispatch(integrationConfig.callback_url, {
-              event: 'registration.created',
-              timestamp: new Date().toISOString(),
-              data: {
-                event_id: findEvent.uuid,
-                event_slug: findEvent.slug ?? undefined,
-                event_title: findEvent.name,
-                user: {
-                  uuid: visitorUserId,
-                  full_name,
-                  email,
-                  phone,
-                  organization,
-                },
-                answers: answersMap,
-                ticket: {
-                  ticket_id: existingTicket?.uuid ?? '',
-                  ticket_code: existingTicket?.uuid?.slice(0, 8).toUpperCase() ?? '',
-                  status: initialRoleStatus,
-                  payment_method: payment_method ?? undefined,
-                  payment_reference: payment_reference ?? undefined,
-                },
-                created_at: new Date().toISOString(),
+        this.webhookService
+          .dispatch(integrationConfig.callback_url, {
+            event: 'registration.created',
+            timestamp: new Date().toISOString(),
+            data: {
+              event_id: findEvent.uuid,
+              event_slug: findEvent.slug ?? undefined,
+              event_title: findEvent.name,
+              user: {
+                uuid: visitorUserId,
+                full_name,
+                email,
+                phone,
+                organization,
               },
-            })
-            .catch((err) =>
-              console.error('Failed to dispatch registration webhook:', err),
-            );
-        }
+              answers: answersMap,
+              ticket: {
+                ticket_id: existingTicket?.uuid ?? '',
+                ticket_code:
+                  existingTicket?.uuid?.slice(0, 8).toUpperCase() ?? '',
+                status: initialRoleStatus,
+                payment_method: payment_method ?? undefined,
+                payment_reference: payment_reference ?? undefined,
+              },
+              created_at: new Date().toISOString(),
+            },
+          })
+          .catch((err) =>
+            console.error('Failed to dispatch registration webhook:', err),
+          );
+      }
 
-        return {
-          success: true,
-          message: responseMessage,
-          data: responseData,
-        };
+      return {
+        success: true,
+        message: responseMessage,
+        data: responseData,
+      };
     } catch (error) {
       if (error instanceof HttpException) {
         throw error; // rethrow NestJS exceptions

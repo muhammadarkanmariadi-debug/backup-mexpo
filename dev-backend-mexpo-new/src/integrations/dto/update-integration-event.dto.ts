@@ -1,4 +1,9 @@
-import { EventStatus, EventType, EventVisibility, TicketMode } from '@prisma/client';
+import {
+  EventStatus,
+  EventType,
+  EventVisibility,
+  TicketMode,
+} from '@prisma/client';
 import { Type } from 'class-transformer';
 import {
   IsArray,

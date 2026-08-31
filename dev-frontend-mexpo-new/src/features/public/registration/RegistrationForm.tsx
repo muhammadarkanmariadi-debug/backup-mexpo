@@ -1,10 +1,11 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 "use client";
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
-import { ArrowLeft, CheckCircle2, ExternalLink, Loader2, Ticket as TicketIcon } from "lucide-react";
+import { CheckCircle2, ExternalLink, Loader2, Ticket as TicketIcon } from "lucide-react";
 
 import Input from "@/shared/components/form/Input";
 import { Event, RegistrationField, TicketType } from "@/entities/event/event.entity";
@@ -39,7 +40,7 @@ export default function RegistrationForm({ event, fields, ticketTypes }: Props) 
   const source = searchParams.get("source");
   const { user, isAuthenticated } = useAuthStore();
   const { isLoadingAuth } = useAuth();
-  
+
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [registrationType, setRegistrationType] = useState<"VISITOR" | "TENANT" | "COMMITTEE">("VISITOR");
@@ -63,7 +64,7 @@ export default function RegistrationForm({ event, fields, ticketTypes }: Props) 
     searchParams.get("type") === "VISITOR" ||
     searchParams.get("hide_role") === "true";
 
-  const isPaid =  
+  const isPaid =
     event.ticket_mode === "PAID" || event.features?.paidTicket === true;
 
   // Pre-load Snap script so the checkout modal opens with zero delay
@@ -410,39 +411,36 @@ export default function RegistrationForm({ event, fields, ticketTypes }: Props) 
             ? `Lengkapi formulir pendaftaran untuk ${event.name}.`
             : "Pilih jenis pendaftaran yang sesuai dengan peran Anda di event ini."}
         </p>
-        
+
         {!isTrialClass && (
           <div className="mt-6 flex flex-wrap justify-center gap-3">
             <button
               type="button"
               onClick={() => setRegistrationType("VISITOR")}
-              className={`px-6 py-2.5 rounded-full font-medium transition-colors border ${
-                registrationType === "VISITOR"
-                  ? "bg-brand-50 border-brand-200 text-brand-700"
-                  : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
-              }`}
+              className={`px-6 py-2.5 rounded-full font-medium transition-colors border ${registrationType === "VISITOR"
+                ? "bg-brand-50 border-brand-200 text-brand-700"
+                : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
+                }`}
             >
               Pengunjung
             </button>
             <button
               type="button"
               onClick={() => setRegistrationType("TENANT")}
-              className={`px-6 py-2.5 rounded-full font-medium transition-colors border ${
-                registrationType === "TENANT"
-                  ? "bg-amber-50 border-amber-200 text-amber-700"
-                  : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
-              }`}
+              className={`px-6 py-2.5 rounded-full font-medium transition-colors border ${registrationType === "TENANT"
+                ? "bg-amber-50 border-amber-200 text-amber-700"
+                : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
+                }`}
             >
               Penyewa (Tenant)
             </button>
             <button
               type="button"
               onClick={() => setRegistrationType("COMMITTEE")}
-              className={`px-6 py-2.5 rounded-full font-medium transition-colors border ${
-                registrationType === "COMMITTEE"
-                  ? "bg-green-50 border-green-200 text-green-700"
-                  : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
-              }`}
+              className={`px-6 py-2.5 rounded-full font-medium transition-colors border ${registrationType === "COMMITTEE"
+                ? "bg-green-50 border-green-200 text-green-700"
+                : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
+                }`}
             >
               Panitia (Committee)
             </button>
@@ -477,150 +475,150 @@ export default function RegistrationForm({ event, fields, ticketTypes }: Props) 
       {registrationType === "VISITOR" && (
         <form onSubmit={handleSubmit} className="space-y-8">
           <div className="bg-white rounded-xl border border-gray-100 p-6 md:p-8 space-y-6">
-        <div className="rounded-lg bg-blue-50/60 p-4 text-sm text-gray-700">
-          {isPaid ? (
-            <span>
-              Tiket berbayar — pembayaran online instan via Midtrans Snap (QRIS, E-Wallet, VA Bank).
-            </span>
-          ) : (
-            <span>Event gratis — tiket otomatis diterbitkan setelah pendaftaran.</span>
-          )}
-        </div>
+            <div className="rounded-lg bg-blue-50/60 p-4 text-sm text-gray-700">
+              {isPaid ? (
+                <span>
+                  Tiket berbayar — pembayaran online instan via Midtrans Snap (QRIS, E-Wallet, VA Bank).
+                </span>
+              ) : (
+                <span>Event gratis — tiket otomatis diterbitkan setelah pendaftaran.</span>
+              )}
+            </div>
 
-        {isPaid && ticketTypes.length > 0 && (
-          <div>
-            <label className={LABEL_CLS}>Pilih Tiket</label>
-            <select
-              value={ticketTypeId}
-              onChange={(e) => setTicketTypeId(e.target.value)}
-              className={INPUT_CLS}
-            >
-              {ticketTypes.map((t) => (
-                <option key={t.uuid} value={t.uuid}>
-                  {t.name} — Rp {t.price?.toLocaleString("id-ID")}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
-
-        {isPaid && (
-          <div className="border-t border-gray-100 pt-3">
-            <button
-              type="button"
-              onClick={() => setShowManualPayment(!showManualPayment)}
-              className="text-xs font-semibold text-brand-600 hover:underline"
-            >
-              {showManualPayment
-                ? "← Kembali ke Pembayaran Online (Midtrans)"
-                : "+ Punya bukti transfer / Bayar via kasir panitia (Manual)?"}
-            </button>
-
-            {showManualPayment && (
-              <div className="mt-3 space-y-3 rounded-lg border border-gray-200 bg-gray-50/50 p-4">
-                <Input
-                  label="Referensi Pembayaran"
-                  value={payment.payment_reference}
-                  onChange={(e) =>
-                    setPayment({ ...payment, payment_reference: e.target.value })
-                  }
-                  placeholder="No. invoice / bukti transfer"
-                />
-                <div>
-                  <label className={LABEL_CLS}>Metode Pembayaran</label>
-                  <select
-                    value={payment.payment_method}
-                    onChange={(e) =>
-                      setPayment({ ...payment, payment_method: e.target.value })
-                    }
-                    className={INPUT_CLS}
-                  >
-                    <option value="CASH">Cash</option>
-                    <option value="QRIS">QRIS</option>
-                    <option value="TRANSFER">Transfer</option>
-                  </select>
-                </div>
+            {isPaid && ticketTypes.length > 0 && (
+              <div>
+                <label className={LABEL_CLS}>Pilih Tiket</label>
+                <select
+                  value={ticketTypeId}
+                  onChange={(e) => setTicketTypeId(e.target.value)}
+                  className={INPUT_CLS}
+                >
+                  {ticketTypes.map((t) => (
+                    <option key={t.uuid} value={t.uuid}>
+                      {t.name} — Rp {t.price?.toLocaleString("id-ID")}
+                    </option>
+                  ))}
+                </select>
               </div>
             )}
-          </div>
-        )}
 
-        {visibleFields.map((f) => (
-          <div key={f.field_key}>
-            <label className={LABEL_CLS}>
-              {f.label} {f.required && <span className="text-red-500">*</span>}
-            </label>
-            {f.type === "TEXTAREA" ? (
-              <textarea
-                required={f.required}
-                value={answers[f.field_key] ?? ""}
-                onChange={(e) => setAnswer(f.field_key, e.target.value)}
-                className="h-28 w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm bg-white text-gray-800"
-              />
-            ) : f.type === "SELECT" ? (
-              <select
-                required={f.required}
-                value={answers[f.field_key] ?? ""}
-                onChange={(e) => setAnswer(f.field_key, e.target.value)}
-                className={INPUT_CLS}
-              >
-                <option value="">Pilih...</option>
-                {(f.options ?? []).map((o) => (
-                  <option key={o} value={o}>
-                    {o}
-                  </option>
-                ))}
-              </select>
-            ) : f.type === "BOOLEAN" ? (
-              <label className="flex items-center gap-2 text-sm text-gray-700">
-                <input
-                  type="checkbox"
-                  checked={answers[f.field_key] === "true"}
-                  onChange={(e) =>
-                    setAnswer(f.field_key, e.target.checked ? "true" : "false")
-                  }
-                  className="h-4 w-4 accent-brand-500"
-                />
-                Ya
-              </label>
-            ) : f.type === "NUMBER" ? (
-              <input
-                type="number"
-                required={f.required}
-                value={answers[f.field_key] ?? ""}
-                onChange={(e) => setAnswer(f.field_key, e.target.value)}
-                className={INPUT_CLS}
-              />
-            ) : f.type === "DATE" ? (
-              <input
-                type="date"
-                required={f.required}
-                value={answers[f.field_key] ?? ""}
-                onChange={(e) => setAnswer(f.field_key, e.target.value)}
-                className={INPUT_CLS}
-              />
-            ) : (
-              <input
-                type={f.type === "EMAIL" ? "email" : "text"}
-                required={f.required}
-                value={answers[f.field_key] ?? ""}
-                onChange={(e) => setAnswer(f.field_key, e.target.value)}
-                className={INPUT_CLS}
-              />
+            {isPaid && (
+              <div className="border-t border-gray-100 pt-3">
+                <button
+                  type="button"
+                  onClick={() => setShowManualPayment(!showManualPayment)}
+                  className="text-xs font-semibold text-brand-600 hover:underline"
+                >
+                  {showManualPayment
+                    ? "← Kembali ke Pembayaran Online (Midtrans)"
+                    : "+ Punya bukti transfer / Bayar via kasir panitia (Manual)?"}
+                </button>
+
+                {showManualPayment && (
+                  <div className="mt-3 space-y-3 rounded-lg border border-gray-200 bg-gray-50/50 p-4">
+                    <Input
+                      label="Referensi Pembayaran"
+                      value={payment.payment_reference}
+                      onChange={(e) =>
+                        setPayment({ ...payment, payment_reference: e.target.value })
+                      }
+                      placeholder="No. invoice / bukti transfer"
+                    />
+                    <div>
+                      <label className={LABEL_CLS}>Metode Pembayaran</label>
+                      <select
+                        value={payment.payment_method}
+                        onChange={(e) =>
+                          setPayment({ ...payment, payment_method: e.target.value })
+                        }
+                        className={INPUT_CLS}
+                      >
+                        <option value="CASH">Cash</option>
+                        <option value="QRIS">QRIS</option>
+                        <option value="TRANSFER">Transfer</option>
+                      </select>
+                    </div>
+                  </div>
+                )}
+              </div>
             )}
-          </div>
-        ))}
 
-        <button
-          type="submit"
-          disabled={submitting}
-          className="flex w-full items-center justify-center gap-2 rounded-lg bg-secondary px-5 py-3.5 font-semibold text-white transition-colors hover:bg-secondary/80 disabled:opacity-50"
-        >
-          {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <TicketIcon className="h-4 w-4" />}
-          {isPaid ? "Daftar & Dapatkan Tiket" : "Daftar Sekarang"}
-        </button>
-        </div>
-      </form>
+            {visibleFields.map((f) => (
+              <div key={f.field_key}>
+                <label className={LABEL_CLS}>
+                  {f.label} {f.required && <span className="text-red-500">*</span>}
+                </label>
+                {f.type === "TEXTAREA" ? (
+                  <textarea
+                    required={f.required}
+                    value={answers[f.field_key] ?? ""}
+                    onChange={(e) => setAnswer(f.field_key, e.target.value)}
+                    className="h-28 w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm bg-white text-gray-800"
+                  />
+                ) : f.type === "SELECT" ? (
+                  <select
+                    required={f.required}
+                    value={answers[f.field_key] ?? ""}
+                    onChange={(e) => setAnswer(f.field_key, e.target.value)}
+                    className={INPUT_CLS}
+                  >
+                    <option value="">Pilih...</option>
+                    {(f.options ?? []).map((o) => (
+                      <option key={o} value={o}>
+                        {o}
+                      </option>
+                    ))}
+                  </select>
+                ) : f.type === "BOOLEAN" ? (
+                  <label className="flex items-center gap-2 text-sm text-gray-700">
+                    <input
+                      type="checkbox"
+                      checked={answers[f.field_key] === "true"}
+                      onChange={(e) =>
+                        setAnswer(f.field_key, e.target.checked ? "true" : "false")
+                      }
+                      className="h-4 w-4 accent-brand-500"
+                    />
+                    Ya
+                  </label>
+                ) : f.type === "NUMBER" ? (
+                  <input
+                    type="number"
+                    required={f.required}
+                    value={answers[f.field_key] ?? ""}
+                    onChange={(e) => setAnswer(f.field_key, e.target.value)}
+                    className={INPUT_CLS}
+                  />
+                ) : f.type === "DATE" ? (
+                  <input
+                    type="date"
+                    required={f.required}
+                    value={answers[f.field_key] ?? ""}
+                    onChange={(e) => setAnswer(f.field_key, e.target.value)}
+                    className={INPUT_CLS}
+                  />
+                ) : (
+                  <input
+                    type={f.type === "EMAIL" ? "email" : "text"}
+                    required={f.required}
+                    value={answers[f.field_key] ?? ""}
+                    onChange={(e) => setAnswer(f.field_key, e.target.value)}
+                    className={INPUT_CLS}
+                  />
+                )}
+              </div>
+            ))}
+
+            <button
+              type="submit"
+              disabled={submitting}
+              className="flex w-full items-center justify-center gap-2 rounded-lg bg-secondary px-5 py-3.5 font-semibold text-white transition-colors hover:bg-secondary/80 disabled:opacity-50"
+            >
+              {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <TicketIcon className="h-4 w-4" />}
+              {isPaid ? "Daftar & Dapatkan Tiket" : "Daftar Sekarang"}
+            </button>
+          </div>
+        </form>
       )}
     </div>
   );

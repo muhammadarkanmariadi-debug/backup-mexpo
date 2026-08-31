@@ -30,7 +30,8 @@ export class IntegrationsController {
 
   @Post()
   @ApiOperation({
-    summary: 'Create and sync an event (e.g. Trial Class) from external School CMS',
+    summary:
+      'Create and sync an event (e.g. Trial Class) from external School CMS',
   })
   @UsePipes(new ValidationPipe({ exceptionFactory: FormatValidation }))
   create(@Body() dto: CreateIntegrationEventDto) {

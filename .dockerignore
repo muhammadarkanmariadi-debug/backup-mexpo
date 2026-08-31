@@ -1,0 +1,6 @@
+.git
+.gitignore
+.vscode
+.agents
+*.md
+!README*.md
