@@ -33,7 +33,14 @@ export class IntegrationsService {
     );
   }
 
-  private async getSystemUser(): Promise<string> {
+  private async getSystemUser(ownerEmail?: string): Promise<string> {
+    if (ownerEmail) {
+      const existingUser = await this.prisma.users.findFirst({
+        where: { email: ownerEmail },
+      });
+      if (existingUser) return existingUser.uuid;
+    }
+
     const superAdmin = await this.prisma.users.findFirst({
       where: { role: 'SUPERADMIN' },
     });
@@ -47,7 +54,7 @@ export class IntegrationsService {
 
   async createEvent(dto: CreateIntegrationEventDto) {
     try {
-      const systemUserId = await this.getSystemUser();
+      const systemUserId = await this.getSystemUser(dto.owner_email);
 
       const slug = dto.slug
         ? slugify(dto.slug)
@@ -302,7 +309,15 @@ export class IntegrationsService {
       }
 
       const totalRegistrations = await this.prisma.user_event_roles.count({
+        where: { event_id: event.uuid, role: 'VISITOR' },
+      });
+
+      const approvedRegistrations = await this.prisma.user_event_roles.count({
         where: { event_id: event.uuid, role: 'VISITOR', status: 'APPROVED' },
+      });
+
+      const pendingRegistrations = await this.prisma.user_event_roles.count({
+        where: { event_id: event.uuid, role: 'VISITOR', status: 'PENDING' },
       });
 
       const eventSlug = event.slug || event.uuid;
@@ -311,9 +326,11 @@ export class IntegrationsService {
         data: {
           ...event,
           total_registered: totalRegistrations,
+          approved_registered: approvedRegistrations,
+          pending_registered: pendingRegistrations,
           remaining_quota:
             event.quota > 0
-              ? Math.max(0, event.quota - totalRegistrations)
+              ? Math.max(0, event.quota - approvedRegistrations)
               : null,
           public_url: `${this.frontendUrl}/event/${eventSlug}`,
           register_url: `${this.frontendUrl}/event/${eventSlug}/register`,

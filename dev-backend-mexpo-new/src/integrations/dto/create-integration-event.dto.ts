@@ -9,6 +9,7 @@ import {
   IsArray,
   IsBoolean,
   IsDateString,
+  IsEmail,
   IsEnum,
   IsInt,
   IsNotEmpty,
@@ -109,6 +110,11 @@ export class CreateIntegrationEventDto {
   @IsOptional()
   @IsString()
   ticket_name?: string = 'Trial Class Pass';
+
+  /** Optional owner/coordinator email in Mexpo */
+  @IsOptional()
+  @IsEmail()
+  owner_email?: string;
 
   /** Webhook callback URL to receive registration notifications */
   @IsOptional()
