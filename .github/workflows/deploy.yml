@@ -95,28 +95,39 @@ jobs:
           port: ${{ secrets.SSH_PORT || 22 }}
           script_stop: true
           script: |
-            TARGET_DIR="/home/ubuntu/backup-mexpo"
-            
-            if [ ! -d "$TARGET_DIR" ]; then
-              echo "Directory $TARGET_DIR does not exist. Cloning repository..."
-              cd /home/ubuntu
-              git clone https://github.com/muhammadarkanmariadi-debug/backup-mexpo.git backup-mexpo
+            set -e
+
+            # Target directory on EC2
+            TARGET_DIR="$HOME/backup-mexpo"
+            REPO_URL="https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git"
+
+            echo "📂 Ensuring target directory exists: $TARGET_DIR"
+            if [ ! -d "$TARGET_DIR/.git" ]; then
+              echo "🚀 Repository not found at $TARGET_DIR. Cloning..."
+              mkdir -p "$TARGET_DIR"
+              git clone "$REPO_URL" "$TARGET_DIR"
               cd "$TARGET_DIR"
             else
+              echo "📍 Repository exists at $TARGET_DIR. Navigating..."
               cd "$TARGET_DIR"
+              git remote set-url origin "$REPO_URL"
             fi
 
-            echo "📥 Fetching and pulling latest changes from main..."
-            git reset --hard HEAD
-            git pull origin main
+            echo "🔒 Setting Git safe directory..."
+            git config --global --add safe.directory "$TARGET_DIR"
 
+            echo "📥 Pulling latest changes from main..."
+            git fetch origin main
+            git reset --hard origin/main
+
+            # Check if docker compose exists
             if command -v docker &> /dev/null && [ -f "docker-compose.yml" ]; then
               echo "🐳 Deploying via Docker Compose..."
               docker compose up -d --build --remove-orphans
               
-              echo "🧹 Cleaning up old images and build cache to save disk space..."
+              echo "🧹 Cleaning up unused images and build cache..."
               docker image prune -f
-              docker builder prune -f --keep-storage 1GB
+              docker builder prune -f --keep-storage 1GB || true
             elif command -v pm2 &> /dev/null; then
               echo "🚀 Deploying Backend via PM2..."
               cd dev-backend-mexpo-new
@@ -125,7 +136,7 @@ jobs:
               npm run build
               pm2 restart backend-expo || pm2 start dist/src/main.js --name backend-expo
             else
-              echo "⚠️ Neither Docker nor PM2 deployment method matched."
+              echo "⚠️ Neither Docker nor PM2 configuration matched."
             fi
 
-            echo "✅ Deployment finished successfully!"
+            echo "🎉 Deployment completed successfully!"
