@@ -18,12 +18,19 @@ export class MailService {
     });
   }
 
-  async sendMail(target: string, subject: string, html: string) {
+  async sendMail(
+    target: string,
+    subject: string,
+    html: string,
+    attachments?: nodemailer.SendMailOptions['attachments'],
+  ) {
     await this.transporter.sendMail({
       from: `"Mexpo" <${this.configService.get<string>(`MAIL_USER`)}>`,
       to: target,
       subject,
       html,
+      attachments,
     });
   }
 }
+

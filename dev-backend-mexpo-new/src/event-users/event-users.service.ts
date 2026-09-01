@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   ForbiddenException,
   HttpException,
@@ -9,12 +10,17 @@ import {
 import { CreateEventUserDto } from './dto/create-event-user.dto';
 import { UpdateEventUserDto } from './dto/update-event-user.dto';
 import { BulkImportEventUsersDto } from './dto/bulk-import-event-user.dto';
+import { BroadcastTicketsDto } from './dto/broadcast-tickets.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { BcryptService } from '../bcrypt/bcrypt.service';
+import { MailService } from '../mail/mail.service';
+import { ConfigService } from '@nestjs/config';
 import { EventRole } from '@prisma/client';
 import { QueryEventUserDto } from './dto/query-event-user.dto';
 import { buildOrderBy } from '../helper/sort';
 import { Prisma } from '@prisma/client';
+import * as QRCode from 'qrcode';
+import { buildRegistrationTicketEmailHtml } from '../mail/templates/registration-ticket.template';
 
 const EVENT_USER_SORTABLE: Record<
   string,
@@ -30,6 +36,8 @@ export class EventUsersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly bcrypt: BcryptService,
+    private readonly mailer: MailService,
+    private readonly configService: ConfigService,
   ) {}
   async create(
     event_id: string,
@@ -37,6 +45,7 @@ export class EventUsersService {
     createEventUserDto?: CreateEventUserDto,
     role?: EventRole,
   ) {
+
     try {
       const findEvent = await this.prisma.events.findFirst({
         where: { uuid: event_id },
@@ -387,11 +396,21 @@ export class EventUsersService {
         }
       }
 
+      if (status === `APPROVED` && findEventUser.status !== `APPROVED`) {
+        this.sendParticipantTicketEmail(
+          findEventUser.event_id,
+          findEventUser.user_id,
+        ).catch((err) =>
+          console.error('Failed auto-sending ticket email upon approval:', err),
+        );
+      }
+
       return {
         success: true,
         message: `Event user has updated successfully`,
         data: updateEventUser,
       };
+
     } catch (error) {
       console.log(error);
       if (error instanceof HttpException) {
@@ -570,4 +589,250 @@ export class EventUsersService {
       );
     }
   }
+
+  /**
+   * Generates participant QR and sends full registration & e-ticket email
+   */
+  async sendParticipantTicketEmail(
+    eventId: string,
+    userId: string,
+  ): Promise<boolean> {
+    try {
+      const event = await this.prisma.events.findFirst({
+        where: { uuid: eventId },
+      });
+      if (!event) return false;
+
+      const user = await this.prisma.users.findFirst({
+        where: { uuid: userId },
+      });
+      if (!user || !user.email) return false;
+
+      const roleRecord = await this.prisma.user_event_roles.findFirst({
+        where: { event_id: eventId, user_id: userId },
+      });
+
+      const ticket = await this.prisma.tickets.findFirst({
+        where: {
+          event_id: eventId,
+          user_id: userId,
+          status: { not: 'CANCELLED' },
+        },
+        include: { ticket_type: true },
+      });
+
+      const fields = await this.prisma.event_registration_fields.findMany({
+        where: { event_id: eventId },
+        orderBy: [{ position: 'asc' }, { created_at: 'asc' }],
+      });
+
+      const answers = await this.prisma.registration_answers.findMany({
+        where: { event_id: eventId, user_id: userId },
+      });
+
+      const formattedAnswers = fields
+        .map((f) => ({
+          label: f.label ?? f.field_key,
+          value: answers.find((a) => a.field_key === f.field_key)?.value ?? '',
+        }))
+        .filter((a) => a.value && a.value.trim().length > 0);
+
+      const codeData = `mexpo:${eventId}:${userId}`;
+      const qrBuffer = await QRCode.toBuffer(codeData, {
+        width: 300,
+        margin: 2,
+        type: 'png',
+      });
+
+      const dateFormatted =
+        event.start_date && event.end_date
+          ? `${new Date(event.start_date).toLocaleDateString('id-ID', {
+              day: 'numeric',
+              month: 'short',
+              year: 'numeric',
+            })} - ${new Date(event.end_date).toLocaleDateString('id-ID', {
+              day: 'numeric',
+              month: 'short',
+              year: 'numeric',
+            })}`
+          : undefined;
+
+      const emailHtml = buildRegistrationTicketEmailHtml({
+        eventName: event.name,
+        eventDate: dateFormatted,
+        eventLocation: event.location ?? undefined,
+        userName: user.full_name,
+        userEmail: user.email,
+        userPhone: user.phone ?? undefined,
+        userOrganization: user.organization ?? undefined,
+        ticketName: ticket?.ticket_type?.name ?? undefined,
+        paymentMethod: ticket?.payment_method ?? undefined,
+        paymentReference: ticket?.payment_reference ?? undefined,
+        paymentStatus: roleRecord?.status ?? ticket?.status ?? undefined,
+        loginUrl: `${this.configService.get<string>('PUBLIC_FRONTEND_URL')}/auth`,
+        answers: formattedAnswers,
+        qrCid: 'ticket-qr',
+      });
+
+      await this.mailer.sendMail(
+        user.email,
+        `[Mexpo] E-Tiket & Registrasi: ${event.name}`,
+        emailHtml,
+        [
+          {
+            filename: 'ticket-qr.png',
+            content: qrBuffer,
+            cid: 'ticket-qr',
+            contentType: 'image/png',
+          },
+        ],
+      );
+
+      return true;
+    } catch (err) {
+      console.error(
+        `Failed to send ticket email to user ${userId} for event ${eventId}:`,
+        err,
+      );
+      return false;
+    }
+  }
+
+  async resendTicket(
+    eventId: string,
+    targetUserId: string,
+    requesterId: string,
+  ) {
+    try {
+      const requester = await this.prisma.users.findFirst({
+        where: { uuid: requesterId },
+      });
+      const isSuperAdmin = requester?.role === 'SUPERADMIN';
+
+      if (!isSuperAdmin) {
+        const ownerOrCommittee = await this.prisma.user_event_roles.findFirst({
+          where: {
+            event_id: eventId,
+            user_id: requesterId,
+            role: { in: ['OWNER', 'COMMITTEE'] },
+            status: 'APPROVED',
+          },
+        });
+        if (!ownerOrCommittee) {
+          throw new ForbiddenException(
+            'Hanya panitia atau pemilik event yang dapat mengirim ulang tiket',
+          );
+        }
+      }
+
+      const success = await this.sendParticipantTicketEmail(
+        eventId,
+        targetUserId,
+      );
+      if (!success) {
+        throw new BadRequestException(
+          'Gagal mengirim email tiket. Pastikan email pengguna valid.',
+        );
+      }
+
+      return {
+        status: true,
+        message: 'Email tiket & QR berhasil dikirim ulang ke peserta.',
+      };
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
+      throw new InternalServerErrorException(
+        `Gagal mengirim ulang tiket. ${error}`,
+      );
+    }
+  }
+
+  async broadcastTickets(
+    eventId: string,
+    requesterId: string,
+    dto: BroadcastTicketsDto,
+  ) {
+    try {
+      const requester = await this.prisma.users.findFirst({
+        where: { uuid: requesterId },
+      });
+      const isSuperAdmin = requester?.role === 'SUPERADMIN';
+
+      if (!isSuperAdmin) {
+        const ownerOrCommittee = await this.prisma.user_event_roles.findFirst({
+          where: {
+            event_id: eventId,
+            user_id: requesterId,
+            role: { in: ['OWNER', 'COMMITTEE'] },
+            status: 'APPROVED',
+          },
+        });
+        if (!ownerOrCommittee) {
+          throw new ForbiddenException(
+            'Hanya panitia atau pemilik event yang dapat melakukan broadcast tiket',
+          );
+        }
+      }
+
+      const status = dto.status ?? 'APPROVED';
+      const role = dto.role ?? 'VISITOR';
+
+      const participants = await this.prisma.user_event_roles.findMany({
+        where: {
+          event_id: eventId,
+          status,
+          role,
+        },
+        include: {
+          user: { select: { uuid: true, email: true, full_name: true } },
+        },
+      });
+
+      if (participants.length === 0) {
+        return {
+          status: true,
+          message: 'Tidak ada peserta yang sesuai dengan kriteria filter.',
+          data: { total: 0, sent: 0, failed: 0 },
+        };
+      }
+
+      let sentCount = 0;
+      let failedCount = 0;
+
+      // Process in chunks of 5 with slight delays
+      const chunkSize = 5;
+      for (let i = 0; i < participants.length; i += chunkSize) {
+        const chunk = participants.slice(i, i + chunkSize);
+        await Promise.all(
+          chunk.map(async (p) => {
+            const ok = await this.sendParticipantTicketEmail(
+              eventId,
+              p.user_id,
+            );
+            if (ok) sentCount++;
+            else failedCount++;
+          }),
+        );
+        if (i + chunkSize < participants.length) {
+          await new Promise((resolve) => setTimeout(resolve, 500));
+        }
+      }
+
+      return {
+        status: true,
+        message: `Broadcast tiket selesai. ${sentCount} terkirim, ${failedCount} gagal.`,
+        data: {
+          total: participants.length,
+          sent: sentCount,
+          failed: failedCount,
+        },
+      };
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
+      throw new InternalServerErrorException(
+        `Gagal melakukan broadcast tiket. ${error}`,
+      );
+    }
+  }
 }
+

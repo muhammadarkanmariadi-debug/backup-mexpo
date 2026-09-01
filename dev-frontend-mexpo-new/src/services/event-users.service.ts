@@ -75,4 +75,26 @@ export async function bulkImportEventUsers(
   );
 }
 
+/** Resend ticket and QR code email to an event participant */
+export async function resendTicketEmail(eventId: string, userId: string) {
+  return await httpPost(
+    `event-users/${eventId}/resend-ticket/${userId}`,
+    JSON.stringify({}),
+    "token",
+  );
+}
+
+/** Broadcast ticket and QR code emails to approved event participants */
+export async function broadcastTicketEmails(
+  eventId: string,
+  options?: { status?: string; role?: string },
+) {
+  return await httpPost(
+    `event-users/${eventId}/broadcast-tickets`,
+    JSON.stringify(options ?? {}),
+    "token",
+  );
+}
+
+
 

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { toast } from "sonner";
-import { CheckCircle2, XCircle, FileSpreadsheet } from "lucide-react";
+import { CheckCircle2, XCircle, FileSpreadsheet, Mail, Loader2, Send } from "lucide-react";
 
 import SearchBar from "@/shared/components/form/SearchBar";
 import { DataPagination } from "@/shared/components/ui/DataPagination";
@@ -10,6 +10,8 @@ import {
   getEventUsers,
   verifyEventUser,
   bulkImportEventUsers,
+  resendTicketEmail,
+  broadcastTicketEmails,
   EventUser,
   BulkEventUserItem,
 } from "@/services/event-users.service";
@@ -54,6 +56,10 @@ function tabLabel(tab: string) {
 
 export function UsersTab({ event }: Props) {
   const [isImportOpen, setIsImportOpen] = useState(false);
+  const [isBroadcastModalOpen, setIsBroadcastModalOpen] = useState(false);
+  const [isBroadcasting, setIsBroadcasting] = useState(false);
+  const [resendingUserId, setResendingUserId] = useState<string | null>(null);
+
   const requests = useList<EventUser>(
     (q) => getEventUsers(event.uuid, { ...q, role: "VISITOR" }),
     [event.uuid],
@@ -68,13 +74,53 @@ export function UsersTab({ event }: Props) {
       notify: toast,
       onSuccess: (_data, { status }) => {
         toast.success(
-          status === "APPROVED" ? "Permintaan disetujui." : "Permintaan ditolak.",
+          status === "APPROVED"
+            ? "Permintaan disetujui & tiket/QR dikirimkan ke email peserta."
+            : "Permintaan ditolak.",
         );
         requests.refetch();
       },
       onError: () => toast.error("Gagal memperbarui status."),
     },
   );
+
+  const handleResendTicket = async (u: EventUser) => {
+    if (!u.user?.uuid) return;
+    try {
+      setResendingUserId(u.user.uuid);
+      const res = await resendTicketEmail(event.uuid, u.user.uuid);
+      if (res?.status) {
+        toast.success(`Tiket & QR berhasil dikirim ulang ke ${u.user.email}`);
+      } else {
+        toast.error(res?.message || "Gagal mengirim ulang email tiket.");
+      }
+    } catch {
+      toast.error("Terjadi kesalahan saat mengirim ulang tiket.");
+    } finally {
+      setResendingUserId(null);
+    }
+  };
+
+  const handleBroadcast = async () => {
+    try {
+      setIsBroadcasting(true);
+      const res = await broadcastTicketEmails(event.uuid, {
+        status: "APPROVED",
+        role: "VISITOR",
+      });
+      if (res?.status) {
+        toast.success(res?.message || "Broadcast tiket & QR berhasil dikirimkan.");
+        setIsBroadcastModalOpen(false);
+      } else {
+        toast.error(res?.message || "Gagal melakukan broadcast tiket.");
+      }
+    } catch {
+      toast.error("Terjadi kesalahan saat melakukan broadcast tiket.");
+    } finally {
+      setIsBroadcasting(false);
+    }
+  };
+
 
   return (
     <div>
@@ -89,6 +135,14 @@ export function UsersTab({ event }: Props) {
           </button>
         ))}
         <div className="ml-auto flex items-center gap-2 w-full sm:w-auto">
+          <Button
+            variant="outline"
+            size="xs"
+            startIcon={<Send className="h-4 w-4 text-blue-600" />}
+            onClick={() => setIsBroadcastModalOpen(true)}
+          >
+            Broadcast Tiket
+          </Button>
           <Button
             variant="outline"
             size="xs"
@@ -118,24 +172,43 @@ export function UsersTab({ event }: Props) {
                     {u.user?.email} • {labelFor(ROLE_LABELS, u.role, u.role)} • {labelFor(APPROVAL_STATUS_LABELS, u.status, u.status)}
                   </p>
                 </div>
-                {u.status === "PENDING" && (
-                  <>
+
+                <div className="flex items-center gap-2">
+                  {u.status === "APPROVED" && (
                     <button
-                      onClick={() => decideUser.mutate({ u, status: "APPROVED" })}
-                      disabled={decideUser.isPending}
-                      className="inline-flex items-center gap-1.5 bg-green-50 text-green-700 hover:bg-green-100 disabled:opacity-50 px-3 py-1.5 rounded-lg font-medium text-xs transition-colors"
+                      onClick={() => handleResendTicket(u)}
+                      disabled={resendingUserId === u.user?.uuid}
+                      title="Kirim ulang e-tiket & QR ke email"
+                      className="inline-flex items-center gap-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 disabled:opacity-50 px-3 py-1.5 rounded-lg font-medium text-xs transition-colors"
                     >
-                      <CheckCircle2 className="w-4 h-4" /> Setujui
+                      {resendingUserId === u.user?.uuid ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <Mail className="w-3.5 h-3.5" />
+                      )}
+                      Kirim Ulang Tiket
                     </button>
-                    <button
-                      onClick={() => decideUser.mutate({ u, status: "REJECTED" })}
-                      disabled={decideUser.isPending}
-                      className="inline-flex items-center gap-1.5 bg-red-50 text-red-600 hover:bg-red-100 disabled:opacity-50 px-3 py-1.5 rounded-lg font-medium text-xs transition-colors"
-                    >
-                      <XCircle className="w-4 h-4" /> Tolak
-                    </button>
-                  </>
-                )}
+                  )}
+
+                  {u.status === "PENDING" && (
+                    <>
+                      <button
+                        onClick={() => decideUser.mutate({ u, status: "APPROVED" })}
+                        disabled={decideUser.isPending}
+                        className="inline-flex items-center gap-1.5 bg-green-50 text-green-700 hover:bg-green-100 disabled:opacity-50 px-3 py-1.5 rounded-lg font-medium text-xs transition-colors"
+                      >
+                        <CheckCircle2 className="w-4 h-4" /> Setujui
+                      </button>
+                      <button
+                        onClick={() => decideUser.mutate({ u, status: "REJECTED" })}
+                        disabled={decideUser.isPending}
+                        className="inline-flex items-center gap-1.5 bg-red-50 text-red-600 hover:bg-red-100 disabled:opacity-50 px-3 py-1.5 rounded-lg font-medium text-xs transition-colors"
+                      >
+                        <XCircle className="w-4 h-4" /> Tolak
+                      </button>
+                    </>
+                  )}
+                </div>
               </div>
             ))}
           </div>
@@ -150,6 +223,47 @@ export function UsersTab({ event }: Props) {
             />
           </div>
         </>
+      )}
+
+      {/* Broadcast Confirmation Modal */}
+      {isBroadcastModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-md bg-white rounded-2xl p-6 shadow-xl border border-gray-100 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="h-10 w-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold">
+                <Send className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-gray-900">Broadcast Tiket & QR</h3>
+                <p className="text-xs text-gray-500">Kirim email tiket ke semua peserta terverifikasi</p>
+              </div>
+            </div>
+
+            <p className="text-sm text-gray-600 mb-6 leading-relaxed">
+              Sistem akan mengirimkan email konfirmasi e-tiket beserta kode QR check-in kepada seluruh peserta yang berstatus <strong>APPROVED</strong> di event <strong>{event.name}</strong>.
+            </p>
+
+            <div className="flex items-center justify-end gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsBroadcastModalOpen(false)}
+                disabled={isBroadcasting}
+              >
+                Batal
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={handleBroadcast}
+                disabled={isBroadcasting}
+                startIcon={isBroadcasting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+              >
+                {isBroadcasting ? "Mengirim Email..." : "Kirim Broadcast"}
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
 
       <BulkImportModal
@@ -173,4 +287,5 @@ export function UsersTab({ event }: Props) {
     </div>
   );
 }
+
 

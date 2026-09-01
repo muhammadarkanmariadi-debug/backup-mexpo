@@ -16,6 +16,7 @@ import { EventUsersService } from './event-users.service';
 import { CreateEventUserDto } from './dto/create-event-user.dto';
 import { UpdateEventUserDto } from './dto/update-event-user.dto';
 import { BulkImportEventUsersDto } from './dto/bulk-import-event-user.dto';
+import { BroadcastTicketsDto } from './dto/broadcast-tickets.dto';
 import { AuthGuard } from '@nestjs/passport';
 import FormatValidation from '../helper/validation.format';
 import * as authType from '../auth/auth.types';
@@ -88,6 +89,33 @@ export class EventUsersController {
     );
   }
 
+  @Post(':event_id/resend-ticket/:user_id')
+  resendTicket(
+    @Param('event_id') event_id: string,
+    @Param('user_id') user_id: string,
+    @Request() request: authType.AuthRequest,
+  ) {
+    return this.eventUsersService.resendTicket(
+      event_id,
+      user_id,
+      request.user.uuid,
+    );
+  }
+
+  @Post(':event_id/broadcast-tickets')
+  @UsePipes(new ValidationPipe({ exceptionFactory: FormatValidation }))
+  broadcastTickets(
+    @Param('event_id') event_id: string,
+    @Body() dto: BroadcastTicketsDto,
+    @Request() request: authType.AuthRequest,
+  ) {
+    return this.eventUsersService.broadcastTickets(
+      event_id,
+      request.user.uuid,
+      dto,
+    );
+  }
+
   @Get(':event_id')
   @UsePipes(new ValidationPipe({ exceptionFactory: FormatValidation }))
   findAll(
@@ -117,3 +145,4 @@ export class EventUsersController {
     return this.eventUsersService.remove(id, request.user.uuid);
   }
 }
+

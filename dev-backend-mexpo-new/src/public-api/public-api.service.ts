@@ -22,6 +22,8 @@ import {
 import { isUuid } from '../helper/slug';
 import { PaymentsService } from '../payments/payments.service';
 import { WebhookService } from '../integrations/webhook.service';
+import * as QRCode from 'qrcode';
+import { buildRegistrationTicketEmailHtml } from '../mail/templates/registration-ticket.template';
 
 @Injectable()
 export class PublicApiService {
@@ -552,6 +554,7 @@ export class PublicApiService {
       let visitorUserId: string;
       let responseMessage: string;
       let responseData: unknown;
+      let defaultPassword: string | undefined = undefined;
       if (findExistingEmail) {
         const existingRole = findExistingEmail.userEventRoles.find(
           (it) => it.event_id === event_id,
@@ -612,7 +615,7 @@ export class PublicApiService {
             : `You have already registered, enjoy this event`;
         responseData = updateUser;
       } else {
-        const defaultPassword = this.bcrypt.createRandomPassword();
+        defaultPassword = this.bcrypt.createRandomPassword();
         const createUser = await this.prisma.users.create({
           data: {
             full_name,
@@ -644,24 +647,6 @@ export class PublicApiService {
 
           omit: { password: true },
         });
-
-        this.mailer
-          .sendMail(
-            email,
-            'Welcome to Expo Website - Account Information',
-            this.newAccountInfoEmailTemplate(
-              full_name,
-              email,
-              `${this.configService.get<string>(`PUBLIC_FRONTEND_URL`)}/auth`,
-              defaultPassword,
-            ),
-          )
-          .then(() => {
-            console.log('Created account sent successfully.');
-          })
-          .catch((error) => {
-            console.error('Error sending creating account:', error);
-          });
 
         visitorUserId = createUser.uuid;
         responseMessage =
@@ -811,37 +796,84 @@ export class PublicApiService {
         }
       }
 
-      // ── A11 — ticket confirmation email for paid events ──
-      if (isPaid && ticket_type_id) {
-        const ticketType = await this.prisma.ticket_types.findFirst({
-          where: { uuid: ticket_type_id, event_id },
+      // ── Send Registration E-Ticket & QR Email ──
+      try {
+        const codeData = `mexpo:${event_id}:${visitorUserId}`;
+        const qrBuffer = await QRCode.toBuffer(codeData, {
+          width: 300,
+          margin: 2,
+          type: 'png',
         });
-        const frontendUrl =
-          this.configService.get<string>(`PUBLIC_FRONTEND_URL`) ?? ``;
+
+        const formattedAnswers = fields
+          .map((f) => ({
+            label: f.label ?? f.field_key,
+            value:
+              answers?.find((a) => a.field_key === f.field_key)?.value ?? '',
+          }))
+          .filter((a) => a.value && a.value.trim().length > 0);
+
+        let ticketTypeName: string | undefined = undefined;
+        if (ticket_type_id) {
+          const tType = await this.prisma.ticket_types.findFirst({
+            where: { uuid: ticket_type_id, event_id },
+          });
+          ticketTypeName = tType?.name;
+        }
+
+        const dateFormatted =
+          findEvent.start_date && findEvent.end_date
+            ? `${new Date(findEvent.start_date).toLocaleDateString('id-ID', {
+                day: 'numeric',
+                month: 'short',
+                year: 'numeric',
+              })} - ${new Date(findEvent.end_date).toLocaleDateString('id-ID', {
+                day: 'numeric',
+                month: 'short',
+                year: 'numeric',
+              })}`
+            : undefined;
+
+        const emailHtml = buildRegistrationTicketEmailHtml({
+          eventName: findEvent.name,
+          eventDate: dateFormatted,
+          eventLocation: findEvent.location ?? undefined,
+          userName: full_name,
+          userEmail: email,
+          userPhone: phone,
+          userOrganization: organization,
+          ticketName: ticketTypeName,
+          paymentMethod: payment_method ?? undefined,
+          paymentReference: payment_reference ?? undefined,
+          paymentStatus: initialRoleStatus,
+          loginUrl: `${this.configService.get<string>('PUBLIC_FRONTEND_URL')}/auth`,
+          temporaryPassword: defaultPassword,
+          answers: formattedAnswers,
+          qrCid: 'ticket-qr',
+        });
+
         this.mailer
           .sendMail(
             email,
-            `[Mexpo] Tiket "${findEvent.name}"`,
-            `
-              <div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;padding:24px;">
-                <h2 style="margin:0 0 12px;">Tiket Event Kamu</h2>
-                <p>Halo <strong>${full_name}</strong>,</p>
-                <p>Kamu terdaftar di <strong>${findEvent.name}</strong>.</p>
-                <p>Tiket: <strong>${ticketType?.name ?? `-`}</strong></p>
-                <p>Metode pembayaran: ${payment_method ?? `-`} · ${
-                  payment_reference
-                    ? `Ref: ${payment_reference}`
-                    : `Belum ada referensi pembayaran`
-                }</p>
-                <p>Simpan kode QR kamu untuk check-in saat acara: <a href="${frontendUrl}/auth">Login Mexpo</a></p>
-              </div>
-            `,
+            `[Mexpo] E-Tiket & Registrasi: ${findEvent.name}`,
+            emailHtml,
+            [
+              {
+                filename: 'ticket-qr.png',
+                content: qrBuffer,
+                cid: 'ticket-qr',
+                contentType: 'image/png',
+              },
+            ],
           )
-          .then(() => console.log(`Ticket email sent to ${email}`))
+          .then(() => console.log(`Ticket & QR email sent to ${email}`))
           .catch((error) =>
-            console.error(`Error sending ticket email: ${error}`),
+            console.error(`Error sending ticket email to ${email}: ${error}`),
           );
+      } catch (err) {
+        console.error(`Error building ticket email for ${email}:`, err);
       }
+
 
       // ── Webhook integration notification ──
       const integrationConfig = (
