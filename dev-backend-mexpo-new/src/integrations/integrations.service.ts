@@ -24,7 +24,7 @@ export class IntegrationsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
-  ) {}
+  ) { }
 
   private get frontendUrl(): string {
     return (
@@ -59,8 +59,8 @@ export class IntegrationsService {
       const slug = dto.slug
         ? slugify(dto.slug)
         : await uniqueSlug(dto.name, (s) =>
-            this.prisma.events.findFirst({ where: { slug: s } }).then(Boolean),
-          );
+          this.prisma.events.findFirst({ where: { slug: s } }).then(Boolean),
+        );
 
       const features: Record<string, unknown> = {
         ...(dto.extra_features || {}),
@@ -152,6 +152,7 @@ export class IntegrationsService {
       const publicUrl = `${this.frontendUrl}/event/${eventSlug}`;
       const registerUrl = `${this.frontendUrl}/event/${eventSlug}/register`;
       const directRegisterUrl = `${registerUrl}?source=school_website`;
+      const dashboardUrl = `${this.frontendUrl}/dashboard/${eventSlug}`;
 
       return {
         status: true,
@@ -166,6 +167,7 @@ export class IntegrationsService {
           public_url: publicUrl,
           register_url: registerUrl,
           direct_register_url: directRegisterUrl,
+          dashboard_url: dashboardUrl,
           ticket_type: {
             id: ticketType.uuid,
             name: ticketType.name,
@@ -208,7 +210,7 @@ export class IntegrationsService {
             dto.callback_url !== undefined
               ? dto.callback_url
               : (existingFeatures.integration as { callback_url?: string })
-                  ?.callback_url,
+                ?.callback_url,
         },
       };
 
@@ -240,6 +242,7 @@ export class IntegrationsService {
       const eventSlug = updated.slug || updated.uuid;
       const publicUrl = `${this.frontendUrl}/event/${eventSlug}`;
       const registerUrl = `${this.frontendUrl}/event/${eventSlug}/register`;
+      const dashboardUrl = `${this.frontendUrl}/dashboard/${eventSlug}`;
 
       return {
         status: true,
@@ -253,6 +256,7 @@ export class IntegrationsService {
           quota: updated.quota,
           public_url: publicUrl,
           register_url: registerUrl,
+          dashboard_url: dashboardUrl,
         },
       };
     } catch (error) {
@@ -321,6 +325,8 @@ export class IntegrationsService {
       });
 
       const eventSlug = event.slug || event.uuid;
+      const dashboardUrl = `${this.frontendUrl}/dashboard/${eventSlug}`;
+
       return {
         status: true,
         data: {
@@ -334,6 +340,7 @@ export class IntegrationsService {
               : null,
           public_url: `${this.frontendUrl}/event/${eventSlug}`,
           register_url: `${this.frontendUrl}/event/${eventSlug}/register`,
+          dashboard_url: dashboardUrl,
         },
       };
     } catch (error) {
@@ -389,12 +396,12 @@ export class IntegrationsService {
           registered_at: r.created_at,
           ticket: ticket
             ? {
-                id: ticket.uuid,
-                name: ticket.ticket_type?.name,
-                status: ticket.status,
-                payment_method: ticket.payment_method,
-                payment_reference: ticket.payment_reference,
-              }
+              id: ticket.uuid,
+              name: ticket.ticket_type?.name,
+              status: ticket.status,
+              payment_method: ticket.payment_method,
+              payment_reference: ticket.payment_reference,
+            }
             : null,
           custom_answers: answersMap,
         };
