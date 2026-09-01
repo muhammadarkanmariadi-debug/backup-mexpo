@@ -121,6 +121,12 @@ jobs:
             git fetch origin main --depth=1 --force
             git reset --hard origin/main
 
+            # Ensure .env file exists for Docker Compose
+            if [ ! -f ".env" ] && [ -f ".env.example" ]; then
+              echo "📝 Creating initial .env from .env.example..."
+              cp .env.example .env
+            fi
+
             # Check if docker compose exists
             if command -v docker &> /dev/null && [ -f "docker-compose.yml" ]; then
               echo "🐳 Deploying via Docker Compose..."
