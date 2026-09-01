@@ -90,6 +90,7 @@ export function buildBadgeData(params: {
   email?: string;
   role?: string;
   qrCodeData?: string;
+  qrCodeImage?: string;
 }): CertificateData {
   return {
     participant_name: params.fullName,
@@ -101,7 +102,7 @@ export function buildBadgeData(params: {
     organization: params.organization || "Umum",
     role: params.role || "VISITOR",
     email: params.email || "",
-    qr_code: params.qrCodeData || "",
+    qr_code: params.qrCodeImage || params.qrCodeData || "",
   };
 }
 

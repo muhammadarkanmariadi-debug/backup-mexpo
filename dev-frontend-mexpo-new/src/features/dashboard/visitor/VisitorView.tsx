@@ -283,7 +283,7 @@ export default function VisitorView({ event }: Props) {
       <DashboardTabs groups={tabGroups} />
 
       {/* ID Badge popup (PDF) — replaces the old /dashboard/[uuid]/badge page. */}
-      <BadgeModal event={event} open={badgeOpen} onClose={() => setBadgeOpen(false)} />
+      <BadgeModal event={event} open={badgeOpen} onClose={() => setBadgeOpen(false)} role={userRole || "VISITOR"} />
     </PageShell>
   );
 }

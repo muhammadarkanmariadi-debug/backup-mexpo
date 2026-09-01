@@ -14,9 +14,10 @@ type PngOptions = {
 
 /** Rasterize the Konva stage to a PNG data URL (2x by default for print). */
 export function stageToPng(stage: StageType, options: PngOptions = {}): string {
+  const scaleX = stage.scaleX() || 1;
   const { pixelRatio = 2, mimeType = "image/png", quality } = options;
   return stage.toDataURL({
-    pixelRatio,
+    pixelRatio: pixelRatio / scaleX,
     mimeType,
     quality,
     x: 0,
@@ -36,11 +37,16 @@ export function downloadCertificatePdf(
   filename: string,
   print = false,
 ): void {
+  const scaleX = stage.scaleX() || 1;
+  const scaleY = stage.scaleY() || 1;
+  const logicalWidth = stage.width() / scaleX;
+  const logicalHeight = stage.height() / scaleY;
+
   const dataUrl = stageToPng(stage, { pixelRatio: 2 });
 
-  const wMm = stage.width() * MM_PER_PX;
-  const hMm = stage.height() * MM_PER_PX;
-  const orientation = stage.width() >= stage.height() ? "landscape" : "portrait";
+  const wMm = logicalWidth * MM_PER_PX;
+  const hMm = logicalHeight * MM_PER_PX;
+  const orientation = logicalWidth >= logicalHeight ? "landscape" : "portrait";
 
   const doc = new jsPDF({
     orientation,

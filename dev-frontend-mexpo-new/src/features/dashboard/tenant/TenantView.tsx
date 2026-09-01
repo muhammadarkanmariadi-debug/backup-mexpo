@@ -1,9 +1,11 @@
 "use client";
 
-import { Loader2, ScanLine, Store, Package, Receipt, Users } from "lucide-react";
+import { useState } from "react";
+import { Loader2, ScanLine, Store, Package, Receipt, Users, IdCard } from "lucide-react";
 import { Event } from "@/entities/event/event.entity";
 import EventHero from "@/features/dashboard/shared/EventHero";
 import EventOverview from "@/features/dashboard/shared/EventOverview";
+import ViewAction from "@/features/dashboard/shared/ViewAction";
 import { getRoleBadge } from "@/shared/utils/role-badge";
 import DashboardTabs, { TabGroup } from "@/features/dashboard/shared/DashboardTabs";
 import PageShell from "@/shared/components/ui/PageShell";
@@ -14,12 +16,15 @@ import { ProfileTab } from "@/features/dashboard/portal/tabs/ProfileTab";
 import { ProductsTab } from "@/features/dashboard/portal/tabs/ProductsTab";
 import { TeamTab } from "@/features/dashboard/portal/tabs/TeamTab";
 import { TransactionsTab } from "@/features/dashboard/portal/tabs/TransactionsTab";
+import { BadgeModal } from "@/features/dashboard/badge/BadgeModal";
 
 import BoothCheckInPage from "@/features/dashboard/booth/BoothCheckInPage";
 
 interface Props { event: Event }
 
 export default function TenantView({ event }: Props) {
+  const [badgeOpen, setBadgeOpen] = useState(false);
+
   // Fetch the tenant list ONCE here so every tab reuses the same data
   // instead of firing an independent query per tab (previously 4×).
   const { data: myTenants, isLoading } = useApiQuery(
@@ -63,8 +68,18 @@ export default function TenantView({ event }: Props) {
       {/* ── Hero ── */}
       <EventHero event={event} roleLabel="Penyewa" roleIcon={Store} roleBadge={getRoleBadge("TENANT")} />
 
+      {/* ── Actions ── */}
+      <div className="flex flex-wrap items-center gap-2 mb-8 justify-end">
+        <ViewAction onClick={() => setBadgeOpen(true)} variant="secondary">
+          <IdCard className="w-4 h-4 text-teal-600" /> ID Badge
+        </ViewAction>
+      </div>
+
       {/* ── Tabs Content ── */}
       <DashboardTabs groups={tabGroups} />
+
+      {/* ── ID Badge Modal ── */}
+      <BadgeModal event={event} open={badgeOpen} onClose={() => setBadgeOpen(false)} role="TENANT" />
     </PageShell>
   );
 }

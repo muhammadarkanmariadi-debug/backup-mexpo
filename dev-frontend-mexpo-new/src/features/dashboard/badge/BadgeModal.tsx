@@ -21,6 +21,8 @@ import { labelFor, ROLE_LABELS } from "@/shared/data/labels";
 import { buildBadgeData } from "@/features/certificates/certificate-fields";
 import { downloadCertificatePdf } from "@/features/certificates/export-certificate";
 
+import { DEFAULT_BADGE_TEMPLATE } from "@/features/badges/default-badge";
+
 const BRAND = [60, 133, 243] as const; // #3c85f3
 const BRAND_600 = [54, 65, 245] as const; // #3641f5
 
@@ -62,50 +64,61 @@ function loadPhotoDataUrl(src: string): Promise<string | null> {
 /**
  * ID Badge popup.
  * Renders the organizer-customized badge template via Konva (if active)
- * or falls back to the default ID-badge card, with 1-click PDF/print export.
+ * or falls back to the default ID-badge template, with 1-click PDF/print export.
  */
 export function BadgeModal({
   event,
   open,
   onClose,
+  role: roleProp,
 }: {
   event: Event;
   open: boolean;
   onClose: () => void;
+  role?: string;
 }) {
   const { user } = useAuthStore();
   const { data: qr, isLoading: isQrLoading } = useApiQuery<MyQr | null>(
     keys.qr.my(event.uuid),
     () => getMyQr(event.uuid),
-    { retry: 0 },
+    { retry: 0, enabled: open },
   );
 
   const { data: activeBadge, isLoading: isBadgeLoading } =
     useApiQuery<CertificateTemplate | null>(
       ["active-badge-template", event.uuid],
       () => getActiveCertificateTemplate(event.uuid, "BADGE"),
-      { retry: 0 },
+      { retry: 0, enabled: open },
     );
 
   const [busy, setBusy] = useState(false);
   const stageRef = useRef<StageType | null>(null);
 
-  const role = user?.role === "SUPERADMIN" ? "SUPERADMIN" : "VISITOR";
-  const roleLabel = labelFor(ROLE_LABELS, role, role);
+  const effectiveRole =
+    roleProp ??
+    event.userEventRoles?.[0]?.role ??
+    (user?.role === "SUPERADMIN" ? "SUPERADMIN" : "VISITOR");
+  const roleLabel = labelFor(ROLE_LABELS, effectiveRole, effectiveRole);
 
   const badgeData = useMemo(() => {
     return buildBadgeData({
       fullName: user?.full_name ?? "-",
       eventName: event.name,
       date: dateFormat(event.start_date),
-      organization: "SMK Telkom Malang",
+      organization:
+        effectiveRole === "TENANT"
+          ? "Penyewa Booth"
+          : effectiveRole === "COMMITTEE"
+          ? "Panitia Pelaksana"
+          : "SMK Telkom Malang",
       email: user?.email ?? "",
       role: roleLabel,
       qrCodeData: qr?.code_data ?? `mexo:${event.uuid}:${user?.uuid ?? ""}`,
+      qrCodeImage: qr?.image,
     });
-  }, [user, event, roleLabel, qr]);
+  }, [user, event, roleLabel, effectiveRole, qr]);
 
-  const customTemplate = activeBadge?.template ?? null;
+  const customTemplate = activeBadge?.template ?? DEFAULT_BADGE_TEMPLATE;
 
   const renderPdf = async (print: boolean) => {
     if (!user) return;

@@ -250,12 +250,14 @@ function KonvaNodeRenderer({
           {childNodes}
         </RegularPolygon>
       );
-    case "Image":
-      if (typeof src === "string" && src) {
+    case "Image": {
+      const fallbackSrc = typeof src === "string" ? src : "";
+      const resolvedSrc = resolveBinding(binding, data, fallbackSrc);
+      if (typeof resolvedSrc === "string" && resolvedSrc) {
         return (
           <KonvaImageNode
-            key={src}
-            src={src}
+            key={resolvedSrc}
+            src={resolvedSrc}
             {...rest}
             draggable={interactive}
             onClick={() => onSelect?.(id ?? null)}
@@ -270,6 +272,7 @@ function KonvaNodeRenderer({
         );
       }
       return null;
+    }
     default:
       return null;
   }
