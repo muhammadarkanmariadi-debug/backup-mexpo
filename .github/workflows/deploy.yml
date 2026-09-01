@@ -1,0 +1,131 @@
+name: Build Checks & Deploy to EC2
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  # ============================================================
+  # 1. Backend Build & Type Check
+  # ============================================================
+  check-backend:
+    name: Check Backend (NestJS + Prisma)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+          cache-dependency-path: dev-backend-mexpo-new/package-lock.json
+
+      - name: Install Backend Dependencies
+        working-directory: dev-backend-mexpo-new
+        run: npm ci
+
+      - name: Generate Prisma Client
+        working-directory: dev-backend-mexpo-new
+        run: npx prisma generate
+
+      - name: Build NestJS Application
+        working-directory: dev-backend-mexpo-new
+        run: npm run build
+
+  # ============================================================
+  # 2. Frontend Build & Type Check
+  # ============================================================
+  check-frontend:
+    name: Check Frontend (Next.js 16)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+          cache-dependency-path: dev-frontend-mexpo-new/package-lock.json
+
+      - name: Install Frontend Dependencies
+        working-directory: dev-frontend-mexpo-new
+        run: npm ci
+
+      - name: Build Next.js Application
+        working-directory: dev-frontend-mexpo-new
+        env:
+          NEXT_TELEMETRY_DISABLED: 1
+          NODE_ENV: production
+          NEXT_PUBLIC_BASE_URL_PRODUCTION: http://localhost:3500
+          NEXT_PUBLIC_BASE_URL_DEVELOPMENT: http://localhost:3500
+          NEXT_PUBLIC_BASIC_AUTH_USERNAME: dummy
+          NEXT_PUBLIC_BASIC_AUTH_PASSWORD: dummy
+          NEXT_PUBLIC_TOKEN_KEY: mexpo-token
+        run: npm run build
+
+  # ============================================================
+  # 3. Deploy to EC2 (Only runs when both checks succeed on main)
+  # ============================================================
+  deploy:
+    name: Deploy to EC2
+    needs: [check-backend, check-frontend]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Deploy to EC2 via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.SSH_PORT || 22 }}
+          script_stop: true
+          script: |
+            TARGET_DIR="/home/ubuntu/backup-mexpo"
+            
+            if [ ! -d "$TARGET_DIR" ]; then
+              echo "Directory $TARGET_DIR does not exist. Cloning repository..."
+              cd /home/ubuntu
+              git clone https://github.com/muhammadarkanmariadi-debug/backup-mexpo.git backup-mexpo
+              cd "$TARGET_DIR"
+            else
+              cd "$TARGET_DIR"
+            fi
+
+            echo "📥 Fetching and pulling latest changes from main..."
+            git reset --hard HEAD
+            git pull origin main
+
+            if command -v docker &> /dev/null && [ -f "docker-compose.yml" ]; then
+              echo "🐳 Deploying via Docker Compose..."
+              docker compose up -d --build --remove-orphans
+              
+              echo "🧹 Cleaning up old images and build cache to save disk space..."
+              docker image prune -f
+              docker builder prune -f --keep-storage 1GB
+            elif command -v pm2 &> /dev/null; then
+              echo "🚀 Deploying Backend via PM2..."
+              cd dev-backend-mexpo-new
+              npm install --production=false
+              npx prisma migrate deploy
+              npm run build
+              pm2 restart backend-expo || pm2 start dist/src/main.js --name backend-expo
+            else
+              echo "⚠️ Neither Docker nor PM2 deployment method matched."
+            fi
+
+            echo "✅ Deployment finished successfully!"
