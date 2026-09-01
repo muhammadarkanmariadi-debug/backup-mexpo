@@ -95,33 +95,23 @@ jobs:
           port: ${{ secrets.SSH_PORT || 22 }}
           script_stop: true
           script: |
-            # Set global safe directory before any git command runs
             git config --global --add safe.directory "*"
+            
+            echo "🚀 Entering deployment directory..."
+            cd ~
+            mkdir -p backup-mexpo
+            cd backup-mexpo
 
-            TARGET_DIR="$HOME/backup-mexpo"
-            REPO_URL="https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git"
-
-            echo "👤 Running deploy as user: $(whoami) in $(pwd)"
-            echo "📂 Target directory: $TARGET_DIR"
-
-            # Fix permissions if directory exists but owned by root
-            if [ -d "$TARGET_DIR" ]; then
-              sudo chown -R "$(whoami):$(whoami)" "$TARGET_DIR" 2>/dev/null || true
-            fi
-
-            if [ ! -d "$TARGET_DIR/.git" ]; then
-              echo "🚀 Cloning fresh repository..."
-              rm -rf "$TARGET_DIR" 2>/dev/null || true
-              git clone "$REPO_URL" "$TARGET_DIR"
-              cd "$TARGET_DIR"
+            echo "📥 Syncing git repository..."
+            if [ ! -d ".git" ]; then
+              git init -b main
+              git remote add origin "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" || true
             else
-              echo "📍 Navigating to existing repository..."
-              cd "$TARGET_DIR"
-              git remote set-url origin "$REPO_URL"
+              git remote set-url origin "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git"
             fi
 
-            echo "📥 Pulling latest changes from origin/main..."
-            git fetch origin main
+            echo "📦 Fetching latest code from main..."
+            git fetch origin main --force
             git reset --hard origin/main
 
             # Check if docker compose exists
