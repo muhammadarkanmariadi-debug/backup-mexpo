@@ -8,6 +8,9 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+
 jobs:
   # ============================================================
   # 1. Backend Build & Type Check
@@ -102,16 +105,20 @@ jobs:
             mkdir -p backup-mexpo
             cd backup-mexpo
 
+            REPO_URL="https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git"
+
             echo "📥 Syncing git repository..."
             if [ ! -d ".git" ]; then
-              git init -b main
-              git remote add origin "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" || true
-            else
-              git remote set-url origin "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git"
+              git init
+              git branch -M main 2>/dev/null || true
             fi
+            
+            # Reset remote origin cleanly
+            git remote remove origin 2>/dev/null || true
+            git remote add origin "$REPO_URL"
 
             echo "📦 Fetching latest code from main..."
-            git fetch origin main --force
+            git fetch origin main --depth=1 --force
             git reset --hard origin/main
 
             # Check if docker compose exists
