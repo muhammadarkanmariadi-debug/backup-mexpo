@@ -21,25 +21,29 @@ const Footer = () => {
   if (pathname.includes("/report")) return null;
 
   return (
-    <footer className="relative bg-secondary dark:bg-gray-900 mt-20 text-white overflow-hidden">
+    <footer className="relative bg-[#0c1836] dark:bg-gray-950 mt-20 text-white overflow-hidden border-t border-blue-900/30">
       
       {/* Pattern kiri */}
-      <div className="top-0 bottom-0 left-0 absolute opacity-30 dark:opacity-5 w-32 md:w-60 pointer-events-none">
+      <div className="top-0 bottom-0 left-0 absolute opacity-20 dark:opacity-5 w-32 md:w-60 pointer-events-none" aria-hidden="true">
         <Image
           src="/images/shape/Pattern 2.png"
           alt=""
           fill
+          loading="lazy"
+          decoding="async"
           sizes="(max-width: 768px) 100vw, 50vw"
           className="object-cover object-left"
         />
       </div>
 
       {/* Pattern kanan */}
-      <div className="top-0 right-0 bottom-0 absolute opacity-30 dark:opacity-5 w-32 md:w-60 pointer-events-none">
+      <div className="top-0 right-0 bottom-0 absolute opacity-20 dark:opacity-5 w-32 md:w-60 pointer-events-none" aria-hidden="true">
         <Image
           src="/images/shape/Pattern 3.png"
           alt=""
           fill
+          loading="lazy"
+          decoding="async"
           sizes="(max-width: 768px) 100vw, 50vw"
           className="object-cover object-right"
         />
@@ -52,7 +56,7 @@ const Footer = () => {
           
           {/* Left Column: Logo + Tagline */}
           <div className="flex flex-col gap-6 max-w-sm">
-            <Link href="/" className="inline-block">
+            <Link href="/" className="inline-block" aria-label="Beranda Mexpo">
               <Image
                 src="/logo/logo_dark.png"
                 alt="Mexpo"
@@ -61,7 +65,7 @@ const Footer = () => {
                 className="w-auto object-contain brightness-0 invert"
               />
             </Link>
-            <p className="font-jakarta text-white/80 dark:text-gray-400 text-sm md:text-base leading-relaxed">
+            <p className="font-jakarta text-blue-100/90 dark:text-gray-300 text-sm md:text-base leading-relaxed">
               {footerData.tagline}
             </p>
           </div>
@@ -83,7 +87,7 @@ const Footer = () => {
                           className={`text-sm md:text-base transition-all ${
                             isActive
                               ? "text-white font-semibold underline underline-offset-4"
-                              : "text-white/80 dark:text-gray-400 hover:text-white"
+                              : "text-blue-100/80 dark:text-gray-400 hover:text-white"
                           }`}
                         >
                           {link.label}

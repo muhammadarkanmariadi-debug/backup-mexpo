@@ -34,7 +34,7 @@ export const footerData = {
       links: [
         { label: "Buat Event", href: "/dashboard/create" },
         { label: "Dashboard", href: "/dashboard" },
-        { label: "Panduan", href: "/faq" },
+        { label: "Panduan", href: "/faq#panduan" },
       ],
     },
     {

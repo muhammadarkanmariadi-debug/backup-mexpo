@@ -61,6 +61,7 @@ export default function TrendingEvents({ events }: TrendingEventsProps) {
               src={mainEvent.photo || "/images/cards/card-e.png"}
               alt={mainEvent.name}
               fill
+              priority
               sizes="(max-width: 1024px) 100vw, 66vw"
               className="object-cover transition-transform duration-500 group-hover:scale-105"
             />

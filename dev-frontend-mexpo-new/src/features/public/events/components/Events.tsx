@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
 import { ArrowUpDown, Filter, RotateCcw } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 
@@ -28,13 +27,16 @@ type SortOption = "date-asc" | "date-desc" | "name-asc" | "name-desc";
 const INITIAL_VISIBLE = 12;
 const STEP = 12;
 
-export default function Events({ events: initialEvents }: { events: Event[] }) {
-  const params = useSearchParams();
+export default function Events({
+  events: initialEvents,
+  initialCategory = "All Events",
+}: {
+  events: Event[];
+  initialCategory?: Category;
+}) {
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [category, setCategory] = useState<Category>(
-    () => (params.get("filter") as Category) || "All Events",
-  );
+  const [category, setCategory] = useState<Category>(initialCategory);
   const [eventType, setEventType] = useState<EventType | "ALL">("ALL");
   const [ticketFilter, setTicketFilter] = useState<TicketFilter>("ALL");
   const [sortBy, setSortBy] = useState<SortOption>("date-asc");

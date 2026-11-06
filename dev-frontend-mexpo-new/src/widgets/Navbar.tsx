@@ -60,7 +60,7 @@ export default function Navbar() {
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 80)
-    window.addEventListener('scroll', handleScroll)
+    window.addEventListener('scroll', handleScroll, { passive: true })
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
@@ -113,6 +113,7 @@ export default function Navbar() {
             alt="Mexpo"
             width={140}
             height={60}
+            priority
             className=" object-contain dark:brightness-0 dark:invert"
           />
         </Link>

@@ -198,7 +198,7 @@ export default function ContactPage() {
                         <div className="shadow-sm border border-border-light rounded-lg h-[200px] overflow-hidden">
                             <iframe
                                 title="Kantor Mexpo"
-                                src="https://www.google.com/maps?q=SMK%20Telkom%20Malang%20Jl.%20Danau%20Ranau%20Sawojajar&output=embed"
+                                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3951.2135998568847!2d112.65643571042594!3d-7.976861992015264!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2dd6285c5c1b44e3%3A0xf6c889ac7452dc3a!2sSMK%20Telkom%20Malang!5e0!3m2!1sen!2sid!4v1793968435575!5m2!1sen!2sid"
                                 className="grayscale-[20%] border-0 w-full h-full"
                                 loading="lazy"
                                 referrerPolicy="no-referrer-when-downgrade"

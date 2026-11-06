@@ -61,18 +61,13 @@ const HorizontalEventCard = ({ event, variant }: HorizontalEventCardProps) => {
     }
 
     return buttonLabel ? (
-      <Link
-        href={href}
-        onClick={(e) => {
-          e.stopPropagation()
-          if (shouldSetCookie) setCookies('event_uuid', event.uuid)
-        }}
-        className={`${isPrimary ? primaryBtn : secondaryBtn} ${cls}`}
+      <span
+        className={`${isPrimary ? primaryBtn : secondaryBtn} ${cls} pointer-events-none`}
       >
         {buttonLabel}
-      </Link>
+      </span>
     ) : (
-      <span className={`${btnDisabled} ${cls}`}>
+      <span className={`${btnDisabled} ${cls} pointer-events-none`}>
         Segera Hadir
       </span>
     )
