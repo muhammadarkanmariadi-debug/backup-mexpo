@@ -21,7 +21,7 @@ const Footer = () => {
   if (pathname.includes("/report")) return null;
 
   return (
-    <footer className="relative bg-[#0c1836] dark:bg-gray-950 mt-20 text-white overflow-hidden border-t border-blue-900/30">
+    <footer className="relative bg-secondary dark:bg-gray-950 mt-20 text-white overflow-hidden border-t border-blue-900/30">
       
       {/* Pattern kiri */}
       <div className="top-0 bottom-0 left-0 absolute opacity-20 dark:opacity-5 w-32 md:w-60 pointer-events-none" aria-hidden="true">
