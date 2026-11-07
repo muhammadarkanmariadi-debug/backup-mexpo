@@ -34,6 +34,6 @@ export class QrCodesController {
   @Post(`resolve`)
   @UsePipes(new ValidationPipe({ exceptionFactory: FormatValidation }))
   resolve(@Body() dto: ResolveQrDto) {
-    return this.qrCodesService.resolve(dto.code_data);
+    return this.qrCodesService.resolve(dto.code_data, dto.event_id);
   }
 }

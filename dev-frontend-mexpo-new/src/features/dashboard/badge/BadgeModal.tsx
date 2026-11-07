@@ -113,7 +113,7 @@ export function BadgeModal({
           : "SMK Telkom Malang",
       email: user?.email ?? "",
       role: roleLabel,
-      qrCodeData: qr?.code_data ?? `mexo:${event.uuid}:${user?.uuid ?? ""}`,
+      qrCodeData: qr?.code_data ?? `mexpo:${event.uuid}:${user?.uuid ?? ""}`,
       qrCodeImage: qr?.image,
     });
   }, [user, event, roleLabel, effectiveRole, qr]);

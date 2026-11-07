@@ -79,7 +79,7 @@ export function QrScanPanel({
         onChange={(e) => {
           onQrChange(e.target.value);
         }}
-        placeholder="Scan atau tempel kode QR"
+        placeholder="Scan QR, ketik kode (cth: MEXPO-EV1-VIS-3), atau email pengunjung"
       />
 
       <div className="flex flex-wrap items-center gap-2">

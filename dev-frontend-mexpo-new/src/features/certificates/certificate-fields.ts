@@ -35,7 +35,8 @@ export function buildSampleData(): CertificateData {
     organization: "SMK Telkom Malang",
     role: "VISITOR",
     email: "rizky.pratama@example.com",
-    qr_code: "mexpo:sample:visitor",
+    qr_code:
+      "https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=mexpo:e872e411-bd56-4c40-b6f0-d46e2a297e2c:v0000000-0000-0000-0000-000000000001",
   };
 }
 
@@ -102,7 +103,11 @@ export function buildBadgeData(params: {
     organization: params.organization || "Umum",
     role: params.role || "VISITOR",
     email: params.email || "",
-    qr_code: params.qrCodeImage || params.qrCodeData || "",
+    qr_code:
+      params.qrCodeImage ||
+      (params.qrCodeData
+        ? `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(params.qrCodeData)}`
+        : ""),
   };
 }
 
