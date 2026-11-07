@@ -68,7 +68,7 @@ const Input: FC<InputProps> = ({
     bg-white 
     focus:outline-hidden focus:ring-3
     dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30
-  `.trim();
+  `.trim() + " "; // trailing space: state classes below are appended without one
 
   // 🔥 CRITICAL FIX: JANGAN tambahkan appearance-none untuk date/time
   // appearance-none akan menyembunyikan native date picker
