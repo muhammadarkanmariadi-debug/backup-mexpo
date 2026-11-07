@@ -46,6 +46,7 @@ export default function FaqManager() {
   const [search, setSearch] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [editingFaq, setEditingFaq] = useState<FaqItem | null>(null);
+  const [formErrors, setFormErrors] = useState<{ question?: string; answer?: string }>({});
 
   // Form states
   const [formData, setFormData] = useState({
@@ -147,14 +148,16 @@ export default function FaqManager() {
   const closeModal = () => {
     setModalOpen(false);
     setEditingFaq(null);
+    setFormErrors({});
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.question.trim() || !formData.answer.trim()) {
-      toast.error("Pertanyaan dan jawaban wajib diisi");
-      return;
-    }
+    const nextErrors: typeof formErrors = {};
+    if (!formData.question.trim()) nextErrors.question = "Pertanyaan wajib diisi.";
+    if (!formData.answer.trim()) nextErrors.answer = "Jawaban wajib diisi.";
+    setFormErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) return;
 
     const finalCategory =
       formData.category === "Lainnya"
@@ -417,7 +420,7 @@ export default function FaqManager() {
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} noValidate className="space-y-4">
               {/* Category Select */}
               <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1.5">
@@ -470,11 +473,22 @@ export default function FaqManager() {
                   required
                   placeholder="Contoh: Bagaimana cara check-in QR Code?"
                   value={formData.question}
-                  onChange={(e) =>
-                    setFormData({ ...formData, question: e.target.value })
-                  }
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs text-gray-900 focus:outline-none focus:ring-2 focus:ring-secondary"
+                  onChange={(e) => {
+                    setFormData({ ...formData, question: e.target.value });
+                    setFormErrors((p) => ({ ...p, question: undefined }));
+                  }}
+                  aria-invalid={!!formErrors.question}
+                  className={`w-full bg-gray-50 border rounded-xl px-3.5 py-2.5 text-xs text-gray-900 focus:outline-none focus:ring-2 ${
+                    formErrors.question
+                      ? "border-error-500 focus:ring-error-500/30"
+                      : "border-gray-200 focus:ring-secondary"
+                  }`}
                 />
+                {formErrors.question && (
+                  <p role="alert" className="mt-1.5 text-xs font-medium text-error-500">
+                    {formErrors.question}
+                  </p>
+                )}
               </div>
 
               {/* Answer */}
@@ -487,11 +501,22 @@ export default function FaqManager() {
                   required
                   placeholder="Tulis jawaban lengkap yang jelas dan mudah dipahami pengguna..."
                   value={formData.answer}
-                  onChange={(e) =>
-                    setFormData({ ...formData, answer: e.target.value })
-                  }
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3.5 text-xs text-gray-900 focus:outline-none focus:ring-2 focus:ring-secondary resize-y"
+                  onChange={(e) => {
+                    setFormData({ ...formData, answer: e.target.value });
+                    setFormErrors((p) => ({ ...p, answer: undefined }));
+                  }}
+                  aria-invalid={!!formErrors.answer}
+                  className={`w-full bg-gray-50 border rounded-xl p-3.5 text-xs text-gray-900 focus:outline-none focus:ring-2 resize-y ${
+                    formErrors.answer
+                      ? "border-error-500 focus:ring-error-500/30"
+                      : "border-gray-200 focus:ring-secondary"
+                  }`}
                 />
+                {formErrors.answer && (
+                  <p role="alert" className="mt-1.5 text-xs font-medium text-error-500">
+                    {formErrors.answer}
+                  </p>
+                )}
               </div>
 
               {/* Publish Toggle */}
