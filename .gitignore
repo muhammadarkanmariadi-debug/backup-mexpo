@@ -71,4 +71,5 @@ pids/
 
 scripts/*
 !scripts/import-github-secrets.mjs
+!scripts/dev-all.mjs
 !scripts/import-github-secrets.ps1
