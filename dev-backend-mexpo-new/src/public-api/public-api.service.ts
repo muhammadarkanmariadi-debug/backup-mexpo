@@ -23,7 +23,10 @@ import { isUuid } from '../helper/slug';
 import { PaymentsService } from '../payments/payments.service';
 import { WebhookService } from '../integrations/webhook.service';
 import * as QRCode from 'qrcode';
-import { buildRegistrationTicketEmailHtml } from '../mail/templates/registration-ticket.template';
+import {
+  buildRegistrationTicketEmailHtml,
+  buildTicketEmailAttachments,
+} from '../mail/templates/registration-ticket.template';
 
 @Injectable()
 export class PublicApiService {
@@ -891,14 +894,7 @@ export class PublicApiService {
             email,
             `[Mexpo] E-Tiket & Registrasi: ${findEvent.name}`,
             emailHtml,
-            [
-              {
-                filename: 'ticket-qr.png',
-                content: qrBuffer,
-                cid: 'ticket-qr',
-                contentType: 'image/png',
-              },
-            ],
+            buildTicketEmailAttachments(qrBuffer, 'ticket-qr'),
           )
           .then(() => console.log(`Ticket & QR email sent to ${email}`))
           .catch((error) =>
