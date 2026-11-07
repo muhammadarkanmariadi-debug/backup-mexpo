@@ -31,7 +31,7 @@ const prisma = new PrismaClient({
 
 // Default password hash for all seed users: "password123"
 const PASSWORD_HASH =
-  '$2b$10$iE/K37JeYGp/rSLH9z9Dde4qcu/7NcOF90WMshym7VsoqfYXfrUgu';
+  '$2b$10$fpSAK3SwVy0iluLTlALbUO374jadtHLP8vXMzJAXOGzWaIKbQ8dMS';
 
 // Static IDs
 const EVENT_1_ID = 'e872e411-bd56-4c40-b6f0-d46e2a297e2c'; // Flagship Tech Expo
