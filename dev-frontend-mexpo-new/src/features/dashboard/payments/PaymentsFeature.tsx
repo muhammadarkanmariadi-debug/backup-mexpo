@@ -46,6 +46,8 @@ const STATUS_CLS: Record<TransactionStatus, string> = {
 
 const inputCls =
   "w-full rounded-lg border border-gray-200 px-2.5 py-1.5 text-sm text-gray-900 focus:border-brand-500 focus:outline-none";
+const inputErrCls =
+  "w-full rounded-lg border border-error-500 px-2.5 py-1.5 text-sm text-gray-900 focus:border-error-500 focus:outline-none";
 
 export function PaymentsFeature({
   event,
@@ -284,16 +286,19 @@ function PayoutForm({
   const [notes, setNotes] = useState(summary?.settlement_notes ?? "");
   const [saving, setSaving] = useState(false);
   const [requesting, setRequesting] = useState(false);
+  const [errors, setErrors] = useState<{ bank?: string; accNum?: string; accHolder?: string }>({});
 
   const isSettled = summary?.payout_status === "SETTLED";
   const isRequested = Boolean(summary?.settlement_requested);
   const netAmount = summary?.net ?? 0;
 
   const save = async (requestSettlement = false) => {
-    if (!bank.trim() || !accNum.trim() || !accHolder.trim()) {
-      toast.error("Mohon lengkapi Nama Bank, Nomor Rekening, dan Atas Nama.");
-      return;
-    }
+    const nextErrors: typeof errors = {};
+    if (!bank.trim()) nextErrors.bank = "Nama bank wajib diisi.";
+    if (!accNum.trim()) nextErrors.accNum = "Nomor rekening wajib diisi.";
+    if (!accHolder.trim()) nextErrors.accHolder = "Atas nama rekening wajib diisi.";
+    setErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) return;
 
     if (requestSettlement) {
       if (netAmount <= 0) {
@@ -382,30 +387,45 @@ function PayoutForm({
           <input
             value={bank}
             disabled={isSettled}
-            onChange={(e) => setBank(e.target.value)}
-            className={inputCls}
+            onChange={(e) => {
+              setBank(e.target.value);
+              setErrors((p) => ({ ...p, bank: undefined }));
+            }}
+            aria-invalid={!!errors.bank}
+            className={errors.bank ? inputErrCls : inputCls}
             placeholder="Contoh: BCA / Mandiri / BRI / BNI"
           />
+          {errors.bank && <p role="alert" className="mt-1 text-xs font-medium text-error-500">{errors.bank}</p>}
         </div>
         <div>
           <label className="mb-1 block text-xs font-medium text-gray-500">Nomor Rekening *</label>
           <input
             value={accNum}
             disabled={isSettled}
-            onChange={(e) => setAccNum(e.target.value)}
-            className={inputCls}
+            onChange={(e) => {
+              setAccNum(e.target.value);
+              setErrors((p) => ({ ...p, accNum: undefined }));
+            }}
+            aria-invalid={!!errors.accNum}
+            className={errors.accNum ? inputErrCls : inputCls}
             placeholder="Contoh: 1234567890"
           />
+          {errors.accNum && <p role="alert" className="mt-1 text-xs font-medium text-error-500">{errors.accNum}</p>}
         </div>
         <div>
           <label className="mb-1 block text-xs font-medium text-gray-500">Atas Nama Rekening *</label>
           <input
             value={accHolder}
             disabled={isSettled}
-            onChange={(e) => setAccHolder(e.target.value)}
-            className={inputCls}
+            onChange={(e) => {
+              setAccHolder(e.target.value);
+              setErrors((p) => ({ ...p, accHolder: undefined }));
+            }}
+            aria-invalid={!!errors.accHolder}
+            className={errors.accHolder ? inputErrCls : inputCls}
             placeholder="Contoh: Panitia Tech Expo 2026"
           />
+          {errors.accHolder && <p role="alert" className="mt-1 text-xs font-medium text-error-500">{errors.accHolder}</p>}
         </div>
         <div>
           <label className="mb-1 block text-xs font-medium text-gray-500">Catatan Pengajuan (Opsional)</label>
