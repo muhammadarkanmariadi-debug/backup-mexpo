@@ -83,6 +83,16 @@ export default function Navbar() {
     setMobileDropdown(null)
   }, [pathname])
 
+  // Escape closes the mobile menu.
+  useEffect(() => {
+    if (!isMobileOpen) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsMobileOpen(false)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [isMobileOpen])
+
   const shouldHide = HIDDEN_ROUTES.some(route => pathname.startsWith(route))
   if (shouldHide) return null
 
@@ -101,10 +111,10 @@ export default function Navbar() {
     href === '/' ? pathname === '/' : pathname.startsWith(href || '')
 
   return (
-    <nav className="top-0 z-[999] w-full">
+    <nav className="relative top-0 z-[999] w-full">
 
       {/* ── Desktop Bar ── */}
-      <div className="relative flex justify-between items-center bg-white dark:bg-gray-900 xl:bg-transparent xl:dark:bg-transparent border-b border-gray-100 dark:border-gray-800 xl:border-none mx-auto px-6 py-4 xl:py-0 w-full 2xl:max-w-[1400px] xl:max-w-[1300px]">
+      <div className="relative z-20 flex justify-between items-center bg-white dark:bg-gray-900 xl:bg-transparent xl:dark:bg-transparent border-b border-gray-100 dark:border-gray-800 xl:border-none mx-auto px-6 py-4 xl:py-0 w-full 2xl:max-w-[1400px] xl:max-w-[1300px]">
 
         {/* Logo */}
         <Link href="/" className="xl:mt-9 shrink-0">
@@ -347,17 +357,30 @@ export default function Navbar() {
       {/* ── Mobile Menu ── */}
       <AnimatePresence>
         {isMobileOpen && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.25, ease: 'easeInOut' }}
-            className="xl:hidden bg-white dark:bg-gray-900 shadow-lg border-t border-neutral-100 dark:border-gray-800 overflow-hidden"
-          >
-            <div className="space-y-1 px-5 py-4">
+          <>
+            {/* Backdrop: tap outside to close; sits under the header row (z-20) */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              onClick={() => setIsMobileOpen(false)}
+              aria-hidden="true"
+              className="lg:hidden fixed inset-0 z-10 bg-slate-950/30 backdrop-blur-[2px]"
+            />
+
+            {/* Floating card — overlays the page instead of pushing it down */}
+            <motion.div
+              initial={{ opacity: 0, y: -8, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -8, scale: 0.98 }}
+              transition={{ duration: 0.18, ease: 'easeOut' }}
+              className="lg:hidden absolute inset-x-3 top-full z-20 mt-2 max-h-[calc(100dvh-5.5rem)] overflow-y-auto rounded-2xl border border-neutral-200 bg-white p-3 shadow-xl dark:border-gray-700 dark:bg-gray-900 dark:shadow-[0_8px_32px_rgba(0,0,0,0.4)]"
+            >
+            <div className="space-y-1">
               {/* User info / Login */}
               {username ? (
-                <div className="bg-gradient-to-r from-secondary/10 to-secondary/5 dark:from-secondary/15 dark:to-secondary/5 mb-4 p-3 border border-secondary/20 dark:border-secondary/30 rounded-2xl">
+                <div className="bg-secondary/5 dark:bg-secondary/10 mb-3 p-3 border border-secondary/20 dark:border-secondary/30 rounded-xl">
                   <div className="flex items-center gap-3">
                     <div className="relative bg-secondary/20 rounded-full w-10 h-10 overflow-hidden shrink-0">
                       {userPhoto ? (
@@ -397,7 +420,7 @@ export default function Navbar() {
                   </div>
                 </div>
               ) : (
-                <Button href="/auth" variant="primary" className="mb-4 py-2.5 w-full text-sm">
+                <Button href="/auth" variant="primary" className="mb-3 py-2.5 w-full text-sm">
                   Masuk
                 </Button>
               )}
@@ -454,7 +477,7 @@ export default function Navbar() {
                     href={item.href || '#'}
                     onClick={() => setIsMobileOpen(false)}
                     className={cn(
-                      'flex items-center px-4 py-3 rounded-xl font-semibold text-sm transition-colors',
+                      'flex items-center px-4 py-2.5 rounded-xl font-semibold text-sm transition-colors',
                       isActive(item.href)
                         ? 'bg-secondary text-white'
                         : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-secondary'
@@ -465,7 +488,8 @@ export default function Navbar() {
                 )
               )}
             </div>
-          </motion.div>
+            </motion.div>
+          </>
         )}
       </AnimatePresence>
 
