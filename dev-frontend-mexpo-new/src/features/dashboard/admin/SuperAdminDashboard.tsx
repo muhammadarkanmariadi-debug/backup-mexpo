@@ -370,7 +370,7 @@ export default function SuperAdminDashboard() {
                 Verifikasi kelayakan dan permohonan publikasi event dari EO sebelum tayang di direktori publik.
               </p>
             </div>
-            <div className="flex items-center gap-1.5 text-xs font-semibold text-secondary pt-2 border-t border-gray-50 group-hover:text-brand-600">
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-secondary pt-2 border-t border-gray-50">
               <span>Tinjau Pengajuan</span>
               <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
             </div>
@@ -400,7 +400,7 @@ export default function SuperAdminDashboard() {
                 Rekap saldo penjualan tiket escrow Midtrans dan konfirmasi pencairan dana ke rekening EO.
               </p>
             </div>
-            <div className="flex items-center gap-1.5 text-xs font-semibold text-secondary pt-2 border-t border-gray-50 group-hover:text-brand-600">
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-secondary pt-2 border-t border-gray-50">
               <span>Kelola Settlement</span>
               <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
             </div>
@@ -425,7 +425,7 @@ export default function SuperAdminDashboard() {
                 Kelola hak akses peran akun (User / Superadmin), status aktifasi, serta audit direktori anggota.
               </p>
             </div>
-            <div className="flex items-center gap-1.5 text-xs font-semibold text-secondary pt-2 border-t border-gray-50 group-hover:text-brand-600">
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-secondary pt-2 border-t border-gray-50">
               <span>Kelola User</span>
               <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
             </div>
@@ -455,7 +455,7 @@ export default function SuperAdminDashboard() {
                 Kelola, baca, dan tanggapi pesan/pertanyaan pengunjung dari form kontak website.
               </p>
             </div>
-            <div className="flex items-center gap-1.5 text-xs font-semibold text-secondary pt-2 border-t border-gray-50 group-hover:text-brand-600">
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-secondary pt-2 border-t border-gray-50">
               <span>Buka Kotak Masuk</span>
               <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
             </div>
@@ -483,7 +483,7 @@ export default function SuperAdminDashboard() {
                 Tambah, perbarui pertanyaan &amp; jawaban, susun urutan, dan kelola kategori bantuan website.
               </p>
             </div>
-            <div className="flex items-center gap-1.5 text-xs font-semibold text-secondary pt-2 border-t border-gray-50 group-hover:text-brand-600">
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-secondary pt-2 border-t border-gray-50">
               <span>Kelola FAQ</span>
               <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
             </div>
@@ -511,7 +511,7 @@ export default function SuperAdminDashboard() {
                 Ubah banner hero, narasi visi misi, kurasi foto galeri, dan nilai keunggulan platform.
               </p>
             </div>
-            <div className="flex items-center gap-1.5 text-xs font-semibold text-secondary pt-2 border-t border-gray-50 group-hover:text-brand-600">
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-secondary pt-2 border-t border-gray-50">
               <span>Kelola Konten About</span>
               <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
             </div>
