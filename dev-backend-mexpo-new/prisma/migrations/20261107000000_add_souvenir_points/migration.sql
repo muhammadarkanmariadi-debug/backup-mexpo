@@ -1,0 +1,4 @@
+-- AlterTable
+ALTER TABLE "souvenirs" ADD COLUMN IF NOT EXISTS "souvenir_name" TEXT NOT NULL DEFAULT '';
+ALTER TABLE "souvenirs" ADD COLUMN IF NOT EXISTS "points_earned" INTEGER NOT NULL DEFAULT 0;
+

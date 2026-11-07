@@ -58,17 +58,61 @@ export class SouvenirsService {
         );
       }
 
-      const findExistingSouvenir = await this.prisma.souvenirs.findFirst({
-        where: { event_id, user_id },
-      });
-      if (findExistingSouvenir)
-        throw new ConflictException(`Sorry, you have got a souvenir`);
+      // Standard mode: one souvenir per visitor per event.
+      // Point mode: points are a spendable balance — a visitor can redeem
+      // repeatedly until the remaining points fall below the cheapest tier.
+      let souvenirName = `Standard Souvenir`;
+      let pointsEarned = 0;
+      let pointsSpent = 0;
+      if (eligibility.usePointSystem) {
+        const selected = createSouvenirDto.tier_id
+          ? eligibility.eligibleTiers.find(
+              (t) => t.id === createSouvenirDto.tier_id,
+            )
+          : eligibility.recommendedTier;
+        if (!selected) {
+          throw new ForbiddenException(
+            `Poin kurang untuk jenis souvenir yang dipilih (sisa ${eligibility.availablePoints} poin)`,
+          );
+        }
+        if (selected.minPoints <= 0) {
+          const already = await this.prisma.souvenirs.findFirst({
+            where: { event_id, user_id, souvenir_name: selected.name },
+          });
+          if (already)
+            throw new ConflictException(
+              `Souvenir gratis ini sudah diambil visitor`,
+            );
+        }
+        souvenirName = selected.name;
+        pointsEarned = eligibility.totalPoints;
+        pointsSpent = selected.minPoints;
+      } else {
+        const findExistingSouvenir = await this.prisma.souvenirs.findFirst({
+          where: { event_id, user_id },
+        });
+        if (findExistingSouvenir)
+          throw new ConflictException(
+            `Visitor sudah mengambil suvenir dan tidak dapat mengambil suvenir lagi`,
+          );
+      }
+
       const newSouvenir = await this.prisma.souvenirs.create({
-        data: { user_id, event_id, created_by: userId, updated_by: userId },
+        data: {
+          user_id,
+          event_id,
+          souvenir_name: souvenirName,
+          points_earned: pointsEarned,
+          points_spent: pointsSpent,
+          created_by: userId,
+          updated_by: userId,
+        },
       });
       return {
         success: true,
-        message: `New Souvernir has given to visitor`,
+        message: eligibility.usePointSystem
+          ? `${souvenirName} diberikan. Sisa poin: ${eligibility.availablePoints - pointsSpent}`
+          : `New Souvernir has given to visitor`,
         data: newSouvenir,
       };
     } catch (error) {
@@ -116,21 +160,48 @@ export class SouvenirsService {
         findEvent,
         user_id,
       );
-      const alreadyClaimed = !!(await this.prisma.souvenirs.findFirst({
+      const claims = await this.prisma.souvenirs.findMany({
         where: { event_id, user_id },
-      }));
+        orderBy: { created_at: `desc` },
+      });
+      const claimed = claims[0];
+      // Point mode allows repeated redemption; only standard mode is one-time.
+      const alreadyClaimed = eligibility.usePointSystem ? false : !!claimed;
 
       return {
         success: true,
         message: `Eligibility checked`,
         data: {
           user,
+          usePointSystem: eligibility.usePointSystem,
           eligible: eligibility.eligible,
           reasons: eligibility.reasons,
           boothVisits: eligibility.data.boothVisits,
+          seminarCount: eligibility.data.seminarCount,
           joinedSeminar: eligibility.data.joinedSeminar,
+          transactionCount: eligibility.data.transactionCount,
           transactionTotal: eligibility.data.transactionTotal,
+          totalPoints: eligibility.totalPoints,
+          spentPoints: eligibility.spentPoints,
+          availablePoints: eligibility.availablePoints,
+          pointBreakdown: eligibility.pointBreakdown,
+          tiers: eligibility.tiers,
+          eligibleTiers: eligibility.eligibleTiers,
+          recommendedTier: eligibility.recommendedTier,
           alreadyClaimed,
+          claimedCount: claims.length,
+          claims: claims.map((c) => ({
+            souvenir_name: c.souvenir_name,
+            points_spent: c.points_spent,
+            claimed_at: c.created_at,
+          })),
+          claimedSouvenir: claimed
+            ? {
+                souvenir_name: claimed.souvenir_name,
+                points_earned: claimed.points_earned,
+                claimed_at: claimed.created_at,
+              }
+            : null,
         },
       };
     } catch (error) {

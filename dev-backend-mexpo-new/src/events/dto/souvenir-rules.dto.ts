@@ -1,18 +1,94 @@
 import { Type } from 'class-transformer';
-import { IsBoolean, IsInt, IsOptional, Min } from 'class-validator';
+import {
+  IsArray,
+  IsBoolean,
+  IsInt,
+  IsOptional,
+  IsString,
+  Min,
+  ValidateNested,
+} from 'class-validator';
+
+/** Point rule for booth visits (point system). */
+export class BoothVisitPointDto {
+  @IsBoolean()
+  enabled: boolean;
+
+  @IsInt()
+  @Min(0)
+  @Type(() => Number)
+  pointsPerVisit: number;
+}
+
+/** Point rule for joined seminars/workshops (point system). */
+export class SeminarPointDto {
+  @IsBoolean()
+  enabled: boolean;
+
+  @IsInt()
+  @Min(0)
+  @Type(() => Number)
+  pointsPerSeminar: number;
+}
+
+/** Point rule for POS transactions (point system). */
+export class TransactionPointDto {
+  @IsBoolean()
+  enabled: boolean;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Type(() => Number)
+  pointsPerTransaction?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Type(() => Number)
+  amountStep?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Type(() => Number)
+  pointsPerAmountStep?: number;
+}
+
+/** A souvenir type/tier defined by the organizer, unlocked at `minPoints`. */
+export class SouvenirTierDto {
+  @IsString()
+  id: string;
+
+  @IsString()
+  name: string;
+
+  @IsInt()
+  @Min(0)
+  @Type(() => Number)
+  minPoints: number;
+
+  @IsOptional()
+  @IsString()
+  description?: string;
+}
 
 /**
  * Configurable souvenir eligibility rules (A5).
  * Stored per-event in `events.souvenir_rules` (JSON).
  *
- * - `minVisitedBooth` (default 5): minimum distinct booth visits.
+ * Standard mode (`usePointSystem` false/absent):
+ * - `minVisitedBooth`: minimum distinct booth visits.
  * - `minTransaction`: minimum total transaction amount (POS transactions must
  *   carry a scanned `visitor_id`).
  * - `joinedSeminar`: visitor must have a non-cancelled workshop booking.
  * - `requireAll` (default true): ALL configured rules must pass; `false` = ANY.
+ *
+ * Point mode (`usePointSystem` true): points per activity (each with an
+ * `enabled` toggle) and organizer-defined souvenir `tiers`.
  */
 export class SouvenirRulesDto {
-  /** Minimum distinct booth visits required before a souvenir can be granted. Default: 5. */
+  /** Minimum distinct booth visits required before a souvenir can be granted. */
   @IsOptional()
   @IsInt()
   @Min(0)
@@ -29,10 +105,37 @@ export class SouvenirRulesDto {
   @IsBoolean()
   requireAll?: boolean;
 
-  /** Minimum total transaction amount. Accepted but NOT evaluated (schema gap). */
+  /** Minimum total transaction amount. */
   @IsOptional()
   @IsInt()
   @Min(0)
   @Type(() => Number)
   minTransaction?: number;
+
+  /** Enables the point & tier system for this event. */
+  @IsOptional()
+  @IsBoolean()
+  usePointSystem?: boolean;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => BoothVisitPointDto)
+  boothVisitPoint?: BoothVisitPointDto;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => SeminarPointDto)
+  seminarPoint?: SeminarPointDto;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => TransactionPointDto)
+  transactionPoint?: TransactionPointDto;
+
+  /** Souvenir types set by the organizer, unlocked by points. */
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => SouvenirTierDto)
+  tiers?: SouvenirTierDto[];
 }

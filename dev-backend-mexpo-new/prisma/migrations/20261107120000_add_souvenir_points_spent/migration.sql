@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "souvenirs" ADD COLUMN IF NOT EXISTS "points_spent" INTEGER NOT NULL DEFAULT 0;
+
