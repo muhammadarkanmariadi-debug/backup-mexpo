@@ -20,7 +20,10 @@ import { QueryEventUserDto } from './dto/query-event-user.dto';
 import { buildOrderBy } from '../helper/sort';
 import { Prisma } from '@prisma/client';
 import * as QRCode from 'qrcode';
-import { buildRegistrationTicketEmailHtml } from '../mail/templates/registration-ticket.template';
+import {
+  buildRegistrationTicketEmailHtml,
+  buildTicketEmailAttachments,
+} from '../mail/templates/registration-ticket.template';
 
 const EVENT_USER_SORTABLE: Record<
   string,
@@ -805,14 +808,7 @@ export class EventUsersService {
         user.email,
         `[Mexpo] E-Tiket & Registrasi: ${event.name}`,
         emailHtml,
-        [
-          {
-            filename: 'ticket-qr.png',
-            content: qrBuffer,
-            cid: 'ticket-qr',
-            contentType: 'image/png',
-          },
-        ],
+        buildTicketEmailAttachments(qrBuffer, 'ticket-qr'),
       );
 
       return true;
