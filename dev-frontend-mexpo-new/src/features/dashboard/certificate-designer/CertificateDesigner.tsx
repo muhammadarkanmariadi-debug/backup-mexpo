@@ -44,6 +44,7 @@ import {
 } from "@/features/certificates/certificate-fields";
 import { DEFAULT_CERTIFICATE_TEMPLATE } from "@/features/certificates/default-certificate";
 import { downloadCertificatePdf } from "@/features/certificates/export-certificate";
+import { LayersPanel } from "@/features/certificates/LayersPanel";
 
 // ── Konva stage is canvas-based — keep it out of SSR entirely. ──
 const CertificateCanvas = dynamic(
@@ -334,13 +335,18 @@ export function CertificateDesigner({ event }: { event: Event }) {
       return;
     }
     const node = stage.findOne(`#${selectedId}`);
-    if (node && node.getLayer()) {
+    // Locked / hidden elements are selectable from the layers panel but get
+    // no resize handles on the canvas.
+    const inert =
+      selectedNode?.attrs.locked === true || selectedNode?.attrs.visible === false;
+    if (node && node.getLayer() && !inert) {
       tr.nodes([node]);
       tr.getLayer()?.batchDraw();
     } else {
       tr.nodes([]);
+      tr.getLayer()?.batchDraw();
     }
-  }, [selectedId, draft.nodes]);
+  }, [selectedId, selectedNode, draft.nodes]);
 
   const handleSelectDefaultTemplate = () => {
     setEditingId(null);
@@ -766,6 +772,14 @@ export function CertificateDesigner({ event }: { event: Event }) {
               </button>
             </div>
           </section>
+
+          {/* Layers (stacking order) */}
+          <LayersPanel
+            template={draft}
+            selectedId={selectedId}
+            onSelect={setSelectedId}
+            onChange={setDraft}
+          />
 
           {/* Background */}
           <section className="rounded-xl border border-gray-200 p-4">
