@@ -73,6 +73,18 @@ function KonvaImageNode({ src, ...rest }: { src: string; [k: string]: unknown })
   return <KonvaImage image={image} {...(rest as object)} />;
 }
 
+/**
+ * Designer-only attrs saved with the template (see layers.ts) that Konva
+ * itself knows nothing about — keep them out of the props we spread onto it.
+ */
+const DESIGNER_META_ATTRS = new Set(["locked", "layerName"]);
+
+function stripDesignerMeta(attrs: Record<string, unknown>): Record<string, unknown> {
+  return Object.fromEntries(
+    Object.entries(attrs).filter(([key]) => !DESIGNER_META_ATTRS.has(key)),
+  );
+}
+
 function bakeGeometry(node: KonvaNodeType): NodeGeometry {
   const scaleX = node.scaleX() || 1;
   const scaleY = node.scaleY() || 1;
@@ -99,11 +111,17 @@ function KonvaNodeRenderer({
     id?: string;
     text?: string;
   };
-  const { binding, src, ...restRaw } = attrs;
+  const { binding, src, ...restWithMeta } = attrs;
+  const restRaw = stripDesignerMeta(restWithMeta);
   const rest = restRaw as object;
   const id = attrs.id;
+  // Locked elements stay visible but are inert in the designer: they can't be
+  // dragged/resized and clicks fall through to whatever is underneath.
+  const isLocked = !!interactive && attrs.locked === true;
 
-  const interactionProps = interactive
+  const interactionProps = isLocked
+    ? { listening: false }
+    : interactive
     ? {
         draggable: true,
         onClick: () => onSelect?.(id ?? null),
@@ -259,7 +277,8 @@ function KonvaNodeRenderer({
             key={resolvedSrc}
             src={resolvedSrc}
             {...rest}
-            draggable={interactive}
+            draggable={interactive && !isLocked}
+            listening={!isLocked}
             onClick={() => onSelect?.(id ?? null)}
             onTap={() => onSelect?.(id ?? null)}
             onDragEnd={(e: { target: KonvaNodeType }) =>
