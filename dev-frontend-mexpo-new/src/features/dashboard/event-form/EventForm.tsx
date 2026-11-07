@@ -19,7 +19,7 @@ import {
   Upload,
   X,
 } from "lucide-react";
-import Image from "next/image";
+import EventPhoto from "@/shared/components/ui/EventPhoto";
 
 import Input from "@/shared/components/form/Input";
 import CurrencyInput from "@/shared/components/form/CurrencyInput";
@@ -141,6 +141,25 @@ function CreateEventIllustration() {
   );
 }
 
+type FieldKey =
+  | "name"
+  | "event_type"
+  | "start_date"
+  | "end_date"
+  | "location"
+  | "description";
+type FieldErrors = Partial<Record<FieldKey, string>>;
+
+/** Inline validation message shown directly under a field (red). */
+function FieldError({ id, message }: { id: string; message?: string }) {
+  if (!message) return null;
+  return (
+    <p id={id} role="alert" className="mt-1.5 text-xs font-medium text-error-500">
+      {message}
+    </p>
+  );
+}
+
 interface Props {
   /** Present = edit mode. */
   event?: Event;
@@ -155,6 +174,7 @@ export default function EventForm({ event }: Props) {
   const [photo, setPhoto] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string>(event?.photo ?? "");
   const [registrationStatus, setRegistrationStatus] = useState<"ACTIVE" | "CLOSED" | "UPCOMING">("ACTIVE");
+  const [errors, setErrors] = useState<FieldErrors>({});
 
   const [form, setForm] = useState({
     name: event?.name ?? "",
@@ -198,8 +218,24 @@ export default function EventForm({ event }: Props) {
     event?.souvenir_rules?.tiers ?? [],
   );
 
-  const setField = <K extends keyof typeof form>(key: K, value: (typeof form)[K]) =>
+  const clearError = (key: string) =>
+    setErrors((prev) => {
+      if (!(key in prev)) return prev;
+      const next = { ...prev };
+      delete next[key as FieldKey];
+      return next;
+    });
+
+  const setField = <K extends keyof typeof form>(key: K, value: (typeof form)[K]) => {
     setForm((f) => ({ ...f, [key]: value }));
+    clearError(key);
+  };
+
+  /** Red border for an invalid field, normal border otherwise. */
+  const fieldBorder = (key: FieldKey) =>
+    errors[key]
+      ? "border-error-500 focus:border-error-500 focus:ring-error-500/20"
+      : "border-gray-200 focus:border-secondary focus:ring-secondary/15";
 
   const toggleFeature = (key: keyof EventFeatures) =>
     setForm((f) => ({
@@ -225,6 +261,7 @@ export default function EventForm({ event }: Props) {
   // Quick date change handler in step 1
   const handleStep1DateChange = (dateVal: string) => {
     if (!dateVal) return;
+    clearError("start_date");
     const startDateTime = `${dateVal}T08:00`;
     const endDateTime = `${dateVal}T17:00`;
     setForm((f) => ({
@@ -234,44 +271,51 @@ export default function EventForm({ event }: Props) {
     }));
   };
 
+  /**
+   * Replace the errors for `keys` with `next` (every invalid field is marked
+   * at once, so an empty form turns all required fields red) and focus the
+   * first invalid one. Returns true when nothing is invalid.
+   */
+  const applyErrors = (next: FieldErrors, keys: FieldKey[]) => {
+    setErrors((prev) => {
+      const merged = { ...prev };
+      keys.forEach((k) => delete merged[k]);
+      return { ...merged, ...next };
+    });
+    const firstInvalid = keys.find((k) => next[k]);
+    if (firstInvalid) {
+      // Wait a tick so the field exists if we just switched steps.
+      setTimeout(() => {
+        const el = document.getElementById(`event-field-${firstInvalid}`);
+        el?.scrollIntoView({ behavior: "smooth", block: "center" });
+        el?.focus({ preventScroll: true });
+      }, 60);
+    }
+    return !firstInvalid;
+  };
+
+  const STEP1_KEYS: FieldKey[] = ["name", "event_type", "start_date", "location", "description"];
+  const STEP2_KEYS: FieldKey[] = ["start_date", "end_date"];
+
   const validateStep1 = () => {
-    if (!form.name.trim()) {
-      toast.error("Judul event wajib diisi.");
-      return false;
-    }
-    if (!form.event_type) {
-      toast.error("Kategori event wajib dipilih.");
-      return false;
-    }
-    if (!form.start_date) {
-      toast.error("Tanggal event wajib ditentukan.");
-      return false;
-    }
-    if (!form.location.trim()) {
-      toast.error("Lokasi event wajib diisi.");
-      return false;
-    }
-    if (!form.description.trim()) {
-      toast.error("Deskripsi event wajib diisi.");
-      return false;
-    }
-    return true;
+    const next: FieldErrors = {};
+    if (!form.name.trim()) next.name = "Judul event wajib diisi.";
+    if (!form.event_type) next.event_type = "Kategori event wajib dipilih.";
+    if (!form.start_date) next.start_date = "Tanggal event wajib ditentukan.";
+    if (!form.location.trim()) next.location = "Lokasi event wajib diisi.";
+    if (!form.description.trim()) next.description = "Deskripsi event wajib diisi.";
+    return applyErrors(next, STEP1_KEYS);
   };
 
   const validateStep2 = () => {
-    if (!form.start_date) {
-      toast.error("Waktu mulai event wajib ditentukan.");
-      return false;
-    }
+    const next: FieldErrors = {};
+    if (!form.start_date) next.start_date = "Waktu mulai event wajib ditentukan.";
     if (!form.end_date) {
-      toast.error("Waktu selesai event wajib ditentukan.");
-      return false;
+      next.end_date = "Waktu selesai event wajib ditentukan.";
+    } else if (form.start_date && new Date(form.end_date) < new Date(form.start_date)) {
+      next.end_date = "Waktu selesai tidak boleh lebih awal dari waktu mulai.";
     }
-    if (new Date(form.end_date) < new Date(form.start_date)) {
-      toast.error("Waktu selesai tidak boleh lebih awal dari waktu mulai.");
-      return false;
-    }
-    return true;
+    return applyErrors(next, STEP2_KEYS);
   };
 
   const goToNextStep = () => {
@@ -294,7 +338,17 @@ export default function EventForm({ event }: Props) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validateStep1() || !validateStep2()) return;
+    // Validate both steps; jump back to the first step that has errors.
+    const step1Ok = validateStep1();
+    const step2Ok = validateStep2();
+    if (!step1Ok) {
+      setCurrentStep(1);
+      return;
+    }
+    if (!step2Ok) {
+      setCurrentStep(2);
+      return;
+    }
 
     setSubmitting(true);
     try {
@@ -473,7 +527,7 @@ export default function EventForm({ event }: Props) {
 
         {/* ── Right Column: Form Step Content ── */}
         <div className="lg:col-span-8 flex flex-col">
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} noValidate className="space-y-6">
 
             {/* ═══════════ STEP 1: INFORMASI DASAR (Exact match to screenshot) ═══════════ */}
             {currentStep === 1 && (
@@ -499,13 +553,17 @@ export default function EventForm({ event }: Props) {
                     Judul Event <span className="text-red-500">*</span>
                   </label>
                   <input
+                    id="event-field-name"
                     type="text"
                     required
+                    aria-invalid={!!errors.name}
+                    aria-describedby={errors.name ? "event-error-name" : undefined}
                     value={form.name}
                     onChange={(e) => setField("name", e.target.value)}
                     placeholder="Masukkan judul event"
-                    className="h-12 w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:border-secondary focus:outline-hidden focus:ring-2 focus:ring-secondary/15 transition-all"
+                    className={`h-12 w-full rounded-xl border bg-white px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:outline-hidden focus:ring-2 transition-all ${fieldBorder("name")}`}
                   />
+                  <FieldError id="event-error-name" message={errors.name} />
                 </div>
 
                 {/* Grid 2-col: Kategori Event & Tanggal Event */}
@@ -520,9 +578,11 @@ export default function EventForm({ event }: Props) {
                         <LayoutGrid className="w-4 h-4 text-gray-500" />
                       </div>
                       <select
+                        id="event-field-event_type"
+                        aria-invalid={!!errors.event_type}
                         value={form.event_type}
                         onChange={(e) => setField("event_type", e.target.value as EventType)}
-                        className="h-12 w-full rounded-xl border border-gray-200 bg-white pl-10 pr-8 text-sm text-gray-800 focus:border-secondary focus:outline-hidden focus:ring-2 focus:ring-secondary/15 transition-all cursor-pointer"
+                        className={`h-12 w-full rounded-xl border bg-white pl-10 pr-8 text-sm text-gray-800 focus:outline-hidden focus:ring-2 transition-all cursor-pointer ${fieldBorder("event_type")}`}
                       >
                         {EVENT_TYPES.map((t) => (
                           <option key={t.value} value={t.value}>
@@ -531,6 +591,7 @@ export default function EventForm({ event }: Props) {
                         ))}
                       </select>
                     </div>
+                    <FieldError id="event-error-event_type" message={errors.event_type} />
                   </div>
 
                   {/* Tanggal Event */}
@@ -543,14 +604,18 @@ export default function EventForm({ event }: Props) {
                         <Calendar className="w-4 h-4 text-gray-500" />
                       </div>
                       <input
+                        id="event-field-start_date"
                         type="date"
                         required
+                        aria-invalid={!!errors.start_date}
+                        aria-describedby={errors.start_date ? "event-error-start_date" : undefined}
                         value={toDateOnly(form.start_date)}
                         onChange={(e) => handleStep1DateChange(e.target.value)}
                         placeholder="Pilih tanggal event"
-                        className="h-12 w-full rounded-xl border border-gray-200 bg-white pl-10 pr-4 text-sm text-gray-800 placeholder:text-gray-400 focus:border-secondary focus:outline-hidden focus:ring-2 focus:ring-secondary/15 transition-all cursor-pointer"
+                        className={`h-12 w-full rounded-xl border bg-white pl-10 pr-4 text-sm text-gray-800 placeholder:text-gray-400 focus:outline-hidden focus:ring-2 transition-all cursor-pointer ${fieldBorder("start_date")}`}
                       />
                     </div>
+                    <FieldError id="event-error-start_date" message={errors.start_date} />
                   </div>
                 </div>
 
@@ -566,14 +631,18 @@ export default function EventForm({ event }: Props) {
                         <MapPin className="w-4 h-4 text-gray-500" />
                       </div>
                       <input
+                        id="event-field-location"
                         type="text"
                         required
+                        aria-invalid={!!errors.location}
+                        aria-describedby={errors.location ? "event-error-location" : undefined}
                         value={form.location}
                         onChange={(e) => setField("location", e.target.value)}
                         placeholder="Masukkan lokasi event"
-                        className="h-12 w-full rounded-xl border border-gray-200 bg-white pl-10 pr-4 text-sm text-gray-800 placeholder:text-gray-400 focus:border-secondary focus:outline-hidden focus:ring-2 focus:ring-secondary/15 transition-all"
+                        className={`h-12 w-full rounded-xl border bg-white pl-10 pr-4 text-sm text-gray-800 placeholder:text-gray-400 focus:outline-hidden focus:ring-2 transition-all ${fieldBorder("location")}`}
                       />
                     </div>
+                    <FieldError id="event-error-location" message={errors.location} />
                   </div>
 
                   {/* Status Pendaftaran */}
@@ -601,16 +670,20 @@ export default function EventForm({ event }: Props) {
                     Deskripsi Singkat <span className="text-red-500">*</span>
                   </label>
                   <textarea
+                    id="event-field-description"
                     required
+                    aria-invalid={!!errors.description}
+                    aria-describedby={errors.description ? "event-error-description" : undefined}
                     maxLength={200}
                     value={form.description}
                     onChange={(e) => setField("description", e.target.value)}
                     placeholder="Tuliskan deskripsi singkat event (maks. 200 karakter)..."
                     rows={4}
-                    className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-800 placeholder:text-gray-400 focus:border-secondary focus:outline-hidden focus:ring-2 focus:ring-secondary/15 transition-all"
+                    className={`w-full rounded-xl border bg-white px-4 py-3 text-sm text-gray-800 placeholder:text-gray-400 focus:outline-hidden focus:ring-2 transition-all ${fieldBorder("description")}`}
                   />
-                  <div className="flex justify-end mt-1 text-xs text-gray-400">
-                    <span>{form.description.length} / 200</span>
+                  <div className="flex items-start justify-between gap-3 mt-1 text-xs text-gray-400">
+                    <FieldError id="event-error-description" message={errors.description} />
+                    <span className="ml-auto shrink-0">{form.description.length} / 200</span>
                   </div>
                 </div>
 
@@ -659,9 +732,9 @@ export default function EventForm({ event }: Props) {
                     Foto / Poster Banner Event
                   </label>
                   <div className="flex items-start gap-4">
-                    <div className="relative flex justify-center items-center bg-gray-50 border-2 border-dashed border-gray-200 rounded-2xl w-44 h-32 overflow-hidden shrink-0">
+                    <div className="relative flex justify-center items-center bg-gray-50 border-2 border-dashed border-gray-200 rounded-2xl w-52 aspect-video overflow-hidden shrink-0">
                       {photoPreview ? (
-                        <Image src={photoPreview} alt="Preview" fill unoptimized className="object-cover" />
+                        <EventPhoto src={photoPreview} alt="Preview" unoptimized className="absolute inset-0 h-full" />
                       ) : (
                         <span className="text-gray-400 text-xs text-center px-3">
                           Belum ada poster
@@ -695,6 +768,10 @@ export default function EventForm({ event }: Props) {
                       <p className="text-[11px] text-gray-400">
                         Format JPG/PNG, ukuran maksimal 5 MB.
                       </p>
+                      <p className="max-w-xs text-[11px] leading-relaxed text-gray-400">
+                        Disarankan rasio 16:9 (minimal 1280×720). Rasio lain tetap tampil utuh di halaman
+                        detail, tetapi dipotong ke 16:9 pada kartu daftar event.
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -702,16 +779,22 @@ export default function EventForm({ event }: Props) {
                 {/* Grid 2-col: Waktu Mulai & Waktu Selesai */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <Input
+                    id="event-field-start_date"
                     label="Tanggal & Waktu Mulai"
                     type="datetime-local"
                     required
+                    error={!!errors.start_date}
+                    hint={errors.start_date}
                     value={form.start_date}
                     onChange={(e) => setField("start_date", e.target.value)}
                   />
                   <Input
+                    id="event-field-end_date"
                     label="Tanggal & Waktu Selesai"
                     type="datetime-local"
                     required
+                    error={!!errors.end_date}
+                    hint={errors.end_date}
                     value={form.end_date}
                     onChange={(e) => setField("end_date", e.target.value)}
                   />
