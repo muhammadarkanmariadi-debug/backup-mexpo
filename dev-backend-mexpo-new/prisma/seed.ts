@@ -370,7 +370,22 @@ const main = async () => {
       pos: true,
       paidTicket: true,
     },
-    souvenir_rules: { minVisitedBooth: 3, joinedSeminar: true },
+    souvenir_rules: {
+      usePointSystem: true,
+      boothVisitPoint: { enabled: true, pointsPerVisit: 10 },
+      seminarPoint: { enabled: true, pointsPerSeminar: 25 },
+      transactionPoint: {
+        enabled: true,
+        pointsPerTransaction: 5,
+        amountStep: 50000,
+        pointsPerAmountStep: 10,
+      },
+      tiers: [
+        { id: 'tier-sticker', name: 'Sticker Pack', minPoints: 20 },
+        { id: 'tier-totebag', name: 'Totebag', minPoints: 50 },
+        { id: 'tier-tshirt', name: 'Exclusive T-Shirt', minPoints: 100 },
+      ],
+    },
     approved_by: saId,
     created_by: orgId,
     updated_by: orgId,
@@ -1105,12 +1120,15 @@ const main = async () => {
       update: { status: isApproved ? TicketStatus.PAID : TicketStatus.RESERVED },
     });
 
-    // QR Code
-    await prisma.qr_codes.upsert({
+    // QR Code (clean up legacy typo `mexo:` if present)
+    await prisma.qr_codes.deleteMany({
       where: { code_data: `mexo:${ev1.uuid}:${v.uuid}` },
+    });
+    await prisma.qr_codes.upsert({
+      where: { code_data: `mexpo:${ev1.uuid}:${v.uuid}` },
       create: {
         uuid: `qr-e1-${v.uuid}`,
-        code_data: `mexo:${ev1.uuid}:${v.uuid}`,
+        code_data: `mexpo:${ev1.uuid}:${v.uuid}`,
         event_id: ev1.uuid,
         user_id: v.uuid,
       },
@@ -1246,9 +1264,17 @@ const main = async () => {
         data: {
           event_id: ev1.uuid,
           user_id: rec.uuid,
+          souvenir_name: 'Sticker Pack',
+          points_earned: 30,
+          points_spent: 20,
           created_by: com1Id,
           updated_by: com1Id,
         },
+      });
+    } else if (!existingSouvenir.souvenir_name || existingSouvenir.points_spent === 0) {
+      await prisma.souvenirs.update({
+        where: { id: existingSouvenir.id },
+        data: { souvenir_name: 'Sticker Pack', points_earned: 30, points_spent: 20 },
       });
     }
   }
