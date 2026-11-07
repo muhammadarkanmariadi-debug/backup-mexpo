@@ -1,7 +1,6 @@
 'use client'
 
 import React, { useState } from 'react'
-import Image from 'next/image'
 import { motion } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import { Calendar, Clock, MapPin, ArrowRight, Building } from 'lucide-react'
@@ -9,6 +8,7 @@ import { getEventCategory, validateEventRegistration } from '@/shared/utils/vali
 import { Event } from '@/entities/event/event.entity'
 import { dateFormat } from '@/shared/utils/format'
 import Button from '@/shared/components/button/Button'
+import EventPhoto from '@/shared/components/ui/EventPhoto'
 import { renderHighlightedTitle } from '../../utils/title-highlight.utils'
 import { AddToCalendarButton } from '../button/AddToCalendarButton'
 import { EVENT_TYPE_LABELS, labelFor } from '@/shared/data/labels'
@@ -140,16 +140,12 @@ const Hero = ({ eventData }: { eventData: Event }) => {
          
 
               {/* Showcase Image from Real Event Photo */}
-              <div className='relative w-full h-56 sm:h-64 bg-gray-100'>
-                <Image
-                  src={eventData.photo || '/images/cards/card-e.png'}
-                  alt={eventData.name}
-                  fill
-                  priority
-                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 460px"
-                  className='object-cover'
-                />
-              </div>
+              <EventPhoto
+                src={eventData.photo || '/images/cards/card-e.png'}
+                alt={eventData.name}
+                priority
+                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 460px"
+              />
 
               {/* Floating Deadline Badge */}
               {eventData.registration_deadline && (
