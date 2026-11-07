@@ -1,6 +1,6 @@
-﻿"use client";
+"use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Gift, Loader2, XCircle } from "lucide-react";
 
 import PageHeader from "@/shared/components/ui/PageHeader";
@@ -14,10 +14,29 @@ import { ResolvedQr } from "@/services/qr.service";
 import {
   checkSouvenir,
   grantSouvenir,
+  listSouvenirs,
   SouvenirCheckResult,
+  SouvenirRecord,
 } from "@/services/souvenir.service";
+import SouvenirQuickSettings from "./SouvenirQuickSettings";
 
 export default function SouvenirCounterPage({ event }: { event: Event }) {
+  const [history, setHistory] = useState<SouvenirRecord[]>([]);
+  const [historyKey, setHistoryKey] = useState(0);
+  useEffect(() => {
+    let active = true;
+    listSouvenirs(event.uuid)
+      .then((res) => {
+        if (active && res.status) setHistory(res.data);
+      })
+      .catch(() => {
+        if (active) setHistory([]);
+      });
+    return () => {
+      active = false;
+    };
+  }, [event.uuid, historyKey]);
+
   const [qrCode, setQrCode] = useState("");
   const [resolved, setResolved] = useState<ResolvedQr | null>(null);
   const [checkResult, setCheckResult] = useState<SouvenirCheckResult | null>(null);
@@ -57,9 +76,16 @@ export default function SouvenirCounterPage({ event }: { event: Event }) {
     },
   });
 
+  const [selectedTierId, setSelectedTierId] = useState<string | null>(null);
+
   // 3) Grant the souvenir (one per event).
   const grant = useApiMutation(
-    () => grantSouvenir(event.uuid, checkResult?.user.uuid ?? ""),
+    () =>
+      grantSouvenir(
+        event.uuid,
+        checkResult?.user.uuid ?? "",
+        selectedTierId ?? checkResult?.recommendedTier?.id,
+      ),
     {
       onSuccess: (res) => {
         const message =
@@ -67,6 +93,14 @@ export default function SouvenirCounterPage({ event }: { event: Event }) {
             ? String(res.message)
             : "Souvenir diberikan.";
         setResult({ ok: true, message });
+        setSelectedTierId(null);
+        setHistoryKey((k) => k + 1);
+        if (checkResult?.usePointSystem && resolved) {
+          // Point balance is spendable: refresh the balance so the committee
+          // can redeem the remaining points right away.
+          check.mutate({ eventId: event.uuid, userId: resolved.user_id });
+          return;
+        }
         setCheckResult(null);
         setResolved(null);
         setQrCode("");
@@ -106,8 +140,9 @@ export default function SouvenirCounterPage({ event }: { event: Event }) {
       <PageHeader
         title="Souvenir"
         subtitle={event.name}
-
       />
+
+      <SouvenirQuickSettings event={event} />
 
       <QrScanPanel
         containerId="souvenir-qr-reader"
@@ -121,15 +156,80 @@ export default function SouvenirCounterPage({ event }: { event: Event }) {
         renderUserDetails={() =>
           checkResult ? (
             <>
-              <p className="mt-3 text-xs text-gray-500">
-                Booth: {checkResult.boothVisits} · Seminar:{" "}
-                {checkResult.joinedSeminar ? "ya" : "belum"}
-              </p>
+              {checkResult.usePointSystem ? (
+                <div className="mt-3 space-y-2 text-xs text-gray-600">
+                  <p className="text-sm font-bold text-gray-900">
+                    Sisa Poin: {checkResult.availablePoints}
+                    <span className="ml-2 text-xs font-normal text-gray-500">
+                      (Total {checkResult.totalPoints} − Terpakai {checkResult.spentPoints})
+                    </span>
+                  </p>
+                  {checkResult.pointBreakdown.booth.enabled && (
+                    <p>
+                      Booth: {checkResult.pointBreakdown.booth.count} → +
+                      {checkResult.pointBreakdown.booth.points} poin
+                    </p>
+                  )}
+                  {checkResult.pointBreakdown.seminar.enabled && (
+                    <p>
+                      Seminar: {checkResult.pointBreakdown.seminar.count} → +
+                      {checkResult.pointBreakdown.seminar.points} poin
+                    </p>
+                  )}
+                  {checkResult.pointBreakdown.transaction.enabled && (
+                    <p>
+                      Transaksi: {checkResult.pointBreakdown.transaction.count}x (Rp{" "}
+                      {checkResult.pointBreakdown.transaction.totalAmount.toLocaleString("id-ID")}) → +
+                      {checkResult.pointBreakdown.transaction.points} poin
+                    </p>
+                  )}
+                  {checkResult.tiers.length > 0 && (
+                    <div className="space-y-1 pt-1">
+                      <p className="font-semibold text-gray-700">Jenis Souvenir</p>
+                      {checkResult.tiers.map((tier) => {
+                        const selected =
+                          (selectedTierId ?? checkResult.recommendedTier?.id) === tier.id;
+                        return (
+                          <button
+                            key={tier.id}
+                            type="button"
+                            disabled={!tier.unlocked || checkResult.alreadyClaimed}
+                            onClick={() => setSelectedTierId(tier.id)}
+                            className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-left ${
+                              selected && tier.unlocked
+                                ? "border-green-500 bg-green-50"
+                                : "border-gray-200 bg-white"
+                            } ${tier.unlocked ? "cursor-pointer" : "opacity-50"}`}
+                          >
+                            <span>
+                              {tier.name} · {tier.minPoints} poin
+                            </span>
+                            <span className="font-semibold">
+                              {tier.unlocked ? "Tersedia" : `Kurang ${tier.missingPoints} poin`}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <p className="mt-3 text-xs text-gray-500">
+                  Booth: {checkResult.boothVisits} · Seminar:{" "}
+                  {checkResult.joinedSeminar ? "ya" : "belum"}
+                </p>
+              )}
 
               {checkResult.alreadyClaimed ? (
                 <div className="mt-3 flex items-center gap-2 rounded-lg bg-warning-50 p-3 text-sm text-warning-700">
-                  <XCircle className="h-4 w-4 shrink-0" /> Sudah pernah klaim
-                  souvenir.
+                  <XCircle className="h-4 w-4 shrink-0" /> Sudah mengambil souvenir
+                  {checkResult.claimedSouvenir?.souvenir_name
+                    ? ` (${checkResult.claimedSouvenir.souvenir_name}`
+                    : ""}
+                  {checkResult.claimedSouvenir
+                    ? `, ${new Date(checkResult.claimedSouvenir.claimed_at).toLocaleString("id-ID")})`
+                    : ""}
+                  . Tidak bisa mengambil lagi.
                 </div>
               ) : checkResult.eligible ? (
                 <Button
@@ -152,7 +252,9 @@ export default function SouvenirCounterPage({ event }: { event: Event }) {
                 <div className="mt-3 flex items-start gap-2 rounded-lg bg-error-50 p-3 text-sm text-error-700">
                   <XCircle className="mt-0.5 h-4 w-4 shrink-0" />
                   <span>
-                    Belum memenuhi syarat: {checkResult.reasons.join(", ")}
+                    {checkResult.usePointSystem
+                      ? `${checkResult.reasons.join(", ") || "Poin kurang"}`
+                      : `Belum memenuhi syarat: ${checkResult.reasons.join(", ")}`}
                   </span>
                 </div>
               )}
@@ -160,6 +262,42 @@ export default function SouvenirCounterPage({ event }: { event: Event }) {
           ) : null
         }
       />
+
+      <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-4">
+        <p className="mb-3 text-sm font-bold text-gray-800">
+          Riwayat Penerima Souvenir ({history.length})
+        </p>
+        {history.length === 0 ? (
+          <p className="text-xs text-gray-400">Belum ada penerima souvenir.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead className="text-gray-500">
+                <tr>
+                  <th className="py-2 pr-3">Penerima</th>
+                  <th className="py-2 pr-3">Jenis Souvenir</th>
+                  <th className="py-2 pr-3">Poin Dipakai</th>
+                  <th className="py-2">Waktu</th>
+                </tr>
+              </thead>
+              <tbody>
+                {history.map((row) => (
+                  <tr key={row.id} className="border-t border-gray-100">
+                    <td className="py-2 pr-3 font-medium text-gray-800">
+                      {row.users?.full_name}
+                    </td>
+                    <td className="py-2 pr-3">{row.souvenir_name || "-"}</td>
+                    <td className="py-2 pr-3">{row.points_spent}</td>
+                    <td className="py-2">
+                      {new Date(row.created_at).toLocaleString("id-ID")}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </PageShell>
   );
 }

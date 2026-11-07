@@ -1,4 +1,4 @@
-import { Event } from "@/entities/event/event.entity";
+import { Event, SouvenirRules } from "@/entities/event/event.entity";
 import {
   httpPut,
   httpDelete,
@@ -21,12 +21,7 @@ export interface CreateEventPayload {
   event_type?: Event["event_type"];
   ticket_mode?: "FREE" | "PAID";
   features?: Event["features"];
-  souvenir_rules?: {
-    minVisitedBooth?: number;
-    minTransaction?: number;
-    joinedSeminar?: boolean;
-    requireAll?: boolean;
-  };
+  souvenir_rules?: SouvenirRules;
 }
 
 /** A3 — submit publish request (owner/committee). */

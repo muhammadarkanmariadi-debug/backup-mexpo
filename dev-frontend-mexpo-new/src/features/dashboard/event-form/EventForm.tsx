@@ -29,6 +29,7 @@ import {
   EventFeatures,
   EventType,
   EventVisibility,
+  SouvenirTier,
 } from "@/entities/event/event.entity";
 import { createEvent, updateEvent } from "@/services/event.service";
 import {
@@ -183,7 +184,19 @@ export default function EventForm({ event }: Props) {
     minTransaction: String(event?.souvenir_rules?.minTransaction ?? ""),
     joinedSeminar: event?.souvenir_rules?.joinedSeminar ?? false,
     requireAll: event?.souvenir_rules?.requireAll ?? true,
+    usePointSystem: event?.souvenir_rules?.usePointSystem ?? false,
+    boothEnabled: event?.souvenir_rules?.boothVisitPoint?.enabled ?? true,
+    pointsPerVisit: event?.souvenir_rules?.boothVisitPoint?.pointsPerVisit ?? 10,
+    seminarEnabled: event?.souvenir_rules?.seminarPoint?.enabled ?? true,
+    pointsPerSeminar: event?.souvenir_rules?.seminarPoint?.pointsPerSeminar ?? 25,
+    txEnabled: event?.souvenir_rules?.transactionPoint?.enabled ?? false,
+    pointsPerTransaction: event?.souvenir_rules?.transactionPoint?.pointsPerTransaction ?? 0,
+    amountStep: event?.souvenir_rules?.transactionPoint?.amountStep ?? 50000,
+    pointsPerAmountStep: event?.souvenir_rules?.transactionPoint?.pointsPerAmountStep ?? 10,
   });
+  const [souvenirTiers, setSouvenirTiers] = useState<SouvenirTier[]>(
+    event?.souvenir_rules?.tiers ?? [],
+  );
 
   const setField = <K extends keyof typeof form>(key: K, value: (typeof form)[K]) =>
     setForm((f) => ({ ...f, [key]: value }));
@@ -303,12 +316,39 @@ export default function EventForm({ event }: Props) {
         event_type: form.event_type,
         ticket_mode: form.features.paidTicket ? ("PAID" as const) : ("FREE" as const),
         features: form.features,
-        souvenir_rules: {
-          minVisitedBooth: Number(souvenirRules.minVisitedBooth) || 0,
-          minTransaction: Number(souvenirRules.minTransaction) || 0,
-          joinedSeminar: souvenirRules.joinedSeminar,
-          requireAll: souvenirRules.requireAll,
-        },
+        souvenir_rules: souvenirRules.usePointSystem
+          ? {
+              usePointSystem: true,
+              boothVisitPoint: {
+                enabled: souvenirRules.boothEnabled,
+                pointsPerVisit: Number(souvenirRules.pointsPerVisit) || 0,
+              },
+              seminarPoint: {
+                enabled: souvenirRules.seminarEnabled,
+                pointsPerSeminar: Number(souvenirRules.pointsPerSeminar) || 0,
+              },
+              transactionPoint: {
+                enabled: souvenirRules.txEnabled,
+                pointsPerTransaction: Number(souvenirRules.pointsPerTransaction) || 0,
+                amountStep: Number(souvenirRules.amountStep) || 0,
+                pointsPerAmountStep: Number(souvenirRules.pointsPerAmountStep) || 0,
+              },
+              tiers: souvenirTiers
+                .filter((t) => t.name.trim())
+                .map((t) => ({
+                  id: t.id,
+                  name: t.name.trim(),
+                  minPoints: Number(t.minPoints) || 0,
+                  description: t.description?.trim() || undefined,
+                })),
+            }
+          : {
+              usePointSystem: false,
+              minVisitedBooth: Number(souvenirRules.minVisitedBooth) || 0,
+              minTransaction: Number(souvenirRules.minTransaction) || 0,
+              joinedSeminar: souvenirRules.joinedSeminar,
+              requireAll: souvenirRules.requireAll,
+            },
       };
 
       const res = isEdit
@@ -852,6 +892,184 @@ export default function EventForm({ event }: Props) {
                     <p className="text-xs sm:text-sm font-bold text-gray-900">
                       Aturan Penukaran Souvenir
                     </p>
+                    <label className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-gray-800 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={souvenirRules.usePointSystem}
+                        onChange={(e) =>
+                          setSouvenirRules({ ...souvenirRules, usePointSystem: e.target.checked })
+                        }
+                      />
+                      Gunakan Sistem Poin &amp; Jenis Souvenir
+                    </label>
+
+                    {souvenirRules.usePointSystem ? (
+                      <div className="space-y-4">
+                        {/* Sumber poin */}
+                        <div className="space-y-3">
+                          <p className="text-xs font-bold text-gray-700">Sumber Perolehan Poin</p>
+
+                          <div className="rounded-xl border border-gray-200 bg-white p-3 space-y-2">
+                            <label className="flex items-center gap-2 text-xs font-semibold cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={souvenirRules.boothEnabled}
+                                onChange={(e) =>
+                                  setSouvenirRules({ ...souvenirRules, boothEnabled: e.target.checked })
+                                }
+                              />
+                              Kunjungan Booth
+                            </label>
+                            {souvenirRules.boothEnabled && (
+                              <FormattedNumberInput
+                                label="Poin per Booth yang Dikunjungi"
+                                value={Number(souvenirRules.pointsPerVisit) || 0}
+                                onChange={(val) =>
+                                  setSouvenirRules({ ...souvenirRules, pointsPerVisit: Number(val) })
+                                }
+                                suffix="Poin"
+                                placeholder="10"
+                              />
+                            )}
+                          </div>
+
+                          <div className="rounded-xl border border-gray-200 bg-white p-3 space-y-2">
+                            <label className="flex items-center gap-2 text-xs font-semibold cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={souvenirRules.seminarEnabled}
+                                onChange={(e) =>
+                                  setSouvenirRules({ ...souvenirRules, seminarEnabled: e.target.checked })
+                                }
+                              />
+                              Mengikuti Seminar / Workshop
+                            </label>
+                            {souvenirRules.seminarEnabled && (
+                              <FormattedNumberInput
+                                label="Poin per Seminar/Workshop yang Diikuti"
+                                value={Number(souvenirRules.pointsPerSeminar) || 0}
+                                onChange={(val) =>
+                                  setSouvenirRules({ ...souvenirRules, pointsPerSeminar: Number(val) })
+                                }
+                                suffix="Poin"
+                                placeholder="25"
+                              />
+                            )}
+                          </div>
+
+                          <div className="rounded-xl border border-gray-200 bg-white p-3 space-y-2">
+                            <label className="flex items-center gap-2 text-xs font-semibold cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={souvenirRules.txEnabled}
+                                onChange={(e) =>
+                                  setSouvenirRules({ ...souvenirRules, txEnabled: e.target.checked })
+                                }
+                              />
+                              Transaksi Pembelian
+                            </label>
+                            {souvenirRules.txEnabled && (
+                              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                <FormattedNumberInput
+                                  label="Poin per Transaksi"
+                                  value={Number(souvenirRules.pointsPerTransaction) || 0}
+                                  onChange={(val) =>
+                                    setSouvenirRules({ ...souvenirRules, pointsPerTransaction: Number(val) })
+                                  }
+                                  suffix="Poin"
+                                  placeholder="0"
+                                />
+                                <CurrencyInput
+                                  label="Kelipatan Nominal"
+                                  value={Number(souvenirRules.amountStep) || 0}
+                                  onChange={(val) =>
+                                    setSouvenirRules({ ...souvenirRules, amountStep: Number(val) })
+                                  }
+                                  placeholder="50000"
+                                  hint="0 = nonaktif"
+                                />
+                                <FormattedNumberInput
+                                  label="Poin per Kelipatan"
+                                  value={Number(souvenirRules.pointsPerAmountStep) || 0}
+                                  onChange={(val) =>
+                                    setSouvenirRules({ ...souvenirRules, pointsPerAmountStep: Number(val) })
+                                  }
+                                  suffix="Poin"
+                                  placeholder="10"
+                                />
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Jenis souvenir (tiers) */}
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <p className="text-xs font-bold text-gray-700">
+                              Jenis Souvenir &amp; Minimal Poin
+                            </p>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setSouvenirTiers([
+                                  ...souvenirTiers,
+                                  { id: crypto.randomUUID(), name: "", minPoints: 0 },
+                                ])
+                              }
+                              className="text-xs font-semibold text-secondary cursor-pointer"
+                            >
+                              + Tambah Jenis
+                            </button>
+                          </div>
+                          {souvenirTiers.length === 0 && (
+                            <p className="text-[11px] text-gray-400">
+                              Belum ada jenis souvenir. Contoh: Sticker Pack = 20 poin, Totebag = 50 poin.
+                            </p>
+                          )}
+                          {souvenirTiers.map((tier, idx) => (
+                            <div key={tier.id} className="grid grid-cols-12 gap-2 items-end">
+                              <div className="col-span-6">
+                                <Input
+                                  label="Nama Souvenir"
+                                  value={tier.name}
+                                  onChange={(e) =>
+                                    setSouvenirTiers(
+                                      souvenirTiers.map((t, i) =>
+                                        i === idx ? { ...t, name: e.target.value } : t,
+                                      ),
+                                    )
+                                  }
+                                  placeholder="Totebag"
+                                />
+                              </div>
+                              <div className="col-span-5">
+                                <FormattedNumberInput
+                                  label="Minimal Poin"
+                                  value={Number(tier.minPoints) || 0}
+                                  onChange={(val) =>
+                                    setSouvenirTiers(
+                                      souvenirTiers.map((t, i) =>
+                                        i === idx ? { ...t, minPoints: Number(val) } : t,
+                                      ),
+                                    )
+                                  }
+                                  suffix="Poin"
+                                  placeholder="50"
+                                />
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => setSouvenirTiers(souvenirTiers.filter((_, i) => i !== idx))}
+                                className="col-span-1 pb-3 text-gray-400 hover:text-red-500 cursor-pointer"
+                                aria-label="Hapus jenis souvenir"
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <FormattedNumberInput
                         label="Min. Kunjungan Booth"
@@ -869,6 +1087,7 @@ export default function EventForm({ event }: Props) {
                         hint="Nominal transaksi POS tenant"
                       />
                     </div>
+                    )}
                   </div>
                 )}
 

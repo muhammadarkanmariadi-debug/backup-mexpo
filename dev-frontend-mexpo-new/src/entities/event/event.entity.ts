@@ -29,6 +29,32 @@ export type EventType =
   | 'CAMPUS_SCHOOL'
   | 'OTHER';
 
+export interface SouvenirTier {
+  id: string;
+  name: string;
+  minPoints: number;
+  description?: string;
+}
+
+export interface SouvenirRules {
+  usePointSystem?: boolean;
+  // Standard mode
+  minVisitedBooth?: number;
+  minTransaction?: number;
+  joinedSeminar?: boolean;
+  requireAll?: boolean;
+  // Point mode
+  boothVisitPoint?: { enabled: boolean; pointsPerVisit: number };
+  seminarPoint?: { enabled: boolean; pointsPerSeminar: number };
+  transactionPoint?: {
+    enabled: boolean;
+    pointsPerTransaction?: number;
+    amountStep?: number;
+    pointsPerAmountStep?: number;
+  };
+  tiers?: SouvenirTier[];
+}
+
 export interface EventFeatures {
   tenant?: boolean;
   seminar?: boolean;
@@ -97,12 +123,7 @@ export interface Event {
   event_type: EventType;
   ticket_mode: TicketMode;
   features: EventFeatures | null;
-  souvenir_rules: {
-    minVisitedBooth?: number;
-    minTransaction?: number;
-    joinedSeminar?: boolean;
-    requireAll?: boolean;
-  } | null;
+  souvenir_rules: SouvenirRules | null;
   rejection_reason: string | null;
   payout_bank_name?: string;
   payout_account_number?: string;
