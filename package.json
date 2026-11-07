@@ -4,6 +4,7 @@
   "private": true,
   "description": "Mexpo Monorepo Root Workspace",
   "scripts": {
+    "dev:all": "node scripts/dev-all.mjs",
     "dev": "concurrently -n \"BACKEND,FRONTEND\" -c \"cyan,magenta\" --kill-others-on-fail \"npm --prefix dev-backend-mexpo-new run start:dev\" \"npm --prefix dev-frontend-mexpo-new run dev\"",
     "dev:backend": "npm --prefix dev-backend-mexpo-new run start:dev",
     "dev:frontend": "npm --prefix dev-frontend-mexpo-new run dev",
