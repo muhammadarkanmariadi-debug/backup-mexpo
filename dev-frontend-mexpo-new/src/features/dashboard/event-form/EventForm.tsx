@@ -9,6 +9,7 @@ import {
   Calendar,
   Check,
   CheckCircle2,
+  ChevronDown,
   FileText,
   Globe,
   LayoutGrid,
@@ -19,7 +20,8 @@ import {
   Upload,
   X,
 } from "lucide-react";
-import EventPhoto from "@/shared/components/ui/EventPhoto";
+import PhotoRatioPicker from "./PhotoRatioPicker";
+import type { PhotoFit } from "@/shared/utils/photo-ratio";
 
 import Input from "@/shared/components/form/Input";
 import CurrencyInput from "@/shared/components/form/CurrencyInput";
@@ -147,7 +149,8 @@ type FieldKey =
   | "start_date"
   | "end_date"
   | "location"
-  | "description";
+  | "description"
+  | "organizer_name";
 type FieldErrors = Partial<Record<FieldKey, string>>;
 
 /** Inline validation message shown directly under a field (red). */
@@ -196,6 +199,8 @@ export default function EventForm({ event }: Props) {
       pos: event?.features?.pos ?? true,
       paidTicket: event ? (event.features?.paidTicket ?? (event.ticket_mode === "PAID")) : false,
       maps_embed_url: event?.features?.maps_embed_url ?? "",
+      photo_ratio: event?.features?.photo_ratio ?? "16:9",
+      photo_fit: (event?.features?.photo_fit ?? "contain") as PhotoFit,
     },
   });
 
@@ -295,7 +300,7 @@ export default function EventForm({ event }: Props) {
   };
 
   const STEP1_KEYS: FieldKey[] = ["name", "event_type", "start_date", "location", "description"];
-  const STEP2_KEYS: FieldKey[] = ["start_date", "end_date"];
+  const STEP2_KEYS: FieldKey[] = ["start_date", "end_date", "organizer_name"];
 
   const validateStep1 = () => {
     const next: FieldErrors = {};
@@ -315,6 +320,8 @@ export default function EventForm({ event }: Props) {
     } else if (form.start_date && new Date(form.end_date) < new Date(form.start_date)) {
       next.end_date = "Waktu selesai tidak boleh lebih awal dari waktu mulai.";
     }
+    // The API requires an organizer name (CreateEventDto), so it can't be optional here.
+    if (!form.organizer_name.trim()) next.organizer_name = "Nama penyelenggara wajib diisi.";
     return applyErrors(next, STEP2_KEYS);
   };
 
@@ -582,7 +589,7 @@ export default function EventForm({ event }: Props) {
                         aria-invalid={!!errors.event_type}
                         value={form.event_type}
                         onChange={(e) => setField("event_type", e.target.value as EventType)}
-                        className={`h-12 w-full rounded-xl border bg-white pl-10 pr-8 text-sm text-gray-800 focus:outline-hidden focus:ring-2 transition-all cursor-pointer ${fieldBorder("event_type")}`}
+                        className={`h-12 w-full appearance-none rounded-xl border bg-white pl-10 pr-10 text-sm text-gray-800 focus:outline-hidden focus:ring-2 transition-all cursor-pointer ${fieldBorder("event_type")}`}
                       >
                         {EVENT_TYPES.map((t) => (
                           <option key={t.value} value={t.value}>
@@ -590,6 +597,7 @@ export default function EventForm({ event }: Props) {
                           </option>
                         ))}
                       </select>
+                      <ChevronDown className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" aria-hidden="true" />
                     </div>
                     <FieldError id="event-error-event_type" message={errors.event_type} />
                   </div>
@@ -654,12 +662,13 @@ export default function EventForm({ event }: Props) {
                       <select
                         value={registrationStatus}
                         onChange={(e) => setRegistrationStatus(e.target.value as "ACTIVE" | "CLOSED" | "UPCOMING")}
-                        className="h-12 w-full rounded-xl border border-gray-200 bg-white pl-4 pr-8 text-sm text-gray-800 focus:border-secondary focus:outline-hidden focus:ring-2 focus:ring-secondary/15 transition-all cursor-pointer"
+                        className="h-12 w-full appearance-none rounded-xl border border-gray-200 bg-white pl-4 pr-10 text-sm text-gray-800 focus:border-secondary focus:outline-hidden focus:ring-2 focus:ring-secondary/15 transition-all cursor-pointer"
                       >
                         <option value="ACTIVE">• Aktif</option>
                         <option value="UPCOMING">• Segera Hadir</option>
                         <option value="CLOSED">• Ditutup</option>
                       </select>
+                      <ChevronDown className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" aria-hidden="true" />
                     </div>
                   </div>
                 </div>
@@ -731,17 +740,8 @@ export default function EventForm({ event }: Props) {
                   <label className="block mb-1.5 font-bold text-gray-800 text-sm">
                     Foto / Poster Banner Event
                   </label>
-                  <div className="flex items-start gap-4">
-                    <div className="relative flex justify-center items-center bg-gray-50 border-2 border-dashed border-gray-200 rounded-2xl w-52 aspect-video overflow-hidden shrink-0">
-                      {photoPreview ? (
-                        <EventPhoto src={photoPreview} alt="Preview" unoptimized className="absolute inset-0 h-full" />
-                      ) : (
-                        <span className="text-gray-400 text-xs text-center px-3">
-                          Belum ada poster
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex flex-col gap-2">
+                  <div className="space-y-3">
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
                       <label className="cursor-pointer">
                         <span className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors">
                           <Upload className="w-3.5 h-3.5" /> Pilih Poster
@@ -766,13 +766,24 @@ export default function EventForm({ event }: Props) {
                         </button>
                       )}
                       <p className="text-[11px] text-gray-400">
-                        Format JPG/PNG, ukuran maksimal 5 MB.
-                      </p>
-                      <p className="max-w-xs text-[11px] leading-relaxed text-gray-400">
-                        Disarankan rasio 16:9 (minimal 1280×720). Rasio lain tetap tampil utuh di halaman
-                        detail, tetapi dipotong ke 16:9 pada kartu daftar event.
+                        Format JPG/PNG, ukuran maksimal 5 MB. Pada kartu daftar event gambar selalu dipotong
+                        ke 16:9.
                       </p>
                     </div>
+
+                    <PhotoRatioPicker
+                      photoUrl={photoPreview}
+                      value={{
+                        ratio: form.features.photo_ratio,
+                        fit: form.features.photo_fit,
+                      }}
+                      onChange={(next) =>
+                        setForm((f) => ({
+                          ...f,
+                          features: { ...f.features, photo_ratio: next.ratio, photo_fit: next.fit },
+                        }))
+                      }
+                    />
                   </div>
                 </div>
 
@@ -827,8 +838,12 @@ export default function EventForm({ event }: Props) {
                     hint="Batas maksimal pendaftar event"
                   />
                   <Input
+                    id="event-field-organizer_name"
                     label="Nama Penyelenggara / Organizer"
                     type="text"
+                    required
+                    error={!!errors.organizer_name}
+                    hint={errors.organizer_name}
                     value={form.organizer_name}
                     onChange={(e) => setField("organizer_name", e.target.value)}
                     placeholder="Contoh: SMK Telkom Malang"
