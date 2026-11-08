@@ -39,7 +39,10 @@ export function Modal({
   if (!isOpen) return null;
 
   return (
-    <div className="z-[100] fixed inset-0 flex justify-center items-center bg-black/40 backdrop-blur-xs p-4 animate-in fade-in duration-200">
+    // z-[1100]: must sit above the dashboard shell (fixed, z-[1000]). With the old
+    // z-[100], dialogs rendered next to the shell (e.g. the publish/delete
+    // confirmations in OwnerView) opened behind it and could not be clicked.
+    <div className="z-[1100] fixed inset-0 flex justify-center items-center bg-black/40 backdrop-blur-xs p-4 animate-in fade-in duration-200">
       <div
         className={`bg-white rounded-2xl w-full ${maxWidth} flex flex-col max-h-[90vh] text-gray-900 shadow-2xl border border-gray-100 animate-in zoom-in-95 duration-200 overflow-hidden`}
       >
