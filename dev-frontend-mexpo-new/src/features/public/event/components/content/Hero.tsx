@@ -9,6 +9,7 @@ import { Event } from '@/entities/event/event.entity'
 import { dateFormat } from '@/shared/utils/format'
 import Button from '@/shared/components/button/Button'
 import EventPhoto from '@/shared/components/ui/EventPhoto'
+import { resolvePhotoFit, resolvePhotoRatio } from '@/shared/utils/photo-ratio'
 import { renderHighlightedTitle } from '../../utils/title-highlight.utils'
 import { AddToCalendarButton } from '../button/AddToCalendarButton'
 import { EVENT_TYPE_LABELS, labelFor } from '@/shared/data/labels'
@@ -143,6 +144,9 @@ const Hero = ({ eventData }: { eventData: Event }) => {
               <EventPhoto
                 src={eventData.photo || '/images/cards/card-e.png'}
                 alt={eventData.name}
+                ratio={resolvePhotoRatio(eventData.features?.photo_ratio)}
+                fit={resolvePhotoFit(eventData.features?.photo_fit)}
+                maxHeight={520}
                 priority
                 sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 460px"
               />
