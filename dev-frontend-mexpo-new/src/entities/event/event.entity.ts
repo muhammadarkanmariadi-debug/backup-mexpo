@@ -63,6 +63,10 @@ export interface EventFeatures {
   pos?: boolean;
   paidTicket?: boolean;
   maps_embed_url?: string;
+  /** Display ratio of the photo on the detail page, "W:H" (default 16:9). */
+  photo_ratio?: string;
+  /** `contain` = whole photo over a blurred fill, `cover` = crop to the frame. */
+  photo_fit?: "contain" | "cover";
 }
 
 export type TicketMode = "FREE" | "PAID";
