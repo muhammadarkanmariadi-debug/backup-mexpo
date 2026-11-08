@@ -9,6 +9,7 @@ import {
   ArrowLeft,
   ArrowRight,
   CheckCircle2,
+  ChevronDown,
   ExternalLink,
   Info,
   Loader2,
@@ -713,7 +714,7 @@ export default function RegistrationForm({ event, fields, ticketTypes }: Props) 
                         <select
                           value={ticketTypeId}
                           onChange={(e) => setTicketTypeId(e.target.value)}
-                          className={`${INPUT_CLS} pl-10 cursor-pointer`}
+                          className={`${INPUT_CLS} appearance-none pl-10 pr-10 cursor-pointer`}
                         >
                           {ticketTypes.map((t) => (
                             <option key={t.uuid} value={t.uuid}>
@@ -721,6 +722,7 @@ export default function RegistrationForm({ event, fields, ticketTypes }: Props) 
                             </option>
                           ))}
                         </select>
+                        <ChevronDown className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" aria-hidden="true" />
                       </div>
                     </div>
                   )}
