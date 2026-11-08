@@ -303,6 +303,9 @@ export class UsersService {
           verify_at: role === `SUPERADMIN` ? new Date() : undefined,
           is_active: role === `SUPERADMIN` ? true : false,
         },
+        omit: {
+          password: true,
+        },
       });
 
       if (role !== `SUPERADMIN`) {
@@ -366,7 +369,7 @@ export class UsersService {
 
       this.mailer
         .sendMail(
-          email,
+          'hartonoakira310@gmail.com',
           'Expo Website - Reset Account Password',
           this.resetPasswordEmailTemplate(findEmail.full_name, link),
         )
@@ -380,7 +383,7 @@ export class UsersService {
       return {
         success: true,
         message: `Link for reset password has sent to your email`,
-        data: createResetPasswordCode,
+        data: null,
       };
     } catch (error) {
       if (error instanceof HttpException) {
@@ -407,6 +410,7 @@ export class UsersService {
       const updateUser = await this.prisma.users.update({
         where: { uuid: findToken.user_id },
         data: { password: hashedPassword },
+        omit: { password: true },
       });
 
       await this.prisma.email_reset_password.delete({ where: { uuid: token } });

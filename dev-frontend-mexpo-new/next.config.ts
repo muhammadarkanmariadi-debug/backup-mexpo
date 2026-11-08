@@ -1,15 +1,59 @@
 import type { NextConfig } from "next";
+import type { RemotePattern } from "next/dist/shared/lib/image-config";
+
+const rawEnvUrls = [
+  process.env.NEXT_PUBLIC_BASE_URL_PRODUCTION,
+  process.env.NEXT_PUBLIC_BASE_URL_DEVELOPMENT,
+  process.env.NEXT_PUBLIC_SITE_URL,
+  process.env.NEXT_PUBLIC_STORAGE_URL,
+].filter((url): url is string => Boolean(url && url.trim()));
+
+const dynamicOrigins = Array.from(
+  new Set(
+    rawEnvUrls.flatMap((raw) => {
+      try {
+        const parsed = new URL(raw);
+        return [parsed.origin];
+      } catch {
+        return [];
+      }
+    }),
+  ),
+);
+
+const dynamicRemotePatterns: RemotePattern[] = rawEnvUrls.flatMap((raw) => {
+  try {
+    const parsed = new URL(raw);
+    const protocol = parsed.protocol.replace(":", "") as "http" | "https";
+    return [
+      {
+        protocol,
+        hostname: parsed.hostname,
+        ...(parsed.port ? { port: parsed.port } : {}),
+      },
+    ];
+  } catch {
+    return [];
+  }
+});
+
+const devLocalhostOrigins =
+  process.env.NODE_ENV !== "production"
+    ? ["http://localhost:*", "https://localhost:*"]
+    : [];
+
+const cspOrigins = [...dynamicOrigins, ...devLocalhostOrigins].join(" ");
 
 const securityHeaders = [
   {
     key: "Content-Security-Policy",
     value: [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://app.sandbox.midtrans.com https://app.midtrans.com https://accounts.google.com",
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://app.sandbox.midtrans.com https://app.midtrans.com https://accounts.google.com https://static.cloudflareinsights.com",
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-      "img-src 'self' data: blob: https://*.4rk4n.dev http://*.4rk4n.dev https://100.27.43.122:* http://100.27.43.122:* https://98.80.142.172:* http://98.80.142.172:* https://localhost:* http://localhost:* https://images.unsplash.com https://s3.smktelkom-mlg.sch.id https://img.youtube.com https://i.ytimg.com https://via.placeholder.com https://lh3.googleusercontent.com https://*.googleusercontent.com https://app.sandbox.midtrans.com https://app.midtrans.com",
+      `img-src 'self' data: blob: ${cspOrigins} https://images.unsplash.com https://img.youtube.com https://i.ytimg.com https://via.placeholder.com https://lh3.googleusercontent.com https://*.googleusercontent.com https://app.sandbox.midtrans.com https://app.midtrans.com`,
       "font-src 'self' data: https://fonts.gstatic.com",
-      "connect-src 'self' https://*.4rk4n.dev http://*.4rk4n.dev https://100.27.43.122:* http://100.27.43.122:* https://98.80.142.172:* http://98.80.142.172:* https://localhost:* http://localhost:* https://mexpo-api.smktelkom-mlg.sch.id https://*.smktelkom-mlg.sch.id https://app.sandbox.midtrans.com https://app.midtrans.com https://api.sandbox.midtrans.com https://api.midtrans.com https://accounts.google.com https://*.googleapis.com",
+      `connect-src 'self' ${cspOrigins} https://app.sandbox.midtrans.com https://app.midtrans.com https://api.sandbox.midtrans.com https://api.midtrans.com https://accounts.google.com https://*.googleapis.com https://cloudflareinsights.com https://*.cloudflareinsights.com`,
       "frame-src 'self' https://app.sandbox.midtrans.com https://app.midtrans.com https://accounts.google.com",
       "frame-ancestors 'self'",
       "object-src 'none'",
@@ -62,82 +106,37 @@ const nextConfig: NextConfig = {
     ];
   },
   images: {
-    formats: ['image/avif', 'image/webp'],
+    formats: ["image/avif", "image/webp"],
     minimumCacheTTL: 604800,
     deviceSizes: [640, 750, 828, 1080, 1200, 1920],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
     remotePatterns: [
+      ...dynamicRemotePatterns,
+      ...(process.env.NODE_ENV !== "production"
+        ? [
+            { protocol: "http" as const, hostname: "localhost" },
+            { protocol: "https" as const, hostname: "localhost" },
+          ]
+        : []),
       {
-        protocol: 'https',
-        hostname: '*.4rk4n.dev',
+        protocol: "https",
+        hostname: "images.unsplash.com",
       },
       {
-        protocol: 'http',
-        hostname: '*.4rk4n.dev',
+        protocol: "https",
+        hostname: "img.youtube.com",
       },
       {
-        protocol: 'https',
-        hostname: 'dev-backend-expo.4rk4n.dev',
+        protocol: "https",
+        hostname: "i.ytimg.com",
       },
       {
-        protocol: 'http',
-        hostname: 'dev-backend-expo.4rk4n.dev',
+        protocol: "https",
+        hostname: "via.placeholder.com",
       },
       {
-        protocol: 'https',
-        hostname: 'dev-frontend-expo.4rk4n.dev',
-      },
-      {
-        protocol: 'http',
-        hostname: 'dev-frontend-expo.4rk4n.dev',
-      },
-      {
-        protocol: 'https',
-        hostname: 'images.unsplash.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 's3.smktelkom-mlg.sch.id',
-      },
-      {
-        protocol: 'https',
-        hostname: 'img.youtube.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'i.ytimg.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'via.placeholder.com',
-      },
-      {
-        protocol: 'http',
-        hostname: 'localhost',
-      },
-      {
-        protocol: 'https',
-        hostname: 'localhost',
-      },
-      {
-        protocol: 'http',
-        hostname: '100.27.43.122',
-      },
-      {
-        protocol: 'https',
-        hostname: '100.27.43.122',
-      },
-      {
-        protocol: 'http',
-        hostname: '98.80.142.172',
-      },
-      {
-        protocol: 'https',
-        hostname: '98.80.142.172',
-      },
-      {
-        protocol: 'https',
-        hostname: 'lh3.googleusercontent.com',
+        protocol: "https",
+        hostname: "lh3.googleusercontent.com",
       },
     ],
   },

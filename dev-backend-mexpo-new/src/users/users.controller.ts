@@ -51,7 +51,8 @@ export class UsersController {
   }
 
   @Post(`superadmin`)
-  @UseGuards(BasicGuard)
+  @UseGuards(AuthGuard(`jwt`), RoleGuard)
+  @Roles(`SUPERADMIN`)
   @UsePipes(new ValidationPipe({ exceptionFactory: FormatValidation }))
   @UseInterceptors(FileInterceptor('file', imageFileFilter))
   createSuperAdmin(
