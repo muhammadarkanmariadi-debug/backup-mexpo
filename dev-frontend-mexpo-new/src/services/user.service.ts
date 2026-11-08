@@ -20,9 +20,27 @@ export interface UpdateProfilePayload {
   organization?: string;
 }
 
-export async function getProfile() {
-    const res = await httpGet('users/me', 'token')
-    return res.data as User
+/** Thrown by getProfile when the API rejects the token (expired or invalid). */
+export class UnauthorizedError extends Error {
+  constructor() {
+    super("Sesi berakhir. Silakan masuk kembali.");
+    this.name = "UnauthorizedError";
+  }
+}
+
+/**
+ * Current user. Throws instead of returning the error body: httpRequest hands
+ * back the API's error JSON as `data` on a non-2xx response, which used to be
+ * stored as the logged-in user (e.g. `{ message: "Unauthorized" }`).
+ */
+export async function getProfile(): Promise<User> {
+  const res = await httpGet("users/me", "token");
+  const data = res.data as Partial<User> | null | undefined;
+  if (!res.status || !data || typeof data !== "object" || !data.uuid) {
+    if (res.code === 401) throw new UnauthorizedError();
+    throw new Error(res.message ?? "Gagal memuat profil");
+  }
+  return data as User;
 }
 
 /** Superadmin: list users with search + is_active filter + pagination. */
