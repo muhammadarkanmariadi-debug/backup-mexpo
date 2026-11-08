@@ -367,6 +367,7 @@ export class EventUsersService {
           where: {
             event_id,
             user_id: userId,
+            status: `APPROVED`,
             role: { in: [`COMMITTEE`, `OWNER`] },
           },
         });
@@ -491,7 +492,7 @@ export class EventUsersService {
       }
 
       if (userRole !== 'SUPERADMIN') {
-        const findExistingOwner = await this.prisma.user_event_roles.findFirst({
+        const callerRole = await this.prisma.user_event_roles.findFirst({
           where: {
             event_id: findEventUser.event_id,
             user_id: userId,
@@ -499,9 +500,19 @@ export class EventUsersService {
             status: `APPROVED`,
           },
         });
-        if (!findExistingOwner) {
-          throw new ConflictException(
+        if (!callerRole) {
+          throw new ForbiddenException(
             `Sorry, only approved owner/commitee of event can update this user role`,
+          );
+        }
+
+        const { role } = updateEventUserDto;
+        if (
+          callerRole.role !== `OWNER` &&
+          (findEventUser.role === `OWNER` || role === `OWNER`)
+        ) {
+          throw new ForbiddenException(
+            `Only the event owner can manage the OWNER role`,
           );
         }
       }
@@ -563,11 +574,12 @@ export class EventUsersService {
             event_id: findEventUser.event_id,
             user_id: userId,
             role: `OWNER`,
+            status: `APPROVED`,
           },
         });
         if (!findExistingOwner) {
           throw new ConflictException(
-            `Sorry, only owner of event can remove this user role`,
+            `Sorry, only approved owner of event can remove this user role`,
           );
         }
       }

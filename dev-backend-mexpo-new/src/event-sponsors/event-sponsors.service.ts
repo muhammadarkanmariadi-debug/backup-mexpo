@@ -39,6 +39,7 @@ export class EventSponsorsService {
         where: {
           event_id,
           user_id: userId,
+          status: `APPROVED`,
           role: { in: [`COMMITTEE`, `OWNER`] },
         },
       });
@@ -106,6 +107,7 @@ export class EventSponsorsService {
         where: {
           event_id,
           user_id: userId,
+          status: `APPROVED`,
           role: { in: [`COMMITTEE`, `OWNER`] },
         },
       });
@@ -208,6 +210,7 @@ export class EventSponsorsService {
         where: {
           event_id: findSponsor.event_id,
           user_id: userId,
+          status: `APPROVED`,
           role: { in: [`COMMITTEE`, `OWNER`] },
         },
         include: { event: true },
@@ -278,6 +281,7 @@ export class EventSponsorsService {
         where: {
           event_id: findSponsor.event_id,
           user_id: userId,
+          status: `APPROVED`,
           role: { in: [`COMMITTEE`, `OWNER`] },
         },
         include: { event: true },

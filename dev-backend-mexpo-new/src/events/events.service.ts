@@ -311,6 +311,7 @@ export class EventsService {
         where: {
           event_id: id,
           user_id: userId,
+          status: `APPROVED`,
           role: { in: [`COMMITTEE`, `OWNER`] },
         },
       });
@@ -449,6 +450,7 @@ export class EventsService {
         where: {
           event_id: id,
           user_id: userId,
+          status: `APPROVED`,
           role: { in: [`OWNER`] },
         },
       });

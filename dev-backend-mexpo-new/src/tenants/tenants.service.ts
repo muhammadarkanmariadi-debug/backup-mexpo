@@ -226,7 +226,7 @@ export class TenantsService {
         where: {
           user_id: userId,
           role: `TENANT`,
-          // status: `APPROVED`,
+          status: `APPROVED`,
           event_id,
         },
       });
@@ -469,6 +469,7 @@ export class TenantsService {
 
       const findEventCommittee = await this.prisma.user_event_roles.findFirst({
         where: {
+          user_id: userId,
           event_id: findTenant.event_id,
           status: `APPROVED`,
           role: { in: [`COMMITTEE`, `OWNER`] },
@@ -620,6 +621,7 @@ export class TenantsService {
         where: {
           event_id,
           user_id: userId,
+          status: `APPROVED`,
           role: { in: [`COMMITTEE`, `OWNER`] },
         },
       });
@@ -692,6 +694,7 @@ export class TenantsService {
         where: {
           event_id,
           user_id: userId,
+          status: `APPROVED`,
           role: `TENANT`,
         },
       });
@@ -833,6 +836,8 @@ export class TenantsService {
       });
       if (!findTenant) throw new NotFoundException(`Tenant doesn't exists`);
 
+      await this.assertTenantManager(id, userId);
+
       const {
         description,
         email,
@@ -911,6 +916,7 @@ export class TenantsService {
         where: {
           event_id: findTenant.event_id,
           user_id: userId,
+          status: `APPROVED`,
           role: { in: [`COMMITTEE`, `OWNER`] },
         },
       });

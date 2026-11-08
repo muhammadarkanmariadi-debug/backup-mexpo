@@ -37,6 +37,7 @@ export class EventRundownsService {
         where: {
           event_id,
           user_id: userId,
+          status: `APPROVED`,
           role: { in: [`COMMITTEE`, `OWNER`] },
         },
       });
@@ -102,6 +103,7 @@ export class EventRundownsService {
         where: {
           event_id,
           user_id: userId,
+          status: `APPROVED`,
           role: { in: [`COMMITTEE`, `OWNER`] },
         },
       });
@@ -176,6 +178,7 @@ export class EventRundownsService {
         where: {
           event_id: findRundown.event_id,
           user_id: userId,
+          status: `APPROVED`,
           role: { in: [`COMMITTEE`, `OWNER`] },
         },
       });
@@ -219,6 +222,7 @@ export class EventRundownsService {
         where: {
           event_id: findRundown.event_id,
           user_id: userId,
+          status: `APPROVED`,
           role: { in: [`COMMITTEE`, `OWNER`] },
         },
       });
@@ -285,6 +289,7 @@ export class EventRundownsService {
         where: {
           event_id: findRundown.event_id,
           user_id: userId,
+          status: `APPROVED`,
           role: { in: [`COMMITTEE`, `OWNER`] },
         },
       });
@@ -328,6 +333,7 @@ export class EventRundownsService {
         where: {
           event_id: findRundown.event_id,
           user_id: userId,
+          status: `APPROVED`,
           role: { in: [`COMMITTEE`, `OWNER`] },
         },
       });
@@ -390,6 +396,7 @@ export class EventRundownsService {
         where: {
           event_id: findRundownSpeaker.event_rundown.event_id,
           user_id: userId,
+          status: `APPROVED`,
           role: { in: [`COMMITTEE`, `OWNER`] },
         },
       });

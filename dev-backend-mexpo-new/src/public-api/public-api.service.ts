@@ -577,8 +577,7 @@ export class PublicApiService {
 
       // An event is only paid if ticket_mode is PAID AND the chosen ticket type has price > 0.
       const isPaid = Boolean(targetTicketType && targetTicketType.price > 0);
-      const initialRoleStatus =
-        isPaid && !payment_reference ? `PENDING` : `APPROVED`;
+      const initialRoleStatus = isPaid ? `PENDING` : `APPROVED`;
 
       const findExistingEmail = await this.prisma.users.findFirst({
         where: { email },
@@ -593,6 +592,13 @@ export class PublicApiService {
         const existingRole = findExistingEmail.userEventRoles.find(
           (it) => it.event_id === event_id,
         );
+
+        if (existingRole && existingRole.role !== `VISITOR`) {
+          throw new ConflictException(
+            `Email sudah terdaftar sebagai ${existingRole.role} pada event ini.`,
+          );
+        }
+
         const updateUser = await this.prisma.users.update({
           where: { uuid: findExistingEmail.uuid },
           data: {
@@ -643,10 +649,9 @@ export class PublicApiService {
         }
 
         visitorUserId = findExistingEmail.uuid;
-        responseMessage =
-          isPaid && !payment_reference
-            ? `Pendaftaran disimpan. Silakan selesaikan pembayaran tiket Anda.`
-            : `You have already registered, enjoy this event`;
+        responseMessage = isPaid
+          ? `Pendaftaran disimpan. Silakan selesaikan pembayaran tiket Anda.`
+          : `You have already registered, enjoy this event`;
         responseData = updateUser;
       } else {
         defaultPassword = this.bcrypt.createRandomPassword();
@@ -683,10 +688,9 @@ export class PublicApiService {
         });
 
         visitorUserId = createUser.uuid;
-        responseMessage =
-          isPaid && !payment_reference
-            ? `Pendaftaran berhasil. Silakan selesaikan pembayaran tiket Anda.`
-            : `New Visitor has been registered, check your email to view credential for access system`;
+        responseMessage = isPaid
+          ? `Pendaftaran berhasil. Silakan selesaikan pembayaran tiket Anda.`
+          : `New Visitor has been registered, check your email to view credential for access system`;
         responseData = createUser;
       }
 
@@ -749,7 +753,7 @@ export class PublicApiService {
               payment_reference:
                 payment_reference ?? existingTicket.payment_reference,
               payment_method: payment_method ?? existingTicket.payment_method,
-              status: payment_reference ? `PAID` : existingTicket.status,
+              status: existingTicket.status === `PAID` ? `PAID` : `RESERVED`,
               updated_by: findSuperAdmin.uuid,
             },
           });
@@ -761,7 +765,7 @@ export class PublicApiService {
               ticket_type_id: type.uuid,
               payment_reference: payment_reference ?? ``,
               payment_method: payment_method ?? ``,
-              status: payment_reference ? `PAID` : `RESERVED`,
+              status: `RESERVED`,
               created_by: findSuperAdmin.uuid,
               updated_by: findSuperAdmin.uuid,
             },
@@ -798,7 +802,7 @@ export class PublicApiService {
       // non-blocking — registration still succeeds and the logged-in
       // `POST /events/:id/checkout` can generate the intent later.
       let payment: unknown = null;
-      if (isPaid && !payment_reference) {
+      if (isPaid) {
         const ticket = await this.prisma.tickets.findFirst({
           where: {
             event_id,
@@ -807,7 +811,7 @@ export class PublicApiService {
           },
           include: { ticket_type: true },
         });
-        if (ticket?.ticket_type && ticket.ticket_type.price > 0) {
+        if (ticket?.ticket_type && ticket.ticket_type.price > 0 && ticket.status !== `PAID`) {
           try {
             payment = await this.paymentsService.createPaymentForTicket({
               eventId: event_id,

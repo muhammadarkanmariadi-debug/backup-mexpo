@@ -32,6 +32,7 @@ export class EventContactsService {
         where: {
           event_id,
           user_id: userId,
+          status: `APPROVED`,
           role: { in: [`COMMITTEE`, `OWNER`] },
         },
       });
@@ -83,6 +84,7 @@ export class EventContactsService {
         where: {
           event_id,
           user_id: userId,
+          status: `APPROVED`,
           role: { in: [`COMMITTEE`, `OWNER`] },
         },
       });
@@ -173,6 +175,7 @@ export class EventContactsService {
         where: {
           event_id: contact.event_id,
           user_id: userId,
+          status: `APPROVED`,
           role: { in: [`COMMITTEE`, `OWNER`] },
         },
       });
@@ -220,6 +223,7 @@ export class EventContactsService {
         where: {
           event_id: contact.event_id,
           user_id: userId,
+          status: `APPROVED`,
           role: { in: [`COMMITTEE`, `OWNER`] },
         },
       });

@@ -40,6 +40,7 @@ export class EventSpeakersService {
         where: {
           event_id,
           user_id: userId,
+          status: `APPROVED`,
           role: { in: [`COMMITTEE`, `OWNER`] },
         },
       });
@@ -161,6 +162,7 @@ export class EventSpeakersService {
         where: {
           event_id,
           user_id: userId,
+          status: `APPROVED`,
           role: { in: [`COMMITTEE`, `OWNER`] },
         },
       });
@@ -271,6 +273,7 @@ export class EventSpeakersService {
         where: {
           event_id: findSpeaker.event_id,
           user_id: userId,
+          status: `APPROVED`,
           role: { in: [`COMMITTEE`, `OWNER`] },
         },
       });
@@ -343,6 +346,7 @@ export class EventSpeakersService {
         where: {
           event_id: findSpeaker.event_id,
           user_id: userId,
+          status: `APPROVED`,
           role: { in: [`COMMITTEE`, `OWNER`] },
         },
       });
@@ -393,6 +397,7 @@ export class EventSpeakersService {
         where: {
           event_id: findSpeaker.event_id,
           user_id: userId,
+          status: `APPROVED`,
           role: { in: [`COMMITTEE`, `OWNER`] },
         },
       });

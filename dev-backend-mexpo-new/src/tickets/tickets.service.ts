@@ -214,7 +214,7 @@ export class TicketsService {
               payment_reference:
                 dto.payment_reference ?? existing.payment_reference,
               payment_method: dto.payment_method ?? existing.payment_method,
-              status: dto.payment_reference ? `PAID` : existing.status,
+              status: existing.status === `PAID` ? `PAID` : `RESERVED`,
               updated_by: userId,
             },
           });
@@ -228,7 +228,7 @@ export class TicketsService {
             ticket_type_id: type.uuid,
             payment_reference: dto.payment_reference ?? ``,
             payment_method: dto.payment_method ?? ``,
-            status: dto.payment_reference ? `PAID` : `RESERVED`,
+            status: `RESERVED`,
             created_by: userId,
             updated_by: userId,
           },

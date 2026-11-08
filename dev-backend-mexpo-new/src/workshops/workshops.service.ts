@@ -50,6 +50,7 @@ export class WorkshopsService {
         where: {
           event_id,
           user_id: userId,
+          status: `APPROVED`,
           role: { in: [`COMMITTEE`, `OWNER`] },
         },
       });
@@ -134,6 +135,7 @@ export class WorkshopsService {
         where: {
           event_id,
           user_id: userId,
+          status: `APPROVED`,
           role: { in: [`COMMITTEE`, `OWNER`] },
         },
       });
@@ -247,6 +249,7 @@ export class WorkshopsService {
         where: {
           event_id: findWorkshop.event_id,
           user_id: userId,
+          status: `APPROVED`,
           role: { in: [`COMMITTEE`, `OWNER`] },
         },
       });
@@ -328,6 +331,7 @@ export class WorkshopsService {
         where: {
           event_id: findWorkshop.event_id,
           user_id: userId,
+          status: `APPROVED`,
           role: { in: [`COMMITTEE`, `OWNER`] },
         },
       });
@@ -373,6 +377,7 @@ export class WorkshopsService {
         where: {
           event_id: findWorkshop.event_id,
           user_id: userId,
+          status: `APPROVED`,
           role: { in: [`COMMITTEE`, `OWNER`] },
         },
       });
@@ -441,6 +446,7 @@ export class WorkshopsService {
         where: {
           event_id: findWorkshopSpeaker.workshop.event_id,
           user_id: userId,
+          status: `APPROVED`,
           role: { in: [`COMMITTEE`, `OWNER`] },
         },
       });
