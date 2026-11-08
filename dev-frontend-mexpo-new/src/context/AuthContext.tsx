@@ -2,8 +2,11 @@
 
 import { createContext, useContext, useCallback, useEffect, useRef, useState } from 'react';
 import { useAuthStore } from '@/stores/auth.store';
-import { getCookies } from '@/shared/utils/cookies';
-import { getProfile } from '@/services/user.service';
+import { deleteCookies, getCookies } from '@/shared/utils/cookies';
+import { getProfile, UnauthorizedError } from '@/services/user.service';
+
+/** Same prefixes src/proxy.ts guards. */
+const PROTECTED_PREFIXES = ['/dashboard', '/profile'];
 
 interface AuthContextType {
     syncProfile: () => Promise<void>;
@@ -31,15 +34,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 return;
             }
 
-            const response = await getProfile();
-
-            if (response) {
-                setUser(response);
-            } else {
-                clearUser();
-            }
-        } catch {
+            setUser(await getProfile());
+        } catch (error) {
             clearUser();
+
+            // The API rejected the token (expired/invalid). The httpOnly cookie
+            // would otherwise outlive the JWT and keep route guards and /auth
+            // thinking the user is still signed in, so drop it.
+            if (error instanceof UnauthorizedError) {
+                prevTokenRef.current = null;
+                await deleteCookies('token');
+
+                const { pathname } = window.location;
+                if (PROTECTED_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`))) {
+                    window.location.replace(`/auth?next=${encodeURIComponent(pathname)}`);
+                }
+            }
         } finally {
             setIsLoadingAuth(false);
         }
