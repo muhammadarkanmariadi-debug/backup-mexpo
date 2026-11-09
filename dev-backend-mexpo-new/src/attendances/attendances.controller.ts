@@ -38,6 +38,7 @@ export class AttendancesController {
       event_id,
       createAttendanceDto,
       request.user.uuid,
+      request.user.role,
     );
   }
 
@@ -66,6 +67,7 @@ export class AttendancesController {
       workshop_id,
       createAttendanceDto,
       request.user.uuid,
+      request.user.role,
     );
   }
 
@@ -106,7 +108,12 @@ export class AttendancesController {
     @Body() updateAttendanceDto: UpdateAttendanceDto,
     @Request() request: authType.AuthRequest
   ) {
-    return this.attendancesService.checkout(event_id, updateAttendanceDto, request.user.uuid)
+    return this.attendancesService.checkout(
+      event_id,
+      updateAttendanceDto,
+      request.user.uuid,
+      request.user.role,
+    );
   }
 
   @Put(`workshop/:workshop_id`)
@@ -116,6 +123,11 @@ export class AttendancesController {
     @Body() updateWorkshopAttendanceDto: UpdateWorkshopAttendanceDto,
     @Request() request: authType.AuthRequest
   ) {
-    return this.attendancesService.checkoutWorkshop(workshop_id, updateWorkshopAttendanceDto, request.user.uuid)
+    return this.attendancesService.checkoutWorkshop(
+      workshop_id,
+      updateWorkshopAttendanceDto,
+      request.user.uuid,
+      request.user.role,
+    );
   }
 }

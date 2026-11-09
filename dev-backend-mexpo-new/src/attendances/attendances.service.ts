@@ -29,32 +29,47 @@ const ATTENDANCE_SORTABLE: Record<
 @Injectable()
 export class AttendancesService {
   constructor(private readonly prisma: PrismaService) {}
+
+  private async validateScannerPermission(
+    eventId: string,
+    userId: string,
+    userRole?: string,
+  ) {
+    if (userRole === 'SUPERADMIN') {
+      return;
+    }
+    const findEventRole = await this.prisma.user_event_roles.findFirst({
+      where: {
+        user_id: userId,
+        role: { in: ['COMMITTEE', 'OWNER'] },
+        status: 'APPROVED',
+        event_id: eventId,
+      },
+    });
+    if (!findEventRole) {
+      throw new ForbiddenException(`You are not allowed to record attendance`);
+    }
+  }
+
   async create(
     event_id: string,
     createAttendanceDto: CreateAttendanceDto,
     userId: string,
+    userRole?: string,
   ) {
     try {
       const findEvent = await this.prisma.events.findFirst({
-        where: { uuid: event_id },
+        where: {
+          OR: [{ uuid: event_id }, { slug: event_id }],
+        },
       });
       if (!findEvent) throw new NotFoundException(`Event doesn't exists`);
 
-      const findEventRole = await this.prisma.user_event_roles.findFirst({
-        where: {
-          user_id: userId,
-          role: { in: [`COMMITTEE`, `OWNER`] },
-          status: `APPROVED`,
-          event_id,
-        },
-      });
-      if (!findEventRole) {
-        throw new ForbiddenException(`You are not allow record attendance`);
-      }
+      await this.validateScannerPermission(findEvent.uuid, userId, userRole);
 
       const { user_id } = createAttendanceDto;
       const findUserEventRole = await this.prisma.user_event_roles.findFirst({
-        where: { user_id, event_id },
+        where: { user_id, event_id: findEvent.uuid },
       });
       if (!findUserEventRole)
         throw new NotFoundException(
@@ -68,7 +83,7 @@ export class AttendancesService {
         );
 
       const findExistingVisit = await this.prisma.log_attendances.findFirst({
-        where: { user_id, event_id },
+        where: { user_id, event_id: findEvent.uuid },
         orderBy: { created_at: `desc` },
       });
 
@@ -99,7 +114,7 @@ export class AttendancesService {
         }
       }
       const newAttendace = await this.prisma.log_attendances.create({
-        data: { user_id, event_id },
+        data: { user_id, event_id: findEvent.uuid },
       });
       return {
         success: true,
@@ -116,6 +131,7 @@ export class AttendancesService {
     workshop_id: string,
     createWorkshopAttendance: CreateWorkshopAttendance,
     userId: string,
+    userRole?: string,
   ) {
     try {
       const findWorkshop = await this.prisma.workshops.findFirst({
@@ -123,6 +139,13 @@ export class AttendancesService {
         include: { workshopBookings: true },
       });
       if (!findWorkshop) throw new NotFoundException(`Workshop doesn't exists`);
+
+      await this.validateScannerPermission(
+        findWorkshop.event_id,
+        userId,
+        userRole,
+      );
+
       const { user_id } = createWorkshopAttendance;
       const findBookingWorkshop = await this.prisma.workshop_bookings.findFirst(
         {
@@ -424,127 +447,119 @@ export class AttendancesService {
   async checkout(
     event_id: string,
     updateAttendanceDto: UpdateAttendanceDto,
-    userId: string
+    userId: string,
+    userRole?: string,
   ) {
     try {
       const findEvent = await this.prisma.events.findFirst({
-        where: { uuid: event_id }
-      })
-      if (!findEvent) throw new NotFoundException(`Event doesn't exist`)
-
-      const findEventRole = await this.prisma.user_event_roles.findFirst({
         where: {
-          user_id: userId,
-          role: { in: [`COMMITTEE`, `OWNER`] },
-          status: `APPROVED`,
-          event_id
-        }
-      })
-      if (!findEventRole) {
-        throw new ForbiddenException(`You are not allowed to record attendance`)
-      }
+          OR: [{ uuid: event_id }, { slug: event_id }],
+        },
+      });
+      if (!findEvent) throw new NotFoundException(`Event doesn't exist`);
 
-      const { user_id } = updateAttendanceDto
+      await this.validateScannerPermission(findEvent.uuid, userId, userRole);
+
+      const { user_id } = updateAttendanceDto;
       const findUserEventRole = await this.prisma.user_event_roles.findFirst({
-        where: { user_id, event_id }
-      })
+        where: { user_id, event_id: findEvent.uuid },
+      });
       if (!findUserEventRole)
         throw new NotFoundException(
-          `Sorry, you are not registered for this event`
-        )
+          `Sorry, you are not registered for this event`,
+        );
 
-      const notAllowedRoles: EventRole[] = [`COMMITTEE`, `OWNER`, `TENANT`]
+      const notAllowedRoles: EventRole[] = [`COMMITTEE`, `OWNER`, `TENANT`];
       if (notAllowedRoles.includes(findUserEventRole.role))
         throw new ConflictException(
-          `Sorry, you are registered as ${findUserEventRole.role} for this event`
-        )
+          `Sorry, you are registered as ${findUserEventRole.role} for this event`,
+        );
 
       const findExistingVisit = await this.prisma.log_attendances.findFirst({
-        where: { user_id, event_id },
-        orderBy: { created_at: `desc` }
-      })
-      const currentDate = new Date()
-      const existingAttendance = findExistingVisit?.created_at
+        where: { user_id, event_id: findEvent.uuid },
+        orderBy: { created_at: `desc` },
+      });
+      const currentDate = new Date();
+      const existingAttendance = findExistingVisit?.created_at;
       const isToday =
         currentDate.getDate() === existingAttendance?.getDate() &&
         currentDate.getMonth() === existingAttendance?.getMonth() &&
-        currentDate.getFullYear() === existingAttendance?.getFullYear()
+        currentDate.getFullYear() === existingAttendance?.getFullYear();
 
       if (!findExistingVisit || !isToday)
         throw new NotFoundException(
-          `You have not checked in to the event today`
-        )
-      else if (findExistingVisit.checkout_at) return {
-        success: true,
-        message: `You have already checkout before`,
-        data: findExistingVisit
-      }
+          `You have not checked in to the event today`,
+        );
+      else if (findExistingVisit.checkout_at)
+        return {
+          success: true,
+          message: `You have already checkout before`,
+          data: findExistingVisit,
+        };
 
       const updateAttendanceStatus = await this.prisma.log_attendances.update({
         where: { uuid: findExistingVisit.uuid },
         data: {
           checkout_at: new Date(),
-          updated_at: new Date()
-        }
-      })
+          updated_at: new Date(),
+        },
+      });
 
       const findVisitingHistory = await this.prisma.booth_visits.findMany({
-        where: { user_id }
-      })
-      const countVisit = findVisitingHistory.length
+        where: { user_id },
+      });
+      const countVisit = findVisitingHistory.length;
       return {
         success: true,
         message: `Your checkout has been recorded successfully. You have visited a total of ${countVisit} booths`,
-        data: updateAttendanceStatus
-      }
+        data: updateAttendanceStatus,
+      };
     } catch (error) {
-      if (error instanceof HttpException) throw error
-      throw new InternalServerErrorException(`Something went wrong: ${error}`)
+      if (error instanceof HttpException) throw error;
+      throw new InternalServerErrorException(`Something went wrong: ${error}`);
     }
   }
 
   async checkoutWorkshop(
     workshop_id: string,
     updateWorkshopAttendanceDto: UpdateWorkshopAttendanceDto,
-    userId: string
+    userId: string,
+    userRole?: string,
   ) {
     try {
       const findWorkshop = await this.prisma.workshops.findFirst({
         where: { uuid: workshop_id },
-        include: { workshopBookings: true }
-      })
-      if (!findWorkshop) throw new NotFoundException(`Workshop doesn't exist`)
+        include: { workshopBookings: true },
+      });
+      if (!findWorkshop) throw new NotFoundException(`Workshop doesn't exist`);
 
-      const findEventRole = await this.prisma.user_event_roles.findFirst({
-        where: {
-          user_id: userId,
-          role: { in: [`COMMITTEE`, `OWNER`] },
-          status: `APPROVED`,
-          event_id: findWorkshop.event_id
-        }
-      })
-      if (!findEventRole) {
-        throw new ForbiddenException(`You are not allowed to record attendance`)
-      }
+      await this.validateScannerPermission(
+        findWorkshop.event_id,
+        userId,
+        userRole,
+      );
 
-      const { user_id } = updateWorkshopAttendanceDto
-      const findBookingWorkshop = await this.prisma.workshop_bookings.findFirst({
-        where: { workshop_id, user_id }
-      })
+      const { user_id } = updateWorkshopAttendanceDto;
+      const findBookingWorkshop = await this.prisma.workshop_bookings.findFirst(
+        {
+          where: { workshop_id, user_id },
+        },
+      );
 
       if (
         !findBookingWorkshop ||
         findBookingWorkshop.checkin_at == null ||
         findBookingWorkshop.status !== `CHECKED_IN`
       ) {
-        if (findBookingWorkshop?.status === `CHECKED_OUT`) return {
-          success: true,
-          message: `You have already checked out earlier`,
-          data: findBookingWorkshop
-        }
+        if (findBookingWorkshop?.status === `CHECKED_OUT`)
+          return {
+            success: true,
+            message: `You have already checked out earlier`,
+            data: findBookingWorkshop,
+          };
         throw new NotFoundException(
-          `You have not checked in to this workshop yet`
-        )
+          `You have not checked in to this workshop yet`,
+        );
       }
 
       const updateStatusBooking = await this.prisma.workshop_bookings.update({
@@ -553,18 +568,18 @@ export class AttendancesService {
           status: `CHECKED_OUT`,
           checkout_at: new Date(),
           updated_by: userId,
-          updated_at: new Date()
-        }
-      })
+          updated_at: new Date(),
+        },
+      });
 
       return {
         success: true,
         message: `Your checkout for this workshop has been saved`,
-        data: updateStatusBooking
-      }
+        data: updateStatusBooking,
+      };
     } catch (error) {
-      if (error instanceof HttpException) throw error
-      throw new InternalServerErrorException(`Something went wrong: ${error}`)
+      if (error instanceof HttpException) throw error;
+      throw new InternalServerErrorException(`Something went wrong: ${error}`);
     }
   }
 }
