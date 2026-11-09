@@ -9,6 +9,7 @@ import {
   Param,
   Request,
   Query,
+  Put,
 } from '@nestjs/common';
 import { AttendancesService } from './attendances.service';
 import { CreateAttendanceDto } from './dto/create-attendance.dto';
@@ -17,6 +18,7 @@ import FormatValidation from '../helper/validation.format';
 import * as authType from '../auth/auth.types';
 import { QueryAttendanceDto } from './dto/query-attendance.dto';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { UpdateAttendanceDto, UpdateWorkshopAttendanceDto } from './dto/update-attendance.dto';
 
 @ApiTags('Attendances')
 @ApiBearerAuth()
@@ -95,5 +97,25 @@ export class AttendancesController {
     @Query() query: QueryAttendanceDto,
   ) {
     return this.attendancesService.findAllTenantAttendances(tenant_id, query);
+  }
+
+  @Put(`event/:event_id`)
+  @UsePipes(new ValidationPipe({ exceptionFactory: FormatValidation }))
+  checkout(
+    @Param(`event_id`) event_id: string,
+    @Body() updateAttendanceDto: UpdateAttendanceDto,
+    @Request() request: authType.AuthRequest
+  ) {
+    return this.attendancesService.checkout(event_id, updateAttendanceDto, request.user.uuid)
+  }
+
+  @Put(`workshop/:workshop_id`)
+  @UsePipes(new ValidationPipe({ exceptionFactory: FormatValidation }))
+  checkoutWorkshop(
+    @Param(`workshop_id`) workshop_id: string,
+    @Body() updateWorkshopAttendanceDto: UpdateWorkshopAttendanceDto,
+    @Request() request: authType.AuthRequest
+  ) {
+    return this.attendancesService.checkoutWorkshop(workshop_id, updateWorkshopAttendanceDto, request.user.uuid)
   }
 }
