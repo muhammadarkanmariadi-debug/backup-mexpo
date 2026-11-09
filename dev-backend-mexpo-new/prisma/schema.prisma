@@ -423,6 +423,7 @@ model workshop_bookings {
   workshop    workshops     @relation(fields: [workshop_id], references: [uuid], onDelete: Cascade)
   user_id     String        @default("")
   checkin_at  DateTime?
+  checkout_at  DateTime?
   user        users         @relation(fields: [user_id], references: [uuid], onDelete: Cascade)
   status      BookingStatus @default(REGISTERED)
   created_by  String        @default("")
@@ -436,6 +437,7 @@ model workshop_bookings {
 enum BookingStatus {
   REGISTERED
   CHECKED_IN
+  CHECKED_OUT
   CANCELLED
 }
 
@@ -585,13 +587,14 @@ model booth_visits {
 }
 
 model log_attendances {
-  uuid       String   @id @default(uuid())
-  event_id   String   @default("")
-  event      events   @relation(fields: [event_id], references: [uuid], onDelete: Cascade)
-  user_id    String   @default("")
-  user       users    @relation(fields: [user_id], references: [uuid], onDelete: Cascade)
-  created_at DateTime @default(now())
-  updated_at DateTime @default(now())
+  uuid        String   @id @default(uuid())
+  event_id    String   @default("")
+  event       events   @relation(fields: [event_id], references: [uuid], onDelete: Cascade)
+  user_id     String   @default("")
+  user        users    @relation(fields: [user_id], references: [uuid], onDelete: Cascade)
+  checkout_at DateTime?
+  created_at  DateTime @default(now())
+  updated_at  DateTime @default(now())
 }
 
 model qr_codes {

@@ -16,6 +16,7 @@ import { EventRole } from '@prisma/client';
 import { QueryAttendanceDto } from './dto/query-attendance.dto';
 import { buildOrderBy } from '../helper/sort';
 import { Prisma } from '@prisma/client';
+import { UpdateAttendanceDto, UpdateWorkshopAttendanceDto } from './dto/update-attendance.dto';
 
 const ATTENDANCE_SORTABLE: Record<
   string,
@@ -322,7 +323,7 @@ export class AttendancesService {
       const counts = await this.prisma.workshop_bookings.count({
         where: {
           workshop_id,
-          status: `CHECKED_IN`,
+          status: { in: [`CHECKED_IN`, `CHECKED_OUT`]},
           created_at:
             start_date && end_date
               ? {
@@ -340,7 +341,7 @@ export class AttendancesService {
         orderBy: { created_at: `desc` },
         where: {
           workshop_id,
-          status: `CHECKED_IN`,
+          status: { in: [`CHECKED_IN`, `CHECKED_OUT`] },
           created_at:
             start_date && end_date
               ? {
@@ -417,6 +418,153 @@ export class AttendancesService {
     } catch (error) {
       if (error instanceof HttpException) throw error;
       throw new InternalServerErrorException(`Something were wrong: ${error}`);
+    }
+  }
+
+  async checkout(
+    event_id: string,
+    updateAttendanceDto: UpdateAttendanceDto,
+    userId: string
+  ) {
+    try {
+      const findEvent = await this.prisma.events.findFirst({
+        where: { uuid: event_id }
+      })
+      if (!findEvent) throw new NotFoundException(`Event doesn't exist`)
+
+      const findEventRole = await this.prisma.user_event_roles.findFirst({
+        where: {
+          user_id: userId,
+          role: { in: [`COMMITTEE`, `OWNER`] },
+          status: `APPROVED`,
+          event_id
+        }
+      })
+      if (!findEventRole) {
+        throw new ForbiddenException(`You are not allowed to record attendance`)
+      }
+
+      const { user_id } = updateAttendanceDto
+      const findUserEventRole = await this.prisma.user_event_roles.findFirst({
+        where: { user_id, event_id }
+      })
+      if (!findUserEventRole)
+        throw new NotFoundException(
+          `Sorry, you are not registered for this event`
+        )
+
+      const notAllowedRoles: EventRole[] = [`COMMITTEE`, `OWNER`, `TENANT`]
+      if (notAllowedRoles.includes(findUserEventRole.role))
+        throw new ConflictException(
+          `Sorry, you are registered as ${findUserEventRole.role} for this event`
+        )
+
+      const findExistingVisit = await this.prisma.log_attendances.findFirst({
+        where: { user_id, event_id },
+        orderBy: { created_at: `desc` }
+      })
+      const currentDate = new Date()
+      const existingAttendance = findExistingVisit?.created_at
+      const isToday =
+        currentDate.getDate() === existingAttendance?.getDate() &&
+        currentDate.getMonth() === existingAttendance?.getMonth() &&
+        currentDate.getFullYear() === existingAttendance?.getFullYear()
+
+      if (!findExistingVisit || !isToday)
+        throw new NotFoundException(
+          `You have not checked in to the event today`
+        )
+      else if (findExistingVisit.checkout_at) return {
+        success: true,
+        message: `You have already checkout before`,
+        data: findExistingVisit
+      }
+
+      const updateAttendanceStatus = await this.prisma.log_attendances.update({
+        where: { uuid: findExistingVisit.uuid },
+        data: {
+          checkout_at: new Date(),
+          updated_at: new Date()
+        }
+      })
+
+      const findVisitingHistory = await this.prisma.booth_visits.findMany({
+        where: { user_id }
+      })
+      const countVisit = findVisitingHistory.length
+      return {
+        success: true,
+        message: `Your checkout has been recorded successfully. You have visited a total of ${countVisit} booths`,
+        data: updateAttendanceStatus
+      }
+    } catch (error) {
+      if (error instanceof HttpException) throw error
+      throw new InternalServerErrorException(`Something went wrong: ${error}`)
+    }
+  }
+
+  async checkoutWorkshop(
+    workshop_id: string,
+    updateWorkshopAttendanceDto: UpdateWorkshopAttendanceDto,
+    userId: string
+  ) {
+    try {
+      const findWorkshop = await this.prisma.workshops.findFirst({
+        where: { uuid: workshop_id },
+        include: { workshopBookings: true }
+      })
+      if (!findWorkshop) throw new NotFoundException(`Workshop doesn't exist`)
+
+      const findEventRole = await this.prisma.user_event_roles.findFirst({
+        where: {
+          user_id: userId,
+          role: { in: [`COMMITTEE`, `OWNER`] },
+          status: `APPROVED`,
+          event_id: findWorkshop.event_id
+        }
+      })
+      if (!findEventRole) {
+        throw new ForbiddenException(`You are not allowed to record attendance`)
+      }
+
+      const { user_id } = updateWorkshopAttendanceDto
+      const findBookingWorkshop = await this.prisma.workshop_bookings.findFirst({
+        where: { workshop_id, user_id }
+      })
+
+      if (
+        !findBookingWorkshop ||
+        findBookingWorkshop.checkin_at == null ||
+        findBookingWorkshop.status !== `CHECKED_IN`
+      ) {
+        if (findBookingWorkshop?.status === `CHECKED_OUT`) return {
+          success: true,
+          message: `You have already checked out earlier`,
+          data: findBookingWorkshop
+        }
+        throw new NotFoundException(
+          `You have not checked in to this workshop yet`
+        )
+      }
+
+      const updateStatusBooking = await this.prisma.workshop_bookings.update({
+        where: { uuid: findBookingWorkshop.uuid },
+        data: {
+          status: `CHECKED_OUT`,
+          checkout_at: new Date(),
+          updated_by: userId,
+          updated_at: new Date()
+        }
+      })
+
+      return {
+        success: true,
+        message: `Your checkout for this workshop has been saved`,
+        data: updateStatusBooking
+      }
+    } catch (error) {
+      if (error instanceof HttpException) throw error
+      throw new InternalServerErrorException(`Something went wrong: ${error}`)
     }
   }
 }

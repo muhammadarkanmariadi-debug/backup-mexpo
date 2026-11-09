@@ -1,9 +1,18 @@
-import { httpGet, httpPost } from "@/shared/utils/http-client";
+import { httpGet, httpPost, httpPut } from "@/shared/utils/http-client";
 import { META_DYNAMIC } from "@/shared/utils/http-meta";
 
 /** B6 — venue/event check-in (recorder: APPROVED committee/owner). */
 export async function checkInEvent(eventId: string, userId: string) {
   return await httpPost(
+    `attendances/event/${eventId}`,
+    JSON.stringify({ user_id: userId }),
+    "token",
+  );
+}
+
+/** Venue/event check-out (recorder: APPROVED committee/owner). */
+export async function checkOutEvent(eventId: string, userId: string) {
+  return await httpPut(
     `attendances/event/${eventId}`,
     JSON.stringify({ user_id: userId }),
     "token",
@@ -28,10 +37,20 @@ export async function checkInWorkshop(workshopId: string, userId: string) {
   );
 }
 
+/** Workshop/seminar check-out (updates workshop booking with checkout_at). */
+export async function checkOutWorkshop(workshopId: string, userId: string) {
+  return await httpPut(
+    `attendances/workshop/${workshopId}`,
+    JSON.stringify({ user_id: userId }),
+    "token",
+  );
+}
+
 export interface AttendanceLog {
   uuid: string;
   user: { uuid: string; full_name: string };
   created_at: string;
+  checkout_at?: string | null;
 }
 
 export async function getEventAttendance(
