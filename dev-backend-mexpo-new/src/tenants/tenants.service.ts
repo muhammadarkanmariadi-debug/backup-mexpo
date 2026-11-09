@@ -520,6 +520,7 @@ export class TenantsService {
               },
             },
           },
+          omit: { password: true },
         });
 
         this.mailer
@@ -782,7 +783,7 @@ export class TenantsService {
         include: {
           creator: { select: { full_name: true } },
           editor: { select: { full_name: true } },
-          user: true,
+          user: { omit: { password: true } },
         },
       });
 
@@ -806,7 +807,7 @@ export class TenantsService {
           editor: { select: { full_name: true } },
           creator: { select: { full_name: true } },
           event: true,
-          tenantMembers: { include: { user: true } },
+          tenantMembers: { include: { user: { omit: { password: true } } } },
           tenantProducts: true,
           tenantTransactions: true,
           category: true,

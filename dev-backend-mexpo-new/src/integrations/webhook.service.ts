@@ -38,6 +38,35 @@ export class WebhookService {
 
   constructor(private readonly configService: ConfigService) {}
 
+  private isSafeUrl(urlStr: string): boolean {
+    try {
+      const parsed = new URL(urlStr);
+      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+        return false;
+      }
+      const hostname = parsed.hostname.toLowerCase();
+      // Block localhost, loopback, private IP ranges, link-local, and cloud metadata endpoints
+      if (
+        hostname === 'localhost' ||
+        hostname.endsWith('.localhost') ||
+        hostname === '127.0.0.1' ||
+        hostname === '::1' ||
+        hostname === '0.0.0.0' ||
+        hostname === '169.254.169.254' || // AWS / GCP metadata
+        hostname === 'metadata.google.internal' ||
+        /^10\./.test(hostname) || // 10.0.0.0/8
+        /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(hostname) || // 172.16.0.0/12
+        /^192\.168\./.test(hostname) || // 192.168.0.0/16
+        /^169\.254\./.test(hostname) // Link-local
+      ) {
+        return false;
+      }
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   /**
    * Dispatches a webhook asynchronously with HMAC signature header
    */
@@ -45,7 +74,8 @@ export class WebhookService {
     callbackUrl: string,
     payload: WebhookRegistrationPayload,
   ): Promise<boolean> {
-    if (!callbackUrl || !callbackUrl.startsWith('http')) {
+    if (!callbackUrl || !this.isSafeUrl(callbackUrl)) {
+      this.logger.warn(`Rejected dispatch to unsafe or invalid webhook URL: ${callbackUrl}`);
       return false;
     }
 

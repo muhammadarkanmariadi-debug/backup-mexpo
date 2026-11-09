@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   InternalServerErrorException,
   UnauthorizedException,
@@ -78,6 +79,13 @@ export class GoogleAuthService {
       let user: GoogleAuthedUser | null = null;
       let isNew = false;
       if (existing) {
+        // If an existing verified account was deactivated (banned/deleted by admin), prevent self-reactivation
+        if (existing.verify_at !== null && !existing.is_active) {
+          throw new ForbiddenException(
+            `Account has been deactivated. Please contact support.`,
+          );
+        }
+
         // Google proves ownership of the email → activate + verify, persist the
         // link (google_id), and sync the profile (name/photo) onto the account.
         user = await this.prisma.users.update({
