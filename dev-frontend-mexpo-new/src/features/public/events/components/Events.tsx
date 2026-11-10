@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { ArrowUpDown, Filter, RotateCcw } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { useQueries, useQuery } from "@tanstack/react-query";
 
 import EventsLayout from "./content/EventsLayout";
 import TrendingEvents from "./content/TrendingEvents";
@@ -19,19 +19,43 @@ import {
 import { getEvents } from "@/services/public.service";
 import { keys } from "@/lib/query-keys";
 import { GeometricBannerBg } from "@/shared/components/ui/GeometricBanner";
+import {
+  EVENT_SECTION_KEYS,
+  eventSectionParams,
+  type EventSectionFilters,
+  type EventSections,
+  type EventSectionTotals,
+} from "../utils/eventSections";
 
 type Category = "All Events" | "On Going" | "Upcoming" | "Past";
 type TicketFilter = "ALL" | "FREE" | "PAID";
 type SortOption = "date-asc" | "date-desc" | "name-asc" | "name-desc";
 
-const INITIAL_VISIBLE = 12;
-const STEP = 12;
+type EventsResponse = Awaited<ReturnType<typeof getEvents>>;
+
+const asEventsResponse = (events: Event[], total: number): EventsResponse => ({
+  data: events,
+  meta: {
+    counts: total,
+    count: total,
+    page: 1,
+    quantity: events.length,
+    totalPages: 1,
+  },
+  status: true,
+  code: 200,
+  message: "OK",
+});
 
 export default function Events({
   events: initialEvents,
+  initialSections,
+  initialSectionTotals,
   initialCategory = "All Events",
 }: {
   events: Event[];
+  initialSections: EventSections;
+  initialSectionTotals: EventSectionTotals;
   initialCategory?: Category;
 }) {
   const [search, setSearch] = useState("");
@@ -41,7 +65,6 @@ export default function Events({
   const [ticketFilter, setTicketFilter] = useState<TicketFilter>("ALL");
   const [sortBy, setSortBy] = useState<SortOption>("date-asc");
   const [page, setPage] = useState(1);
-  const [visibleCount, setVisibleCount] = useState(INITIAL_VISIBLE);
 
   const isAllEvents = category === "All Events";
 
@@ -54,62 +77,70 @@ export default function Events({
     return () => clearTimeout(handler);
   }, [search]);
 
-  // Build server query parameters
-  const queryParams = useMemo(() => {
-    const p: Record<string, string> = {
-      page: isAllEvents ? "1" : String(page),
-      quantity: isAllEvents ? String(visibleCount) : "12",
-    };
-    if (debouncedSearch.trim()) p.search = debouncedSearch.trim();
-    if (!isAllEvents) p.category = category;
-    if (eventType !== "ALL") p.event_type = eventType;
-    if (ticketFilter !== "ALL") p.ticket_mode = ticketFilter;
-    if (sortBy) p.sort_by = sortBy;
-    return p;
-  }, [
-    isAllEvents,
-    page,
-    visibleCount,
-    debouncedSearch,
-    category,
-    eventType,
-    ticketFilter,
-    sortBy,
-  ]);
+  // Filters shared by the overview sections and the single-category grid.
+  const sectionFilters = useMemo(() => {
+    const f: EventSectionFilters = {};
+    if (debouncedSearch.trim()) f.search = debouncedSearch.trim();
+    if (eventType !== "ALL") f.event_type = eventType;
+    if (ticketFilter !== "ALL") f.ticket_mode = ticketFilter;
+    return f;
+  }, [debouncedSearch, eventType, ticketFilter]);
+  const hasSectionFilters = Object.keys(sectionFilters).length > 0;
 
-  // Fetch server data via TanStack Query
-  const { data: response, isLoading } = useQuery({
-    queryKey: keys.events.list(queryParams),
-    queryFn: () => getEvents(queryParams),
-    placeholderData: (previousData) => previousData,
-    initialData:
-      isAllEvents && !debouncedSearch && eventType === "ALL" && ticketFilter === "ALL" && sortBy === "date-asc" && page === 1 && visibleCount === INITIAL_VISIBLE
-        ? {
-            data: initialEvents,
-            meta: {
-              counts: initialEvents.length,
-              count: initialEvents.length,
-              page: 1,
-              quantity: 12,
-              totalPages: 1,
-            },
-            status: true,
-            code: 200,
-            message: "OK",
-          }
-        : undefined,
+  // "Semua Event": one query per section (akan datang / berlangsung / selesai),
+  // seeded from the server render while no filter is active.
+  const sectionQueries = useQueries({
+    queries: EVENT_SECTION_KEYS.map((section) => {
+      const params = eventSectionParams(section, sectionFilters);
+      return {
+        queryKey: keys.events.list(params),
+        queryFn: () => getEvents(params),
+        enabled: isAllEvents,
+        placeholderData: (previousData: EventsResponse | undefined) => previousData,
+        initialData: hasSectionFilters
+          ? undefined
+          : asEventsResponse(initialSections[section], initialSectionTotals[section]),
+      };
+    }),
   });
 
-  const displayedEvents = response?.data ?? initialEvents;
+  const sections = {} as EventSections;
+  const sectionTotals = {} as EventSectionTotals;
+  EVENT_SECTION_KEYS.forEach((section, i) => {
+    sections[section] = sectionQueries[i].data?.data ?? [];
+    sectionTotals[section] = sectionQueries[i].data?.meta.counts ?? 0;
+  });
+  const sectionsLoading = sectionQueries.some((q) => q.isLoading);
+
+  // Single-category tab ("Berlangsung" / "Akan Datang" / "Selesai"): paginated grid.
+  const queryParams = useMemo(() => {
+    const p: Record<string, string> = {
+      page: String(page),
+      quantity: "12",
+      category,
+    };
+    if (sectionFilters.search) p.search = sectionFilters.search;
+    if (sectionFilters.event_type) p.event_type = sectionFilters.event_type;
+    if (sectionFilters.ticket_mode) p.ticket_mode = sectionFilters.ticket_mode;
+    if (sortBy) p.sort_by = sortBy;
+    return p;
+  }, [page, category, sectionFilters, sortBy]);
+
+  const { data: response, isLoading: listLoading } = useQuery({
+    queryKey: keys.events.list(queryParams),
+    queryFn: () => getEvents(queryParams),
+    enabled: !isAllEvents,
+    placeholderData: (previousData) => previousData,
+  });
+
+  const displayedEvents = response?.data ?? [];
   const meta = response?.meta;
   const totalCount = meta?.counts ?? displayedEvents.length;
   const totalPages = meta?.totalPages ?? Math.ceil(totalCount / 12);
-  const hasMore = isAllEvents && visibleCount < totalCount;
 
   const selectCategory = (next: Category) => {
     setCategory(next);
     setPage(1);
-    setVisibleCount(INITIAL_VISIBLE);
   };
 
   const hasActiveFilters =
@@ -125,7 +156,6 @@ export default function Events({
     setSearch("");
     setDebouncedSearch("");
     setPage(1);
-    setVisibleCount(INITIAL_VISIBLE);
   };
 
   return (
@@ -304,9 +334,14 @@ export default function Events({
       {/* List Event Terfilter */}
       <EventsLayout
         category={category}
-        search={debouncedSearch}
         events={displayedEvents}
-        isLoading={isLoading}
+        sections={sections}
+        sectionTotals={sectionTotals}
+        onSeeAll={(section) => {
+          selectCategory(section);
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        }}
+        isLoading={isAllEvents ? sectionsLoading : listLoading}
         serverPagination={
           !isAllEvents
             ? {
@@ -320,17 +355,6 @@ export default function Events({
         }
       />
 
-      {/* Browse more — reveal the rest of the bounded catalog (All Events tab). */}
-      {hasMore && (
-        <div className="mt-8 flex justify-center pb-10">
-          <button
-            onClick={() => setVisibleCount((c) => c + STEP)}
-            className="rounded-lg border border-gray-200 bg-white px-6 py-2.5 text-sm font-semibold text-gray-600 transition-colors hover:bg-gray-50"
-          >
-            Muat Lebih Banyak
-          </button>
-        </div>
-      )}
     </div>
   );
 }
