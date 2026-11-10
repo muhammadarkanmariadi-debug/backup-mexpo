@@ -12,6 +12,7 @@ import {
   IsEmail,
   IsEnum,
   IsInt,
+  Min,
   IsNotEmpty,
   IsNumber,
   IsObject,
@@ -44,6 +45,7 @@ export class IntegrationCustomFieldDto {
 
   @IsOptional()
   @IsInt()
+  @Min(0)
   position?: number;
 }
 
