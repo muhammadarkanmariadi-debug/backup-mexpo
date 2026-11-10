@@ -359,10 +359,13 @@ Relations: `users_bio` (1:1), all audit FKs (`creator_*`/`editor_*` on ~20 table
 | `id` | **Int** | PK, `@default(autoincrement())` | |
 | `event_id` | String | FK → events, Cascade | |
 | `user_id` | String | FK → users, Cascade | |
+| `souvenir_name` | String | `@default("")` | catalog item name at redemption time |
+| `tier_id` | String? | nullable, `@@index([event_id, tier_id])` | catalog item id (`events.souvenir_rules.tiers[].id`); counts redemptions against item `stock` (migration `20261110120000_add_souvenir_tier_id`) |
+| `points_earned` / `points_spent` | Int | `@default(0)` | point balance bookkeeping (point mode) |
 | `created_by` / `updated_by` | String | FK audit | |
 | `created_at` / `updated_at` | DateTime | | |
 
-> No rule columns, no redemption metadata (when/how granted), no claim status. Uniqueness is service-enforced.
+> Point mode allows repeated redemptions while the balance lasts; standard (legacy) mode is one row per `(event_id, user_id)`, service-enforced. Item stock lives in the catalog JSON (`tiers[].stock`, null = unlimited); remaining = stock − redemptions with that `tier_id`.
 
 ### 2.25 `ticket_types` (Sprint 3 / A1)
 | Column | Type | Constraints | Notes |
