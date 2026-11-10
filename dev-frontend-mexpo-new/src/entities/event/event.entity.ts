@@ -29,11 +29,23 @@ export type EventType =
   | 'CAMPUS_SCHOOL'
   | 'OTHER';
 
+/** A souvenir catalog item; redeeming it costs `minPoints` points. */
 export interface SouvenirTier {
   id: string;
   name: string;
   minPoints: number;
   description?: string;
+  /** Photo URL (uploaded via `uploadSouvenirImage`). */
+  image?: string;
+  /** Units available; absent/null = unlimited. */
+  stock?: number | null;
+}
+
+/** Catalog item with live availability, as returned by the backend. */
+export interface SouvenirCatalogItem extends SouvenirTier {
+  /** null = unlimited. */
+  remaining: number | null;
+  soldOut: boolean;
 }
 
 export interface SouvenirRules {
@@ -128,6 +140,8 @@ export interface Event {
   ticket_mode: TicketMode;
   features: EventFeatures | null;
   souvenir_rules: SouvenirRules | null;
+  /** Public event detail only: point-system catalog with remaining stock. */
+  souvenir_catalog?: SouvenirCatalogItem[];
   rejection_reason: string | null;
   payout_bank_name?: string;
   payout_account_number?: string;
