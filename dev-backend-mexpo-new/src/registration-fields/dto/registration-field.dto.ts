@@ -5,6 +5,7 @@ import {
   IsBoolean,
   IsEnum,
   IsInt,
+  Min,
   IsNotEmpty,
   IsObject,
   IsOptional,
@@ -50,6 +51,7 @@ export class CreateRegistrationFieldDto {
 
   @IsOptional()
   @IsInt()
+  @Min(0, { message: `Urutan tidak boleh negatif` })
   @Type(() => Number)
   position?: number;
 }
@@ -91,6 +93,7 @@ export class UpdateRegistrationFieldDto {
 
   @IsOptional()
   @IsInt()
+  @Min(0, { message: `Urutan tidak boleh negatif` })
   @Type(() => Number)
   position?: number;
 }
