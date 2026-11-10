@@ -15,12 +15,57 @@ import { PrismaService } from '../prisma/prisma.service';
  * Point mode (`usePointSystem` true): visitors earn points per enabled
  * activity and the souvenir type is decided by organizer-defined `tiers`.
  */
+/** A souvenir catalog item; redeeming it costs `minPoints`. */
 export type SouvenirTier = {
   id: string;
   name: string;
   minPoints: number;
   description?: string;
+  image?: string;
+  /** Units available; absent/null = unlimited. */
+  stock?: number | null;
 };
+
+/** Catalog item with live availability (stock minus redemptions). */
+export type SouvenirCatalogItem = SouvenirTier & {
+  redeemed: number;
+  /** null = unlimited. */
+  remaining: number | null;
+  soldOut: boolean;
+};
+
+/**
+ * The event's souvenir catalog sorted by point cost, with remaining stock.
+ * Redemptions are counted per item through `souvenirs.tier_id`.
+ */
+export async function getSouvenirCatalog(
+  prisma: PrismaService,
+  event: { uuid: string; souvenir_rules: unknown },
+): Promise<SouvenirCatalogItem[]> {
+  const rules = (event.souvenir_rules ?? {}) as SouvenirRules;
+  const items = [...(rules.tiers ?? [])].sort(
+    (a, b) => a.minPoints - b.minPoints,
+  );
+  if (items.length === 0) return [];
+
+  const counts = new Map<string, number>();
+  if (items.some((t) => t.stock != null)) {
+    const grouped = await prisma.souvenirs.groupBy({
+      by: [`tier_id`],
+      where: { event_id: event.uuid, tier_id: { in: items.map((t) => t.id) } },
+      _count: { _all: true },
+    });
+    for (const g of grouped) {
+      if (g.tier_id) counts.set(g.tier_id, g._count._all);
+    }
+  }
+
+  return items.map((t) => {
+    const redeemed = counts.get(t.id) ?? 0;
+    const remaining = t.stock == null ? null : Math.max(0, t.stock - redeemed);
+    return { ...t, redeemed, remaining, soldOut: remaining === 0 };
+  });
+}
 
 export type SouvenirRules = {
   usePointSystem?: boolean;
@@ -65,7 +110,7 @@ export type SouvenirEligibility = {
   /** Remaining balance = totalPoints - spentPoints (used to unlock tiers). */
   availablePoints: number;
   pointBreakdown: PointBreakdown;
-  tiers: (SouvenirTier & { unlocked: boolean; missingPoints: number })[];
+  tiers: (SouvenirCatalogItem & { unlocked: boolean; missingPoints: number })[];
   eligibleTiers: SouvenirTier[];
   recommendedTier: SouvenirTier | null;
   data: {
@@ -154,26 +199,31 @@ export async function evaluateSouvenirEligibility(
     const spentPoints = spentAgg._sum.points_spent ?? 0;
     const availablePoints = Math.max(0, totalPoints - spentPoints);
 
-    const sortedTiers = [...(rules.tiers ?? [])].sort(
-      (a, b) => a.minPoints - b.minPoints,
-    );
-    const tiers = sortedTiers.map((t) => ({
+    const catalog = await getSouvenirCatalog(prisma, event);
+    const tiers = catalog.map((t) => ({
       ...t,
       unlocked: availablePoints >= t.minPoints,
       missingPoints: Math.max(0, t.minPoints - availablePoints),
     }));
-    const eligibleTiers = sortedTiers.filter(
-      (t) => availablePoints >= t.minPoints,
-    );
+    // Redeemable = affordable AND still in stock.
+    const eligibleTiers = tiers.filter((t) => t.unlocked && !t.soldOut);
     const recommendedTier =
       eligibleTiers.length > 0 ? eligibleTiers[eligibleTiers.length - 1] : null;
 
-    if (sortedTiers.length === 0) {
-      reasons.push(`Jenis souvenir belum diatur oleh organizer`);
+    if (catalog.length === 0) {
+      reasons.push(`Katalog souvenir belum diatur oleh organizer`);
     } else if (!recommendedTier) {
-      reasons.push(
-        `Poin kurang: sisa ${availablePoints} poin, minimal penukaran ${sortedTiers[0].minPoints} poin (${sortedTiers[0].name})`,
-      );
+      const affordable = tiers.filter((t) => t.unlocked);
+      const cheapestInStock = tiers.find((t) => !t.soldOut);
+      if (affordable.length > 0) {
+        reasons.push(`Stok souvenir yang bisa ditukar sudah habis`);
+      } else if (!cheapestInStock) {
+        reasons.push(`Semua stok souvenir sudah habis`);
+      } else {
+        reasons.push(
+          `Poin kurang: sisa ${availablePoints} poin, minimal penukaran ${cheapestInStock.minPoints} poin (${cheapestInStock.name})`,
+        );
+      }
     }
 
     return {
@@ -184,7 +234,11 @@ export async function evaluateSouvenirEligibility(
       spentPoints,
       availablePoints,
       pointBreakdown: {
-        booth: { enabled: boothEnabled, count: boothVisits, points: boothPoints },
+        booth: {
+          enabled: boothEnabled,
+          count: boothVisits,
+          points: boothPoints,
+        },
         seminar: {
           enabled: seminarEnabled,
           count: seminarCount,
