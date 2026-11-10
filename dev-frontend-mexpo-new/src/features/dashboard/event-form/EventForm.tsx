@@ -38,6 +38,7 @@ import {
   EVENT_TYPE_LABELS,
   EVENT_FEATURE_LABELS,
 } from "@/shared/data/labels";
+import SouvenirCatalogEditor, { normalizeCatalog } from "@/features/dashboard/souvenir/SouvenirCatalogEditor";
 
 const EVENT_TYPES: { value: EventType; label: string }[] = [
   { value: "EXPO", label: EVENT_TYPE_LABELS.EXPO },
@@ -204,12 +205,9 @@ export default function EventForm({ event }: Props) {
     },
   });
 
+  // Souvenirs always use the point system + catalog (the old "min. N booth"
+  // mode is no longer offered; legacy events switch over when saved here).
   const [souvenirRules, setSouvenirRules] = useState({
-    minVisitedBooth: String(event?.souvenir_rules?.minVisitedBooth ?? 5),
-    minTransaction: String(event?.souvenir_rules?.minTransaction ?? ""),
-    joinedSeminar: event?.souvenir_rules?.joinedSeminar ?? false,
-    requireAll: event?.souvenir_rules?.requireAll ?? true,
-    usePointSystem: event?.souvenir_rules?.usePointSystem ?? false,
     boothEnabled: event?.souvenir_rules?.boothVisitPoint?.enabled ?? true,
     pointsPerVisit: event?.souvenir_rules?.boothVisitPoint?.pointsPerVisit ?? 10,
     seminarEnabled: event?.souvenir_rules?.seminarPoint?.enabled ?? true,
@@ -377,8 +375,7 @@ export default function EventForm({ event }: Props) {
         event_type: form.event_type,
         ticket_mode: form.features.paidTicket ? ("PAID" as const) : ("FREE" as const),
         features: form.features,
-        souvenir_rules: souvenirRules.usePointSystem
-          ? {
+        souvenir_rules: {
               usePointSystem: true,
               boothVisitPoint: {
                 enabled: souvenirRules.boothEnabled,
@@ -394,21 +391,7 @@ export default function EventForm({ event }: Props) {
                 amountStep: Number(souvenirRules.amountStep) || 0,
                 pointsPerAmountStep: Number(souvenirRules.pointsPerAmountStep) || 0,
               },
-              tiers: souvenirTiers
-                .filter((t) => t.name.trim())
-                .map((t) => ({
-                  id: t.id,
-                  name: t.name.trim(),
-                  minPoints: Number(t.minPoints) || 0,
-                  description: t.description?.trim() || undefined,
-                })),
-            }
-          : {
-              usePointSystem: false,
-              minVisitedBooth: Number(souvenirRules.minVisitedBooth) || 0,
-              minTransaction: Number(souvenirRules.minTransaction) || 0,
-              joinedSeminar: souvenirRules.joinedSeminar,
-              requireAll: souvenirRules.requireAll,
+              tiers: normalizeCatalog(souvenirTiers),
             },
       };
 
@@ -868,7 +851,7 @@ export default function EventForm({ event }: Props) {
                     placeholder="https://www.google.com/maps/embed?pb=... atau kode <iframe>"
                   />
                   <p className="text-[11px] text-gray-400 mt-1">
-                    Jika dikosongkan, halaman publik akan mengarahkan peta ke lokasi event secara otomatis.
+                    Tempel kode/URL dari Google Maps → Bagikan → Sematkan peta. Link biasa (maps/place, koordinat) diubah otomatis; link pendek maps.app.goo.gl tidak bisa disematkan. Jika dikosongkan, peta memakai lokasi event.
                   </p>
                 </div>
 
@@ -990,18 +973,9 @@ export default function EventForm({ event }: Props) {
                     <p className="text-xs sm:text-sm font-bold text-gray-900">
                       Aturan Penukaran Souvenir
                     </p>
-                    <label className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-gray-800 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={souvenirRules.usePointSystem}
-                        onChange={(e) =>
-                          setSouvenirRules({ ...souvenirRules, usePointSystem: e.target.checked })
-                        }
-                      />
-                      Gunakan Sistem Poin &amp; Jenis Souvenir
-                    </label>
-
-                    {souvenirRules.usePointSystem ? (
+                    <p className="text-[11px] text-gray-500">
+                      Pengunjung mengumpulkan poin dari aktivitas, lalu menukarnya dengan item di katalog souvenir.
+                    </p>
                       <div className="space-y-4">
                         {/* Sumber poin */}
                         <div className="space-y-3">
@@ -1100,92 +1074,12 @@ export default function EventForm({ event }: Props) {
                           </div>
                         </div>
 
-                        {/* Jenis souvenir (tiers) */}
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between">
-                            <p className="text-xs font-bold text-gray-700">
-                              Jenis Souvenir &amp; Minimal Poin
-                            </p>
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setSouvenirTiers([
-                                  ...souvenirTiers,
-                                  { id: crypto.randomUUID(), name: "", minPoints: 0 },
-                                ])
-                              }
-                              className="text-xs font-semibold text-secondary cursor-pointer"
-                            >
-                              + Tambah Jenis
-                            </button>
-                          </div>
-                          {souvenirTiers.length === 0 && (
-                            <p className="text-[11px] text-gray-400">
-                              Belum ada jenis souvenir. Contoh: Sticker Pack = 20 poin, Totebag = 50 poin.
-                            </p>
-                          )}
-                          {souvenirTiers.map((tier, idx) => (
-                            <div key={tier.id} className="grid grid-cols-12 gap-2 items-end">
-                              <div className="col-span-6">
-                                <Input
-                                  label="Nama Souvenir"
-                                  value={tier.name}
-                                  onChange={(e) =>
-                                    setSouvenirTiers(
-                                      souvenirTiers.map((t, i) =>
-                                        i === idx ? { ...t, name: e.target.value } : t,
-                                      ),
-                                    )
-                                  }
-                                  placeholder="Totebag"
-                                />
-                              </div>
-                              <div className="col-span-5">
-                                <FormattedNumberInput
-                                  label="Minimal Poin"
-                                  value={Number(tier.minPoints) || 0}
-                                  onChange={(val) =>
-                                    setSouvenirTiers(
-                                      souvenirTiers.map((t, i) =>
-                                        i === idx ? { ...t, minPoints: Number(val) } : t,
-                                      ),
-                                    )
-                                  }
-                                  suffix="Poin"
-                                  placeholder="50"
-                                />
-                              </div>
-                              <button
-                                type="button"
-                                onClick={() => setSouvenirTiers(souvenirTiers.filter((_, i) => i !== idx))}
-                                className="col-span-1 pb-3 text-gray-400 hover:text-red-500 cursor-pointer"
-                                aria-label="Hapus jenis souvenir"
-                              >
-                                <X className="w-4 h-4" />
-                              </button>
-                            </div>
-                          ))}
-                        </div>
+                        <SouvenirCatalogEditor
+                          eventId={event?.uuid}
+                          items={souvenirTiers}
+                          onChange={setSouvenirTiers}
+                        />
                       </div>
-                    ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <FormattedNumberInput
-                        label="Min. Kunjungan Booth"
-                        value={Number(souvenirRules.minVisitedBooth) || 5}
-                        onChange={(val) => setSouvenirRules({ ...souvenirRules, minVisitedBooth: String(val) })}
-                        suffix="Booth"
-                        placeholder="5"
-                        hint="Default: minimal 5 booth"
-                      />
-                      <CurrencyInput
-                        label="Min. Total Transaksi"
-                        value={Number(souvenirRules.minTransaction) || 0}
-                        onChange={(val) => setSouvenirRules({ ...souvenirRules, minTransaction: String(val) })}
-                        placeholder="0"
-                        hint="Nominal transaksi POS tenant"
-                      />
-                    </div>
-                    )}
                   </div>
                 )}
 
