@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Gift, Loader2, XCircle } from "lucide-react";
+import Image from "next/image";
+import { Gift, Loader2, Package, XCircle } from "lucide-react";
 
 import PageHeader from "@/shared/components/ui/PageHeader";
 import PageShell from "@/shared/components/ui/PageShell";
@@ -184,28 +185,43 @@ export default function SouvenirCounterPage({ event }: { event: Event }) {
                     </p>
                   )}
                   {checkResult.tiers.length > 0 && (
-                    <div className="space-y-1 pt-1">
-                      <p className="font-semibold text-gray-700">Jenis Souvenir</p>
+                    <div className="space-y-1.5 pt-1">
+                      <p className="font-semibold text-gray-700">Katalog Souvenir</p>
                       {checkResult.tiers.map((tier) => {
+                        const redeemable = tier.unlocked && !tier.soldOut;
                         const selected =
+                          redeemable &&
                           (selectedTierId ?? checkResult.recommendedTier?.id) === tier.id;
                         return (
                           <button
                             key={tier.id}
                             type="button"
-                            disabled={!tier.unlocked || checkResult.alreadyClaimed}
+                            disabled={!redeemable || checkResult.alreadyClaimed}
                             onClick={() => setSelectedTierId(tier.id)}
-                            className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-left ${
-                              selected && tier.unlocked
-                                ? "border-green-500 bg-green-50"
-                                : "border-gray-200 bg-white"
-                            } ${tier.unlocked ? "cursor-pointer" : "opacity-50"}`}
+                            className={`flex w-full items-center gap-3 rounded-lg border p-2 text-left ${
+                              selected ? "border-success-500 bg-success-50" : "border-gray-200 bg-white"
+                            } ${redeemable ? "cursor-pointer" : "opacity-50"}`}
                           >
-                            <span>
-                              {tier.name} · {tier.minPoints} poin
+                            <span className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-md bg-gray-100 text-gray-400">
+                              {tier.image ? (
+                                <Image src={tier.image} alt={tier.name} fill sizes="40px" className="object-cover" />
+                              ) : (
+                                <Package className="h-4 w-4" />
+                              )}
                             </span>
-                            <span className="font-semibold">
-                              {tier.unlocked ? "Tersedia" : `Kurang ${tier.missingPoints} poin`}
+                            <span className="min-w-0 flex-1">
+                              <span className="block truncate font-semibold text-gray-800">{tier.name}</span>
+                              <span className="block text-gray-500">
+                                {tier.minPoints} poin
+                                {tier.remaining != null ? ` · sisa ${tier.remaining}` : ""}
+                              </span>
+                            </span>
+                            <span className="shrink-0 font-semibold">
+                              {tier.soldOut
+                                ? "Stok habis"
+                                : tier.unlocked
+                                  ? "Tersedia"
+                                  : `Kurang ${tier.missingPoints} poin`}
                             </span>
                           </button>
                         );
