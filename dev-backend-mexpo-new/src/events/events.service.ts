@@ -61,7 +61,8 @@ export class EventsService {
       }
       let photo: string = ``;
       if (file) {
-        const filename = `${new Date().getTime().toString()}-${file.originalname}`;
+        const sanitized = file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
+        const filename = `${new Date().getTime().toString()}-${sanitized}`;
         photo = `${this.configService.get<string>(`MINIO_ENDPOINT`)}/expo-project-event/${filename}`;
         await this.s3Service.upload(
           `expo-project-event`,
@@ -328,7 +329,8 @@ export class EventsService {
           const oldFilename = oldFileUrl.split('/').pop() || '';
           await this.s3Service.delete(`expo-project-event`, oldFilename);
         }
-        const filename = `${new Date().getTime().toString()}-${file.originalname}`;
+        const sanitized = file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
+        const filename = `${new Date().getTime().toString()}-${sanitized}`;
         fileUrl = `${this.configService.get<string>(`MINIO_ENDPOINT`)}/expo-project-event/${filename}`;
         await this.s3Service.upload(
           `expo-project-event`,
@@ -485,27 +487,29 @@ export class EventsService {
    * A3 — Owner/committee submits a publish request: event → PENDING and waits
    * for super admin approval.
    */
-  async publishRequest(id: string, userId: string) {
+  async publishRequest(id: string, userId: string, role?: UserRole) {
     try {
       const findEvent = await this.prisma.events.findFirst({
-        where: { uuid: id },
+        where: isUuid(id) ? { uuid: id } : { slug: id },
       });
       if (!findEvent) {
         throw new NotFoundException(`Event doesn't exists`);
       }
 
-      const findEventUser = await this.prisma.user_event_roles.findFirst({
-        where: {
-          event_id: id,
-          user_id: userId,
-          status: `APPROVED`,
-          role: { in: [`OWNER`, `COMMITTEE`] },
-        },
-      });
-      if (!findEventUser) {
-        throw new ForbiddenException(
-          `Only the event owner/committee can submit a publish request`,
-        );
+      if (role !== UserRole.SUPERADMIN) {
+        const findEventUser = await this.prisma.user_event_roles.findFirst({
+          where: {
+            event_id: findEvent.uuid,
+            user_id: userId,
+            status: `APPROVED`,
+            role: { in: [`OWNER`, `COMMITTEE`] },
+          },
+        });
+        if (!findEventUser) {
+          throw new ForbiddenException(
+            `Only the event owner/committee can submit a publish request`,
+          );
+        }
       }
 
       if (findEvent.status === `PUBLISHED`) {
@@ -523,7 +527,7 @@ export class EventsService {
       }
 
       const updatedEvent = await this.prisma.events.update({
-        where: { uuid: id },
+        where: { uuid: findEvent.uuid },
         data: {
           status: `PENDING`,
           updated_by: userId,

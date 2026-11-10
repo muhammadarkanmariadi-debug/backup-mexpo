@@ -119,7 +119,11 @@ export class EventsController {
     @Param('id') id: string,
     @Request() request: authType.AuthRequest,
   ) {
-    return this.eventsService.publishRequest(id, request.user.uuid);
+    return this.eventsService.publishRequest(
+      id,
+      request.user.uuid,
+      request.user.role as UserRole,
+    );
   }
 
   @Put(':id/approval')
