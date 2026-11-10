@@ -54,7 +54,8 @@ const securityHeaders = [
       `img-src 'self' data: blob: ${cspOrigins} https://images.unsplash.com https://img.youtube.com https://i.ytimg.com https://via.placeholder.com https://lh3.googleusercontent.com https://*.googleusercontent.com https://app.sandbox.midtrans.com https://app.midtrans.com`,
       "font-src 'self' data: https://fonts.gstatic.com",
       `connect-src 'self' ${cspOrigins} https://app.sandbox.midtrans.com https://app.midtrans.com https://api.sandbox.midtrans.com https://api.midtrans.com https://accounts.google.com https://*.googleapis.com https://cloudflareinsights.com https://*.cloudflareinsights.com`,
-      "frame-src 'self' https://app.sandbox.midtrans.com https://app.midtrans.com https://accounts.google.com",
+      // Google Maps embeds (event location + contact page) render from www/maps.google.com.
+      "frame-src 'self' https://app.sandbox.midtrans.com https://app.midtrans.com https://accounts.google.com https://www.google.com https://maps.google.com",
       "frame-ancestors 'self'",
       "object-src 'none'",
       "base-uri 'self'",
@@ -89,6 +90,12 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   /* config options here */
   experimental: {
+    // Uploads (event photo, logos, speaker photos, CMS images, …) go through
+    // server actions, whose default 1 MB body limit rejected most real photos
+    // with a 413. The backend accepts images up to 4 MB, plus multipart overhead.
+    serverActions: {
+      bodySizeLimit: "5mb",
+    },
     optimizePackageImports: [
       "lucide-react",
       "@fortawesome/react-fontawesome",
@@ -110,6 +117,9 @@ const nextConfig: NextConfig = {
     minimumCacheTTL: 604800,
     deviceSizes: [640, 750, 828, 1080, 1200, 1920],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+    // Local dev serves uploads from MinIO on localhost:9000; Next 16 refuses to
+    // optimize images from local IPs unless allowed. Never enabled in production.
+    dangerouslyAllowLocalIP: process.env.NODE_ENV !== "production",
     remotePatterns: [
       ...dynamicRemotePatterns,
       ...(process.env.NODE_ENV !== "production"
