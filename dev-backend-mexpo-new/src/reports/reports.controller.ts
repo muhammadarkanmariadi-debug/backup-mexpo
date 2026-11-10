@@ -41,8 +41,9 @@ export class ReportsController {
     );
     res.setHeader(
       `Content-Disposition`,
-      `attachment; filename="${result.filename}"`,
+      `attachment; filename="${result.filename}"; filename*=UTF-8''${encodeURIComponent(result.filename)}`,
     );
+    res.setHeader('Access-Control-Expose-Headers', 'Content-Disposition');
     res.send(result.buffer);
   }
 
@@ -60,8 +61,9 @@ export class ReportsController {
     );
     res.setHeader(
       `Content-Disposition`,
-      `attachment; filename="${result.filename}"`,
+      `attachment; filename="${result.filename}"; filename*=UTF-8''${encodeURIComponent(result.filename)}`,
     );
+    res.setHeader('Access-Control-Expose-Headers', 'Content-Disposition');
     res.send(result.buffer);
   }
 

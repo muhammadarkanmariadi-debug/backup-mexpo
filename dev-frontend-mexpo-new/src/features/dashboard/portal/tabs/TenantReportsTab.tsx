@@ -78,10 +78,10 @@ export function TenantReportsTab({ eventId, tenantId }: { eventId: string; tenan
         <button
           onClick={() => void handleExport()}
           disabled={exporting}
-          className="flex items-center justify-center gap-2 bg-secondary hover:bg-secondary/80 disabled:opacity-50 px-5 py-3 rounded-lg font-semibold text-white transition-colors"
+          className="flex items-center justify-center gap-2 bg-secondary hover:bg-secondary/80 disabled:opacity-50 px-5 py-3 rounded-lg font-semibold text-white transition-colors cursor-pointer"
         >
           {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-          Unduh Excel
+          Ekspor Hasil Penjualan
         </button>
       </div>
 
