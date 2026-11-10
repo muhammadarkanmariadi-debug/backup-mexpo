@@ -27,6 +27,7 @@ import {
   buildRegistrationTicketEmailHtml,
   buildTicketEmailAttachments,
 } from '../mail/templates/registration-ticket.template';
+import { getSouvenirCatalog } from '../souvenirs/souvenir-rules';
 
 @Injectable()
 export class PublicApiService {
@@ -389,6 +390,15 @@ export class PublicApiService {
       const count_workshops = await this.prisma.workshops.count({
         where: { event_id: event_uuid },
       });
+      // Souvenir catalog (point system) with live stock, for the public page.
+      const features = (findEvent.features ?? {}) as { souvenir?: boolean };
+      const souvenirRules = (findEvent.souvenir_rules ?? {}) as {
+        usePointSystem?: boolean;
+      };
+      const souvenir_catalog =
+        features.souvenir && souvenirRules.usePointSystem
+          ? await getSouvenirCatalog(this.prisma, findEvent)
+          : [];
 
       return {
         success: true,
@@ -398,6 +408,7 @@ export class PublicApiService {
           count_tenants,
           count_user_registration,
           count_workshops,
+          souvenir_catalog,
         },
       };
     } catch (error) {
@@ -811,7 +822,11 @@ export class PublicApiService {
           },
           include: { ticket_type: true },
         });
-        if (ticket?.ticket_type && ticket.ticket_type.price > 0 && ticket.status !== `PAID`) {
+        if (
+          ticket?.ticket_type &&
+          ticket.ticket_type.price > 0 &&
+          ticket.status !== `PAID`
+        ) {
           try {
             payment = await this.paymentsService.createPaymentForTicket({
               eventId: event_id,
