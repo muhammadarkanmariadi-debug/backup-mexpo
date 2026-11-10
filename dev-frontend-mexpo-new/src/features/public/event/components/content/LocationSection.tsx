@@ -4,6 +4,7 @@ import React from "react";
 import { MapPin, Navigation } from "lucide-react";
 import { Event } from "@/entities/event/event.entity";
 import ContentTitle2 from "@/shared/components/ui/ContentTitle2";
+import { resolveMapsEmbedUrl } from "@/shared/utils/maps-embed";
 
 interface LocationSectionProps {
   eventData: Event;
@@ -12,19 +13,9 @@ interface LocationSectionProps {
 export default function LocationSection({ eventData }: LocationSectionProps) {
   if (!eventData.location && !eventData.features?.maps_embed_url) return null;
 
-  const rawEmbed = eventData.features?.maps_embed_url?.trim();
-  // Extract URL if user pasted an iframe tag
-  const extractedSrc = rawEmbed?.match(/src=["']([^"']+)["']/)?.[1] || rawEmbed;
-  const isCustomEmbed = Boolean(
-    extractedSrc &&
-      (extractedSrc.startsWith("http://") || extractedSrc.startsWith("https://"))
-  );
-
-  const locationQuery = encodeURIComponent(eventData.location || eventData.name);
-  const directionsUrl = `https://www.google.com/maps/search/?api=1&query=${locationQuery}`;
-  const embedUrl = isCustomEmbed
-    ? extractedSrc!
-    : `https://www.google.com/maps?q=${locationQuery}&output=embed`;
+  const locationText = eventData.location || eventData.name;
+  const directionsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(locationText)}`;
+  const embedUrl = resolveMapsEmbedUrl(eventData.features?.maps_embed_url, locationText);
 
   return (
     <section id="lokasi" className="py-12 sm:py-16 bg-white ">
