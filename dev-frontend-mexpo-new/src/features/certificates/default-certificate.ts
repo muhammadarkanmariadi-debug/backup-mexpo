@@ -1,12 +1,14 @@
 import { CertificateTemplateEnvelope } from "@/entities/event/certificate-template.entity";
+import { makeFrameNode } from "./frame";
 
 export const DEFAULT_CERTIFICATE_TEMPLATE: CertificateTemplateEnvelope = {
   version: 1,
   width: 1200,
   height: 840,
+  // The frame is its own (bottom, locked) layer, so a colour background keeps it.
   background: {
-    type: "image",
-    url: "/images/cert.png",
+    type: "color",
+    value: "#ffffff",
   },
   nodes: [
     {
@@ -15,6 +17,7 @@ export const DEFAULT_CERTIFICATE_TEMPLATE: CertificateTemplateEnvelope = {
         id: "main-layer",
       },
       children: [
+        makeFrameNode(1200, 840),
         // Certificate Number
         {
           className: "Text",
