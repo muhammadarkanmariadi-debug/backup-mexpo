@@ -115,7 +115,7 @@ export const httpRequest = async <T = Record<string, never>>(
       status: (data?.success as boolean | undefined) ?? true,
       message: (data?.message as string | null | undefined) ?? null,
       token: (data?.token as string | null | undefined) ?? null,
-      data: (data?.data as T | null | undefined) ?? null,
+      data: ((data?.data !== undefined ? data?.data : data) as T | null | undefined) ?? null,
       meta: (data?.meta as unknown | null | undefined) ?? null,
       code: (data?.status as number | undefined) ?? response.status,
     };

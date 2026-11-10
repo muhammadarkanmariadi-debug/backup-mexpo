@@ -64,22 +64,37 @@ const VerificationBox = () => {
         setCheckingStatus(true);
         try {
             const res = await checkAccountStatus(targetEmail);
-            const data = res?.data as { is_verified?: boolean; registered?: boolean; message?: string } | null;
-            if (res.status && data) {
+            const data = (res?.data ?? {}) as {
+                is_verified?: boolean;
+                registered?: boolean;
+                message?: string;
+            };
+
+            const isSuccess = Boolean(res.status);
+            const isVerified = Boolean(data.is_verified);
+            const isRegistered = Boolean(data.registered ?? isVerified);
+            const message = data.message || res.message || "";
+
+            if (isSuccess && isRegistered) {
                 setStatusResult({
                     checked: true,
-                    is_verified: data.is_verified,
-                    message: data.message,
+                    is_verified: isVerified,
+                    message: message,
                 });
 
-                if (data.is_verified) {
+                if (isVerified) {
                     setIsVerified(true);
-                    toast.success("Akun sudah aktif dan terverifikasi!");
-                } else if (data.registered) {
-                    toast.info(data.message || "Akun terdaftar, namun belum diverifikasi.");
+                    toast.success(message || "Akun Anda sudah aktif dan terverifikasi!");
                 } else {
-                    toast.error(data.message || "Email belum terdaftar.");
+                    toast.error(message || "Akun belum aktif. Silakan lakukan verifikasi email terlebih dahulu.");
                 }
+            } else if (isSuccess && !isRegistered) {
+                setStatusResult({
+                    checked: true,
+                    is_verified: false,
+                    message: message || "Email belum terdaftar di sistem.",
+                });
+                toast.error(message || "Email belum terdaftar.");
             } else {
                 toast.error(res.message || "Gagal memeriksa status akun.");
             }
@@ -105,10 +120,27 @@ const VerificationBox = () => {
                     duration: 5000,
                 });
             } else {
-                toast.error("Gagal mengirim email verifikasi", {
-                    description: res.message || "Silakan coba lagi nanti.",
-                    duration: 5000,
-                });
+                const msgLower = (res.message || "").toLowerCase();
+                const isAlreadyVerified =
+                    msgLower.includes("already verified") ||
+                    msgLower.includes("sudah aktif") ||
+                    msgLower.includes("sudah terverifikasi") ||
+                    msgLower.includes("sudah diverifikasi");
+
+                if (isAlreadyVerified) {
+                    setIsVerified(true);
+                    setStatusResult({
+                        checked: true,
+                        is_verified: true,
+                        message: "Akun Anda sudah aktif dan terverifikasi.",
+                    });
+                    toast.success("Akun Anda sudah aktif dan terverifikasi!");
+                } else {
+                    toast.error("Gagal mengirim email verifikasi", {
+                        description: res.message || "Silakan coba lagi nanti.",
+                        duration: 5000,
+                    });
+                }
             }
         } catch (error) {
             toast.error("Terjadi kesalahan", {
@@ -242,9 +274,9 @@ const VerificationBox = () => {
             </div>
 
             {statusResult && (
-                <div className={`p-4 rounded-xl border text-sm ${statusResult.is_verified ? "bg-emerald-50 border-emerald-200 text-emerald-800" : "bg-blue-50 border-blue-200 text-blue-800"}`}>
-                    <p className="font-semibold">{statusResult.is_verified ? "Akun Sudah Terverifikasi!" : "Status Pendaftaran Akun:"}</p>
-                    <p className="mt-1 text-xs">{statusResult.message}</p>
+                <div className={`p-4 rounded-xl border text-sm ${statusResult.is_verified ? "bg-emerald-50 border-emerald-200 text-emerald-800" : "bg-rose-50 border-rose-200 text-rose-800"}`}>
+                    <p className="font-semibold">{statusResult.is_verified ? "Akun Anda Sudah Aktif & Terverifikasi!" : "Akun Belum Aktif"}</p>
+                    <p className="mt-1 text-xs">{statusResult.message || (statusResult.is_verified ? "Silakan masuk ke akun Anda." : "Silakan cek kotak masuk email Anda atau kirim ulang tautan verifikasi.")}</p>
                     {statusResult.is_verified && (
                         <div className="mt-3">
                             <Button variant="primary" size="sm" href="/auth">Masuk Sekarang</Button>

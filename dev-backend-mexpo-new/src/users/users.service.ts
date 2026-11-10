@@ -555,7 +555,7 @@ export class UsersService {
         throw new NotFoundException(`Email is not registered`);
       }
       if (findEmail.verify_at) {
-        throw new ConflictException(`Email is already verified`);
+        throw new ConflictException(`Akun Anda sudah aktif dan terverifikasi.`);
       }
 
       // Invalidate any previous, unexpired verification links for this user.
@@ -650,6 +650,11 @@ export class UsersService {
       if (!findUser) {
         return {
           success: false,
+          data: {
+            registered: false,
+            is_active: false,
+            is_verified: false,
+          },
           registered: false,
           is_active: false,
           is_verified: false,
@@ -661,6 +666,11 @@ export class UsersService {
 
       return {
         success: true,
+        data: {
+          registered: true,
+          is_active: findUser.is_active,
+          is_verified: isVerified,
+        },
         registered: true,
         is_active: findUser.is_active,
         is_verified: isVerified,

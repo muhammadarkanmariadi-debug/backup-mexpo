@@ -55,16 +55,8 @@ export default function TenantView({ event }: Props) {
     return "analitik";
   }, []);
 
-  // Restore remembered tab from URL or localStorage so page reload stays on the current tab
-  const [activeTabKey, setActiveTabKey] = useState<string>(() => {
-    if (typeof window !== "undefined") {
-      const urlTab = new URLSearchParams(window.location.search).get("tab");
-      if (urlTab) return urlTab;
-      const saved = localStorage.getItem(`mexpo:tenant-tab:${event.uuid}`);
-      if (saved) return saved;
-    }
-    return "sales";
-  });
+  // Initialize with "sales" to guarantee identical HTML between Server (SSR) and Client during hydration
+  const [activeTabKey, setActiveTabKey] = useState<string>("sales");
 
   const handleTabChange = useCallback((groupId: string, subTabId: string) => {
     setActiveTabKey(subTabId);
@@ -78,13 +70,22 @@ export default function TenantView({ event }: Props) {
     }
   }, [event.uuid, pathname]);
 
-  // Sync state if URL search query changes (e.g. browser back/forward)
+  // Sync tab state after client mount (avoids SSR hydration mismatch with localStorage/searchParams)
   useEffect(() => {
     const tabFromUrl = searchParams.get("tab");
-    if (tabFromUrl && tabFromUrl !== activeTabKey) {
+    if (tabFromUrl) {
       setActiveTabKey(tabFromUrl);
+      return;
     }
-  }, [searchParams, activeTabKey]);
+    try {
+      const saved = localStorage.getItem(`mexpo:tenant-tab:${event.uuid}`);
+      if (saved && saved !== "sales") {
+        setActiveTabKey(saved);
+      }
+    } catch {
+      // ignore
+    }
+  }, [searchParams, event.uuid]);
 
   // Fetch the tenant list ONCE here so every tab reuses the same data
   const { data: myTenants, isLoading } = useApiQuery(
