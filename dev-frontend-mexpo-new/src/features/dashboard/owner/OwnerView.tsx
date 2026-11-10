@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Users,
@@ -17,6 +18,7 @@ import {
   CheckCircle2,
   RotateCcw,
   CalendarClock,
+  Clock,
   Mic,
   Handshake,
   Phone,
@@ -81,12 +83,16 @@ export default function OwnerView({ event }: Props) {
   const { confirm, dialogs } = useConfirm();
 
   const publish = useApiMutation(() => publishRequest(event.uuid), {
-    invalidate: [detailKey],
-    successMessage:
-      "Permintaan publikasi dikirim. Menunggu persetujuan super admin.",
+    invalidate: [detailKey, keys.events.my({})],
     errorMessage: "Gagal mengirim permintaan publikasi.",
     notify: toast,
-    onSuccess: () => router.refresh(),
+    onSuccess: () => {
+      toast.success("Pengajuan Publikasi Berhasil", {
+        description: `Event "${event.name}" saat ini berstatus PENDING dan sedang menunggu verifikasi serta persetujuan dari Super Admin.`,
+        duration: 6000,
+      });
+      router.refresh();
+    },
   });
 
   const remove = useApiMutation(() => deleteEvent(event.uuid), {
@@ -176,7 +182,7 @@ export default function OwnerView({ event }: Props) {
           id: "rundown",
           label: "Susunan Acara",
           icon: CalendarClock,
-          content: <RundownSection eventId={event.uuid} />,
+          content: <RundownSection eventId={event.uuid} event={event} />,
         },
         {
           id: "speakers",
@@ -351,6 +357,13 @@ export default function OwnerView({ event }: Props) {
         </button>
       )}
 
+      {event.status === "PENDING" && (
+        <div className="w-full flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 font-semibold text-xs text-center">
+          <Clock className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+          <span>Menunggu Verifikasi Super Admin</span>
+        </div>
+      )}
+
       <button
         type="button"
         onClick={handleDelete}
@@ -381,6 +394,18 @@ export default function OwnerView({ event }: Props) {
               roleIcon={Crown}
               roleBadge={getRoleBadge("OWNER")}
             />
+
+            {event.status === "PENDING" && (
+              <div className="bg-amber-50 p-4 border border-amber-200 rounded-2xl text-amber-900 text-sm flex items-start gap-3">
+                <Clock className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                <div>
+                  <div className="font-semibold text-amber-900">Menunggu Verifikasi Super Admin</div>
+                  <p className="text-xs text-amber-700 mt-1">
+                    Permintaan publikasi telah diajukan. Event ini sedang dalam antrean verifikasi dan akan segera ditinjau oleh Super Admin. Anda dapat memantau statusnya di sini.
+                  </p>
+                </div>
+              </div>
+            )}
 
             {event.status === "REJECTED" && event.rejection_reason && (
               <div className="bg-red-50 p-4 border border-red-200 rounded-2xl text-red-700 text-sm">

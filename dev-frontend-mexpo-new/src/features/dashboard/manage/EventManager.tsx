@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 
 import Input from "@/shared/components/form/Input";
+import PhoneInput from "@/shared/components/form/PhoneInput";
 import SearchBar from "@/shared/components/form/SearchBar";
 import Image from "next/image";
 import { DataPagination } from "@/shared/components/ui/DataPagination";
@@ -76,7 +77,7 @@ export default function EventManager({ event }: { event: Event }) {
         className="mb-8"
       />
 
-      {tab === "rundown" && <RundownSection eventId={event.uuid} />}
+      {tab === "rundown" && <RundownSection eventId={event.uuid} event={event} />}
       {tab === "sponsors" && <SponsorsSection eventId={event.uuid} />}
       {tab === "contacts" && <ContactsSection eventId={event.uuid} />}
       {tab === "speakers" && <SpeakersSection eventId={event.uuid} />}
@@ -113,13 +114,14 @@ function toLocalInputValue(dateString?: string): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-export function RundownSection({ eventId }: { eventId: string }) {
+export function RundownSection({ eventId, event }: { eventId?: string; event?: Event }) {
+  const resolvedEventId = event?.uuid ?? eventId ?? "";
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<EventRundown | null>(null);
   const [busy, setBusy] = useState(false);
   const [form, setForm] = useState({ title: "", description: "", start_time: "", end_time: "" });
 
-  const list = useList<EventRundown>((q) => getRundowns(eventId, q), [eventId]);
+  const list = useList<EventRundown>((q) => getRundowns(resolvedEventId, q), [resolvedEventId]);
 
   const resetForm = () => {
     setForm({ title: "", description: "", start_time: "", end_time: "" });
@@ -129,23 +131,45 @@ export function RundownSection({ eventId }: { eventId: string }) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!form.start_time || !form.end_time) {
+      toast.error("Waktu mulai dan selesai wajib diisi.");
+      return;
+    }
+
+    const start = new Date(form.start_time);
+    const end = new Date(form.end_time);
+
+    if (event?.start_date && start < new Date(event.start_date)) {
+      toast.error("Waktu mulai rundown tidak boleh sebelum waktu mulai event.");
+      return;
+    }
+    if (event?.end_date && end > new Date(event.end_date)) {
+      toast.error("Waktu selesai rundown tidak boleh melebihi waktu selesai event.");
+      return;
+    }
+    if (start > end) {
+      toast.error("Waktu mulai rundown tidak boleh lebih besar dari waktu selesai.");
+      return;
+    }
+
     setBusy(true);
     try {
       const payload = {
         title: form.title,
         description: form.description,
-        start_time: new Date(form.start_time).toISOString(),
-        end_time: new Date(form.end_time).toISOString(),
+        start_time: start.toISOString(),
+        end_time: end.toISOString(),
       };
       const res = editing
         ? await updateRundown(editing.uuid, payload)
-        : await createRundown(eventId, payload);
-      if (!res.status) throw new Error();
+        : await createRundown(resolvedEventId, payload);
+      if (!res.status) throw new Error(res.message || "Gagal menyimpan rundown.");
       toast.success(editing ? "Rundown diperbarui." : "Rundown ditambahkan.");
       resetForm();
       list.refetch();
-    } catch {
-      toast.error("Gagal menyimpan rundown.");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Gagal menyimpan rundown.";
+      toast.error(msg);
     } finally {
       setBusy(false);
     }
@@ -192,8 +216,24 @@ export function RundownSection({ eventId }: { eventId: string }) {
           <Input label="Judul" type="text" required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
           <Input label="Deskripsi" type="text-area" required value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
           <div className="gap-4 grid grid-cols-1 sm:grid-cols-2">
-            <Input label="Mulai" type="datetime-local" required value={form.start_time} onChange={(e) => setForm({ ...form, start_time: e.target.value })} />
-            <Input label="Selesai" type="datetime-local" required value={form.end_time} onChange={(e) => setForm({ ...form, end_time: e.target.value })} />
+            <Input
+              label="Mulai"
+              type="datetime-local"
+              required
+              min={event?.start_date ? toLocalInputValue(event.start_date) : undefined}
+              max={event?.end_date ? toLocalInputValue(event.end_date) : undefined}
+              value={form.start_time}
+              onChange={(e) => setForm({ ...form, start_time: e.target.value })}
+            />
+            <Input
+              label="Selesai"
+              type="datetime-local"
+              required
+              min={form.start_time || (event?.start_date ? toLocalInputValue(event.start_date) : undefined)}
+              max={event?.end_date ? toLocalInputValue(event.end_date) : undefined}
+              value={form.end_time}
+              onChange={(e) => setForm({ ...form, end_time: e.target.value })}
+            />
           </div>
           <FormActions busy={busy} onCancel={resetForm} />
         </form>
@@ -213,7 +253,7 @@ export function RundownSection({ eventId }: { eventId: string }) {
                 <div className="flex-1 min-w-0">
                   <h3 className="font-semibold text-gray-900">{item.title}</h3>
                   <p className="mt-0.5 text-gray-500 text-xs">
-                    {toLocalInputValue(item.start_time).replace("T", " ") ?? ""} â€“ {toLocalInputValue(item.end_time).replace("T", " ") ?? ""}
+                    {toLocalInputValue(item.start_time).replace("T", " ") ?? ""} - {toLocalInputValue(item.end_time).replace("T", " ") ?? ""}
                   </p>
                   {item.description && (
                     <p className="mt-1 text-gray-600 text-sm line-clamp-2">{item.description}</p>
@@ -453,7 +493,7 @@ export function ContactsSection({ eventId }: { eventId: string }) {
         <form onSubmit={handleSubmit} className="space-y-4 bg-white mb-6 p-5 border border-gray-100 rounded-xl">
           <Input label="Nama" type="text" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
           <Input label="Email" type="email" required value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
-          <Input label="No. Telepon" type="text" required value={form.phone_number} onChange={(e) => setForm({ ...form, phone_number: e.target.value })} />
+          <PhoneInput label="No. Telepon" required value={form.phone_number} onChange={(val) => setForm({ ...form, phone_number: val })} />
           <FormActions busy={busy} onCancel={resetForm} />
         </form>
       )}

@@ -85,28 +85,50 @@ export default function WorkshopsManager({ event }: { event: Event }) {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!form.start_time || !form.end_time) {
+      toast.error("Waktu mulai dan selesai wajib diisi.");
+      return;
+    }
+
+    const start = new Date(form.start_time);
+    const end = new Date(form.end_time);
+
+    if (event.start_date && start < new Date(event.start_date)) {
+      toast.error("Waktu mulai lokakarya tidak boleh sebelum waktu mulai event.");
+      return;
+    }
+    if (event.end_date && end > new Date(event.end_date)) {
+      toast.error("Waktu selesai lokakarya tidak boleh melebihi waktu selesai event.");
+      return;
+    }
+    if (start > end) {
+      toast.error("Waktu mulai lokakarya tidak boleh lebih besar dari waktu selesai.");
+      return;
+    }
+
     setBusy(true);
     try {
       const payload: WorkshopPayload = {
         title: form.title,
         description: form.description,
         location: form.location,
-        start_time: new Date(form.start_time).toISOString(),
-        end_time: new Date(form.end_time).toISOString(),
+        start_time: start.toISOString(),
+        end_time: end.toISOString(),
         quota: Number(form.quota) || 0,
         is_public: form.is_public,
       };
       const res = editingId
         ? await updateWorkshop(editingId, payload)
         : await createWorkshop(event.uuid, payload);
-      if (!res.status) throw new Error();
+      if (!res.status) throw new Error(res.message || "Gagal menyimpan lokakarya.");
       toast.success(editingId ? "Lokakarya diperbarui." : "Lokakarya ditambahkan.");
       setForm(EMPTY);
       setEditingId(null);
       setIsModalOpen(false);
       list.refetch();
-    } catch {
-      toast.error("Gagal menyimpan lokakarya.");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Gagal menyimpan lokakarya.";
+      toast.error(msg);
     } finally {
       setBusy(false);
     }
@@ -183,8 +205,24 @@ export default function WorkshopsManager({ event }: { event: Event }) {
           <Input label="Deskripsi" type="text-area" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
           <Input label="Lokasi" required value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} />
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <Input label="Mulai" type="datetime-local" required value={form.start_time} onChange={(e) => setForm({ ...form, start_time: e.target.value })} />
-            <Input label="Selesai" type="datetime-local" required value={form.end_time} onChange={(e) => setForm({ ...form, end_time: e.target.value })} />
+            <Input
+              label="Mulai"
+              type="datetime-local"
+              required
+              min={event?.start_date ? toLocalInputValue(event.start_date) : undefined}
+              max={event?.end_date ? toLocalInputValue(event.end_date) : undefined}
+              value={form.start_time}
+              onChange={(e) => setForm({ ...form, start_time: e.target.value })}
+            />
+            <Input
+              label="Selesai"
+              type="datetime-local"
+              required
+              min={form.start_time || (event?.start_date ? toLocalInputValue(event.start_date) : undefined)}
+              max={event?.end_date ? toLocalInputValue(event.end_date) : undefined}
+              value={form.end_time}
+              onChange={(e) => setForm({ ...form, end_time: e.target.value })}
+            />
             <FormattedNumberInput
               label="Kuota Peserta (0 = tak terbatas)"
               value={form.quota ?? 0}

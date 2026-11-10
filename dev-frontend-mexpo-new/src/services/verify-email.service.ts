@@ -10,3 +10,7 @@ export const resendVerificationEmail = async (email: string) =>
         JSON.stringify({ email }),
         "Basic",
     );
+
+/** Check registration and verification status of an account (backend GET /users/status/:email). */
+export const checkAccountStatus = async (email: string) =>
+    await httpGet(`users/status/${encodeURIComponent(email)}`);

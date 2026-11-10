@@ -130,8 +130,13 @@ export function ProductsTab({ tenantId }: { tenantId: string }) {
             <div className="flex items-start gap-4">
               <div className="relative flex justify-center items-center bg-gray-50 border-2 border-dashed border-gray-200 rounded-xl w-32 h-32 overflow-hidden shrink-0">
                 {photoPreview ? (
-                   
-                  <Image src={photoPreview} alt="Preview" fill unoptimized className="object-cover" />
+                  <Image
+                    src={photoPreview.startsWith("blob:") || photoPreview.startsWith("data:") ? photoPreview : encodeURI(photoPreview)}
+                    alt="Preview"
+                    fill
+                    unoptimized={photoPreview.startsWith("blob:") || photoPreview.startsWith("data:")}
+                    className="object-cover"
+                  />
                 ) : (
                   <span className="text-gray-400 text-xs text-center px-2">
                     Belum ada foto
@@ -212,8 +217,7 @@ export function ProductsTab({ tenantId }: { tenantId: string }) {
             {list.items.map((p) => (
               <div key={p.uuid} className="flex items-center gap-3 bg-white px-4 py-3 border border-gray-100 rounded-xl">
                 {p.photo && (
-                   
-                  <Image src={p.photo} alt={p.name} width={44} height={44} className="rounded-lg w-11 h-11 object-cover" />
+                  <Image src={encodeURI(p.photo)} alt={p.name} width={44} height={44} className="rounded-lg w-11 h-11 object-cover" />
                 )}
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-gray-900 text-sm">{p.name}</p>
