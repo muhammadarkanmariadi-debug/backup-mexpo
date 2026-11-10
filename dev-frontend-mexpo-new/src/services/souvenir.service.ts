@@ -1,6 +1,7 @@
 import { httpGet, httpPost, httpPut } from "@/shared/utils/http-client";
 import { META_DYNAMIC } from "@/shared/utils/http-meta";
-import { SouvenirRules, SouvenirTier } from "@/entities/event/event.entity";
+import { SouvenirCatalogItem, SouvenirRules, SouvenirTier } from "@/entities/event/event.entity";
+import { assertUploadableImage } from "@/shared/utils/upload";
 
 export interface SouvenirRecord {
   id: number;
@@ -58,7 +59,7 @@ export interface SouvenirCheckResult {
   claimedCount: number;
   claims: { souvenir_name: string; points_spent: number; claimed_at: string }[];
   pointBreakdown: SouvenirPointBreakdown;
-  tiers: (SouvenirTier & { unlocked: boolean; missingPoints: number })[];
+  tiers: (SouvenirCatalogItem & { unlocked: boolean; missingPoints: number })[];
   eligibleTiers: SouvenirTier[];
   recommendedTier: SouvenirTier | null;
   alreadyClaimed: boolean;
@@ -67,6 +68,16 @@ export interface SouvenirCheckResult {
     points_earned: number;
     claimed_at: string;
   } | null;
+}
+
+/** Uploads a catalog item photo for an event; resolves to its public URL. */
+export async function uploadSouvenirImage(eventId: string, file: File) {
+  assertUploadableImage(file);
+  const fd = new FormData();
+  fd.append("file", file);
+  const res = await httpPost(`souvenirs/catalog-image/${eventId}`, fd, "token");
+  if (!res.status) throw new Error(res.message || "Gagal mengunggah foto souvenir");
+  return (res.data as { url: string }).url;
 }
 
 /** A6/B7 — check a visitor's souvenir eligibility (no grant). */
