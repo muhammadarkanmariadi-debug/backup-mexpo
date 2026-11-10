@@ -4,6 +4,7 @@ import { EventRundown } from "@/entities/event/rundown.entity";
 import { EventSponsor, SponsorLevel } from "@/entities/event/sponsor.entity";
 import { EventContact } from "@/entities/event/contact.entity";
 import { EventSpeaker } from "@/entities/event/speaker.entity";
+import { assertUploadableImage } from "@/shared/utils/upload";
 
 // ============================================================
 // Event detail management (B10): rundowns, sponsors, contacts, speakers
@@ -59,7 +60,10 @@ function buildSponsorFormData(payload: SponsorPayload, file?: File | null): Form
   const fd = new FormData();
   fd.append("name", payload.name);
   if (payload.level) fd.append("level", payload.level);
-  if (file) fd.append("file", file);
+  if (file) {
+    assertUploadableImage(file);
+    fd.append("file", file);
+  }
   return fd;
 }
 
@@ -118,7 +122,10 @@ function buildSpeakerFormData(payload: SpeakerPayload, file?: File | null): Form
   const fd = new FormData();
   fd.append("name", payload.name);
   fd.append("bio", payload.bio);
-  if (file) fd.append("file", file);
+  if (file) {
+    assertUploadableImage(file);
+    fd.append("file", file);
+  }
   return fd;
 }
 
