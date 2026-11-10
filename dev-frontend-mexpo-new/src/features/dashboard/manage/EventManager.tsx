@@ -269,12 +269,13 @@ export function SponsorsSection({ eventId }: { eventId: string }) {
       const res = editing
         ? await updateSponsor(editing.uuid, payload, form.file)
         : await createSponsor(eventId, payload, form.file);
-      if (!res.status) throw new Error();
+      if (!res.status) throw new Error(res.message ?? undefined);
       toast.success(editing ? "Sponsor diperbarui." : "Sponsor ditambahkan.");
       resetForm();
       list.refetch();
-    } catch {
-      toast.error("Gagal menyimpan sponsor.");
+    } catch (err) {
+      // Shows upload-guard / backend reasons (size, format) instead of a generic error.
+      toast.error(err instanceof Error && err.message ? err.message : "Gagal menyimpan sponsor.");
     } finally {
       setBusy(false);
     }
@@ -524,12 +525,13 @@ export function SpeakersSection({ eventId }: { eventId: string }) {
       const res = editing
         ? await updateSpeaker(editing.uuid, payload, form.file)
         : await createSpeaker(eventId, payload, form.file);
-      if (!res.status) throw new Error();
+      if (!res.status) throw new Error(res.message ?? undefined);
       toast.success(editing ? "Pembicara diperbarui." : "Pembicara ditambahkan.");
       resetForm();
       list.refetch();
-    } catch {
-      toast.error("Gagal menyimpan pembicara.");
+    } catch (err) {
+      // Shows upload-guard / backend reasons (size, format) instead of a generic error.
+      toast.error(err instanceof Error && err.message ? err.message : "Gagal menyimpan pembicara.");
     } finally {
       setBusy(false);
     }
