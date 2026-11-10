@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Loader2, Upload, Pencil } from "lucide-react";
 import Input from "@/shared/components/form/Input";
+import PhoneInput from "@/shared/components/form/PhoneInput";
 import Image from "next/image";
 import { Modal } from "@/shared/components/ui/Modal";
 import { Tenant } from "@/entities/event/tenant.entity";
@@ -14,7 +15,13 @@ import {
 } from "@/services/tenant.service";
 import LoadingState from "@/shared/components/ui/LoadingState";
 
-export function ProfileTab({ tenantId }: { tenantId: string }) {
+export function ProfileTab({
+  tenantId,
+  tenant: passedTenant,
+}: {
+  tenantId: string;
+  tenant?: Tenant | null;
+}) {
   const [logo, setLogo] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string>("");
   const [form, setForm] = useState<TenantProfilePayload>({
@@ -28,38 +35,72 @@ export function ProfileTab({ tenantId }: { tenantId: string }) {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const { data: tenant, isLoading: loading } = useApiQuery<Tenant | null>(
+  const { data: detailTenant, isLoading: loading } = useApiQuery<Tenant | null>(
     keys.tenants.detail(tenantId),
     () => getTenantDetail(tenantId),
     {
-      onSuccess: (data) => {
-        if (data) {
-          setForm({
-            name: data.name,
-            description: data.description,
-            phone: data.phone,
-            website: data.website,
-            email: data.email,
-            booth_number: data.booth_number,
-          });
-          if (data.logo) {
-            setPhotoPreview(data.logo);
-          }
-        }
-      },
+      enabled: Boolean(tenantId),
     },
   );
 
+  const tenant = detailTenant ?? passedTenant ?? null;
+
+  useEffect(() => {
+    if (tenant) {
+      setForm({
+        name: tenant.name ?? "",
+        description: tenant.description ?? "",
+        phone: tenant.phone ?? "",
+        website: tenant.website ?? "",
+        email: tenant.email ?? "",
+        booth_number: tenant.booth_number ?? "",
+      });
+      if (tenant.logo) {
+        setPhotoPreview(tenant.logo);
+      }
+    }
+  }, [tenant]);
+
+  const handleOpenModal = () => {
+    if (tenant) {
+      setForm({
+        name: tenant.name ?? "",
+        description: tenant.description ?? "",
+        phone: tenant.phone ?? "",
+        website: tenant.website ?? "",
+        email: tenant.email ?? "",
+        booth_number: tenant.booth_number ?? "",
+      });
+      setPhotoPreview(tenant.logo ?? "");
+    }
+    setLogo(null);
+    setIsModalOpen(true);
+  };
+
   const update = useApiMutation(
-    () => updateTenant(tenantId, form, logo ?? undefined),
+    () => {
+      const payload: TenantProfilePayload = {
+        name: form.name.trim(),
+        description: form.description?.trim() ?? "",
+        phone: form.phone.trim(),
+        ...(form.website?.trim() ? { website: form.website.trim() } : {}),
+        ...(form.email?.trim() ? { email: form.email.trim() } : {}),
+        ...(form.booth_number?.trim() ? { booth_number: form.booth_number.trim() } : {}),
+      };
+      return updateTenant(tenantId, payload, logo ?? undefined);
+    },
     {
-      invalidate: [keys.tenants.detail(tenantId)],
+      invalidate: [
+        keys.tenants.detail(tenantId),
+        keys.tenants.all,
+        ...(tenant?.event_id ? [keys.tenants.mine({ event: tenant.event_id })] : []),
+      ],
       successMessage: "Profil diperbarui.",
       errorMessage: "Gagal menyimpan profil.",
       notify: toast,
       onSuccess: () => {
         setIsModalOpen(false);
-      }
+      },
     },
   );
 
@@ -83,15 +124,17 @@ export function ProfileTab({ tenantId }: { tenantId: string }) {
     setPhotoPreview(URL.createObjectURL(file));
   };
 
-  if (loading) return <LoadingState type="skeleton-card" count={1} />;
+  if (loading && !tenant) return <LoadingState type="skeleton-card" count={1} />;
+
+  const isBlobPreview = photoPreview.startsWith("blob:") || photoPreview.startsWith("data:");
+  const safePreview = isBlobPreview ? photoPreview : encodeURI(photoPreview);
 
   return (
     <div className="space-y-6">
       <div className="bg-white p-6 border border-gray-100 rounded-xl flex flex-col sm:flex-row items-start gap-6">
         <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-xl bg-gray-50 border border-gray-200 overflow-hidden flex-shrink-0">
           {tenant?.logo ? (
-             
-            <Image src={tenant?.logo ?? ""} alt="Logo" width={128} height={128} className="w-full h-full object-cover" />
+            <Image src={encodeURI(tenant.logo)} alt="Logo" width={128} height={128} className="w-full h-full object-cover" />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">Belum Ada Logo</div>
           )}
@@ -99,7 +142,7 @@ export function ProfileTab({ tenantId }: { tenantId: string }) {
         <div className="flex-1 space-y-2 w-full">
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
              <h2 className="text-xl font-bold text-gray-900">{tenant?.name}</h2>
-             <button onClick={() => setIsModalOpen(true)} className="flex items-center justify-center gap-2 bg-white hover:bg-gray-50 px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 transition-colors shrink-0">
+             <button onClick={handleOpenModal} className="flex items-center justify-center gap-2 bg-white hover:bg-gray-50 px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 transition-colors shrink-0 cursor-pointer">
                <Pencil className="w-4 h-4" /> Edit Profil
              </button>
           </div>
@@ -134,8 +177,7 @@ export function ProfileTab({ tenantId }: { tenantId: string }) {
             <div className="flex items-start gap-4">
               <div className="relative flex justify-center items-center bg-gray-50 border-2 border-dashed border-gray-200 rounded-xl w-32 h-32 overflow-hidden shrink-0">
                 {photoPreview ? (
-                   
-                  <Image src={photoPreview} alt="Preview" fill unoptimized className="object-cover" />
+                  <Image src={safePreview} alt="Preview" fill unoptimized={isBlobPreview} className="object-cover" />
                 ) : (
                   <span className="text-gray-400 text-xs text-center px-2">
                     Belum ada logo
@@ -175,7 +217,7 @@ export function ProfileTab({ tenantId }: { tenantId: string }) {
           <Input label="Nama" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
           <Input label="Deskripsi" type="text-area" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
           <div className="gap-3 grid grid-cols-1 sm:grid-cols-2">
-            <Input label="Telepon" required value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+            <PhoneInput label="Telepon" required value={form.phone} onChange={(val) => setForm({ ...form, phone: val })} />
             <Input label="Nomor Booth" value={form.booth_number} onChange={(e) => setForm({ ...form, booth_number: e.target.value })} />
             <Input label="Website" value={form.website} onChange={(e) => setForm({ ...form, website: e.target.value })} />
             <Input label="Surel" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />

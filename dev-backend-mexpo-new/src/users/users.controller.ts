@@ -112,6 +112,11 @@ export class UsersController {
     return this.usersService.verifyEmail(code);
   }
 
+  @Get('status/:email')
+  checkUserStatus(@Param('email') email: string) {
+    return this.usersService.checkAccountStatus(email);
+  }
+
   @Get('me')
   @UseGuards(AuthGuard(`jwt`))
   findMe(@Request() req: authTypes.AuthRequest) {

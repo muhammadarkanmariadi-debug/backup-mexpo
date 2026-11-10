@@ -6,7 +6,6 @@ import { toast } from "sonner";
 import {
   ArrowLeft,
   ArrowRight,
-  Calendar,
   Check,
   CheckCircle2,
   ChevronDown,
@@ -135,7 +134,7 @@ function CreateEventIllustration() {
 
         {/* Plus Circular Badge */}
         <div className="absolute -bottom-3 -right-3 w-11 h-11 bg-secondary text-white rounded-full flex items-center justify-center shadow-lg shadow-secondary/40 border-2 border-white">
-          <svg className="w-6 h-6 stroke-[3]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg className="w-6 h-6 stroke-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
           </svg>
         </div>
@@ -261,19 +260,6 @@ export default function EventForm({ event }: Props) {
     setPhotoPreview(URL.createObjectURL(file));
   };
 
-  // Quick date change handler in step 1
-  const handleStep1DateChange = (dateVal: string) => {
-    if (!dateVal) return;
-    clearError("start_date");
-    const startDateTime = `${dateVal}T08:00`;
-    const endDateTime = `${dateVal}T17:00`;
-    setForm((f) => ({
-      ...f,
-      start_date: f.start_date ? f.start_date : startDateTime,
-      end_date: f.end_date ? f.end_date : endDateTime,
-    }));
-  };
-
   /**
    * Replace the errors for `keys` with `next` (every invalid field is marked
    * at once, so an empty form turns all required fields red) and focus the
@@ -297,14 +283,13 @@ export default function EventForm({ event }: Props) {
     return !firstInvalid;
   };
 
-  const STEP1_KEYS: FieldKey[] = ["name", "event_type", "start_date", "location", "description"];
+  const STEP1_KEYS: FieldKey[] = ["name", "event_type", "location", "description"];
   const STEP2_KEYS: FieldKey[] = ["start_date", "end_date", "organizer_name"];
 
   const validateStep1 = () => {
     const next: FieldErrors = {};
     if (!form.name.trim()) next.name = "Judul event wajib diisi.";
     if (!form.event_type) next.event_type = "Kategori event wajib dipilih.";
-    if (!form.start_date) next.start_date = "Tanggal event wajib ditentukan.";
     if (!form.location.trim()) next.location = "Lokasi event wajib diisi.";
     if (!form.description.trim()) next.description = "Deskripsi event wajib diisi.";
     return applyErrors(next, STEP1_KEYS);
@@ -326,12 +311,6 @@ export default function EventForm({ event }: Props) {
   const goToNextStep = () => {
     if (currentStep === 1) {
       if (validateStep1()) {
-        // If end_date is still empty, auto-fill from start_date
-        if (!form.end_date && form.start_date) {
-          const d = new Date(form.start_date);
-          d.setHours(d.getHours() + 8);
-          setForm((f) => ({ ...f, end_date: toLocalInputValue(d.toISOString()) }));
-        }
         setCurrentStep(2);
       }
     } else if (currentStep === 2) {
@@ -435,7 +414,7 @@ export default function EventForm({ event }: Props) {
                     : "bg-white border border-gray-300 text-gray-500"
                 }`}
               >
-                {currentStep > 1 ? <Check className="w-4 h-4 stroke-[3]" /> : "1"}
+                {currentStep > 1 ? <Check className="w-4 h-4 stroke-3" /> : "1"}
               </div>
               <div className="min-w-0">
                 <p
@@ -467,7 +446,7 @@ export default function EventForm({ event }: Props) {
                     : "bg-white border border-gray-300 text-gray-400"
                 }`}
               >
-                {currentStep > 2 ? <Check className="w-4 h-4 stroke-[3]" /> : "2"}
+                {currentStep > 2 ? <Check className="w-4 h-4 stroke-3" /> : "2"}
               </div>
               <div className="min-w-0">
                 <p
@@ -556,7 +535,7 @@ export default function EventForm({ event }: Props) {
                   <FieldError id="event-error-name" message={errors.name} />
                 </div>
 
-                {/* Grid 2-col: Kategori Event & Tanggal Event */}
+                {/* Grid 2-col: Kategori Event & Status Pendaftaran */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {/* Kategori Event */}
                   <div>
@@ -585,57 +564,6 @@ export default function EventForm({ event }: Props) {
                     <FieldError id="event-error-event_type" message={errors.event_type} />
                   </div>
 
-                  {/* Tanggal Event */}
-                  <div>
-                    <label className="block mb-1.5 font-bold text-gray-800 text-sm">
-                      Tanggal Event <span className="text-red-500">*</span>
-                    </label>
-                    <div className="relative">
-                      <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-gray-400">
-                        <Calendar className="w-4 h-4 text-gray-500" />
-                      </div>
-                      <input
-                        id="event-field-start_date"
-                        type="date"
-                        required
-                        aria-invalid={!!errors.start_date}
-                        aria-describedby={errors.start_date ? "event-error-start_date" : undefined}
-                        value={toDateOnly(form.start_date)}
-                        onChange={(e) => handleStep1DateChange(e.target.value)}
-                        placeholder="Pilih tanggal event"
-                        className={`h-12 w-full rounded-xl border bg-white pl-10 pr-4 text-sm text-gray-800 placeholder:text-gray-400 focus:outline-hidden focus:ring-2 transition-all cursor-pointer ${fieldBorder("start_date")}`}
-                      />
-                    </div>
-                    <FieldError id="event-error-start_date" message={errors.start_date} />
-                  </div>
-                </div>
-
-                {/* Grid 2-col: Lokasi Event & Status Pendaftaran */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {/* Lokasi Event */}
-                  <div>
-                    <label className="block mb-1.5 font-bold text-gray-800 text-sm">
-                      Lokasi Event <span className="text-red-500">*</span>
-                    </label>
-                    <div className="relative">
-                      <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-gray-400">
-                        <MapPin className="w-4 h-4 text-gray-500" />
-                      </div>
-                      <input
-                        id="event-field-location"
-                        type="text"
-                        required
-                        aria-invalid={!!errors.location}
-                        aria-describedby={errors.location ? "event-error-location" : undefined}
-                        value={form.location}
-                        onChange={(e) => setField("location", e.target.value)}
-                        placeholder="Masukkan lokasi event"
-                        className={`h-12 w-full rounded-xl border bg-white pl-10 pr-4 text-sm text-gray-800 placeholder:text-gray-400 focus:outline-hidden focus:ring-2 transition-all ${fieldBorder("location")}`}
-                      />
-                    </div>
-                    <FieldError id="event-error-location" message={errors.location} />
-                  </div>
-
                   {/* Status Pendaftaran */}
                   <div>
                     <label className="block mb-1.5 font-bold text-gray-800 text-sm">
@@ -654,6 +582,30 @@ export default function EventForm({ event }: Props) {
                       <ChevronDown className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" aria-hidden="true" />
                     </div>
                   </div>
+                </div>
+
+                {/* Lokasi Event */}
+                <div>
+                  <label className="block mb-1.5 font-bold text-gray-800 text-sm">
+                    Lokasi Event <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-gray-400">
+                      <MapPin className="w-4 h-4 text-gray-500" />
+                    </div>
+                    <input
+                      id="event-field-location"
+                      type="text"
+                      required
+                      aria-invalid={!!errors.location}
+                      aria-describedby={errors.location ? "event-error-location" : undefined}
+                      value={form.location}
+                      onChange={(e) => setField("location", e.target.value)}
+                      placeholder="Masukkan lokasi event"
+                      className={`h-12 w-full rounded-xl border bg-white pl-10 pr-4 text-sm text-gray-800 placeholder:text-gray-400 focus:outline-hidden focus:ring-2 transition-all ${fieldBorder("location")}`}
+                    />
+                  </div>
+                  <FieldError id="event-error-location" message={errors.location} />
                 </div>
 
                 {/* Deskripsi Singkat */}

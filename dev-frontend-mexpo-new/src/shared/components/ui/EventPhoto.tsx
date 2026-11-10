@@ -52,6 +52,9 @@ export default function EventPhoto({
   className,
 }: EventPhotoProps) {
   const r = clampRatio(ratio);
+  const isBlobOrData = src?.startsWith("blob:") || src?.startsWith("data:");
+  const safeSrc = src && !isBlobOrData ? encodeURI(src) : src;
+  const skipOptimization = unoptimized ?? isBlobOrData;
 
   return (
     <div
@@ -64,23 +67,23 @@ export default function EventPhoto({
       {fit === "contain" && (
         // Blurred backdrop — decorative, tiny low-quality variant.
         <Image
-          src={src}
+          src={safeSrc}
           alt=""
           aria-hidden="true"
           fill
           sizes="160px"
           quality={30}
-          unoptimized={unoptimized}
+          unoptimized={skipOptimization}
           className="scale-125 object-cover opacity-90 blur-2xl"
         />
       )}
       <Image
-        src={src}
+        src={safeSrc}
         alt={alt}
         fill
         priority={priority}
         sizes={sizes}
-        unoptimized={unoptimized}
+        unoptimized={skipOptimization}
         className={fit === "cover" ? "object-cover" : "object-contain"}
       />
     </div>

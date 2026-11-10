@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Loader2, Plus, Pencil, Trash2 } from "lucide-react";
 
 import Input from "@/shared/components/form/Input";
+import CurrencyInput from "@/shared/components/form/CurrencyInput";
 import SearchBar from "@/shared/components/form/SearchBar";
 import { DataPagination } from "@/shared/components/ui/DataPagination";
 import { useApiMutation, useApiQuery } from "@/lib/hooks/useApi";
@@ -71,7 +72,7 @@ export default function RegistrationManager({ event }: { event: Event }) {
   );
 }
 
-// â”€â”€ Ticket types â”€â”€
+// ── Ticket types ──────────────────────────────────────────────
 
 function TicketTypesPanel({ eventId }: { eventId: string }) {
   const [form, setForm] = useState({ name: "", price: "" });
@@ -160,14 +161,12 @@ function TicketTypesPanel({ eventId }: { eventId: string }) {
               onChange={(e) => setForm({ ...form, name: e.target.value })}
               placeholder="Contoh: Early Bird"
             />
-            <Input
-              label="Harga (Rp)"
-              type="number"
-              min="0"
+            <CurrencyInput
+              label="Harga Tiket"
               required
-              value={form.price}
-              onChange={(e) => setForm({ ...form, price: e.target.value })}
-              placeholder="100000"
+              value={Number(form.price) || 0}
+              onChange={(val) => setForm({ ...form, price: String(val) })}
+              placeholder="0"
             />
           </div>
           <div className="flex items-center gap-2 pt-2">
@@ -241,7 +240,7 @@ function TicketTypesPanel({ eventId }: { eventId: string }) {
   );
 }
 
-// â”€â”€ Registration fields â”€â”€
+// ── Registration fields ───────────────────────────────────────
 
 const EMPTY_FIELD = {
   field_key: "",

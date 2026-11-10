@@ -243,7 +243,8 @@ export class TenantsService {
         throw new NotFoundException(`Tenant category doesn't exists`);
       let logo: string = ``;
       if (file) {
-        const filename = `${new Date().getTime().toString()}-${file.originalname}`;
+        const sanitized = file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
+        const filename = `${new Date().getTime().toString()}-${sanitized}`;
         logo = `${this.configService.get<string>(`MINIO_ENDPOINT`)}/expo-project-tenants/${filename}`;
         await this.s3Service.upload(
           `expo-project-tenants`,
@@ -314,7 +315,8 @@ export class TenantsService {
 
       let logo: string = ``;
       if (file) {
-        const filename = `${new Date().getTime().toString()}-${file.originalname}`;
+        const sanitized = file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
+        const filename = `${new Date().getTime().toString()}-${sanitized}`;
         logo = `${this.configService.get<string>(`MINIO_ENDPOINT`)}/expo-project-tenants/${filename}`;
         await this.s3Service.upload(
           `expo-project-tenants`,
@@ -802,15 +804,25 @@ export class TenantsService {
   async findOne(tenant_id: string) {
     try {
       const findTenant = await this.prisma.tenants.findFirst({
-        where: isUuid(tenant_id) ? { uuid: tenant_id } : { slug: tenant_id },
+        where: {
+          OR: [{ uuid: tenant_id }, { slug: tenant_id }],
+        },
         include: {
-          editor: { select: { full_name: true } },
-          creator: { select: { full_name: true } },
-          event: true,
-          tenantMembers: { include: { user: { omit: { password: true } } } },
-          tenantProducts: true,
-          tenantTransactions: true,
           category: true,
+          event: true,
+          tenantMembers: {
+            include: {
+              user: {
+                select: {
+                  uuid: true,
+                  full_name: true,
+                  email: true,
+                  photo: true,
+                  role: true,
+                },
+              },
+            },
+          },
         },
       });
       if (!findTenant) throw new NotFoundException(`Tenant doesn't exists`);
@@ -830,6 +842,7 @@ export class TenantsService {
     updateTenantDto: UpdateTenantDto,
     userId: string,
     file?: Express.Multer.File,
+    role?: UserRole,
   ) {
     try {
       const findTenant = await this.prisma.tenants.findFirst({
@@ -837,7 +850,7 @@ export class TenantsService {
       });
       if (!findTenant) throw new NotFoundException(`Tenant doesn't exists`);
 
-      await this.assertTenantManager(id, userId);
+      await this.assertTenantManager(id, userId, role);
 
       const {
         description,
@@ -862,7 +875,8 @@ export class TenantsService {
           const oldFilename = oldFileUrl.split('/').pop() || '';
           await this.s3Service.delete(`expo-project-tenants`, oldFilename);
         }
-        const filename = `${new Date().getTime().toString()}-${file.originalname}`;
+        const sanitized = file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
+        const filename = `${new Date().getTime().toString()}-${sanitized}`;
         fileUrl = `${this.configService.get<string>(`MINIO_ENDPOINT`)}/expo-project-tenants/${filename}`;
         await this.s3Service.upload(
           `expo-project-tenants`,

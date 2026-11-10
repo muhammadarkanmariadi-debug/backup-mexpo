@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   ForbiddenException,
   HttpException,
@@ -50,11 +51,26 @@ export class EventRundownsService {
 
       const { description, start_time, end_time, title } =
         createEventRundownDto;
-      if (start_time > end_time) {
-        return {
-          success: false,
-          messsage: `Start time can be greater than end time`,
-        };
+
+      const startDate = new Date(start_time);
+      const endDate = new Date(end_time);
+      const eventStartDate = new Date(findEvent.start_date);
+      const eventEndDate = new Date(findEvent.end_date);
+
+      if (startDate < eventStartDate) {
+        throw new BadRequestException(
+          'Waktu mulai rundown tidak boleh sebelum waktu mulai event',
+        );
+      }
+      if (endDate > eventEndDate) {
+        throw new BadRequestException(
+          'Waktu selesai rundown tidak boleh melebihi waktu selesai event',
+        );
+      }
+      if (startDate > endDate) {
+        throw new BadRequestException(
+          'Waktu mulai rundown tidak boleh lebih besar dari waktu selesai',
+        );
       }
       const newRundown = await this.prisma.event_rundown.create({
         data: {
@@ -234,18 +250,27 @@ export class EventRundownsService {
 
       const { title, description, start_time, end_time } =
         updateEventRundownDto;
-      if (start_time && start_time > (end_time || findRundown.end_time)) {
-        return {
-          success: false,
-          message: `Start time can be greater than end time`,
-        };
+
+      const targetStartDate = start_time ? new Date(start_time) : new Date(findRundown.start_time);
+      const targetEndDate = end_time ? new Date(end_time) : new Date(findRundown.end_time);
+
+      if (findRundown.event) {
+        if (targetStartDate < new Date(findRundown.event.start_date)) {
+          throw new BadRequestException(
+            'Waktu mulai rundown tidak boleh sebelum waktu mulai event',
+          );
+        }
+        if (targetEndDate > new Date(findRundown.event.end_date)) {
+          throw new BadRequestException(
+            'Waktu selesai rundown tidak boleh melebihi waktu selesai event',
+          );
+        }
       }
 
-      if (end_time && end_time < (start_time || findRundown.start_time)) {
-        return {
-          success: false,
-          message: `End time can be less than start time`,
-        };
+      if (targetStartDate > targetEndDate) {
+        throw new BadRequestException(
+          'Waktu mulai rundown tidak boleh lebih besar dari waktu selesai',
+        );
       }
 
       const updateRundown = await this.prisma.event_rundown.update({

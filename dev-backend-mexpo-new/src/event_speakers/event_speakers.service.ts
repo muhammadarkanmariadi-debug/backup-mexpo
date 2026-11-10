@@ -53,7 +53,8 @@ export class EventSpeakersService {
       const { name, bio } = createEventSpeakerDto;
       let photo = ``;
       if (file) {
-        const filename = `${new Date().getTime().toString()}-${file.originalname}`;
+        const sanitized = file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
+        const filename = `${new Date().getTime().toString()}-${sanitized}`;
         photo = `${this.configService.get<string>(`MINIO_ENDPOINT`)}/expo-project-speaker/${filename}`;
         await this.s3Service.upload(
           `expo-project-speaker`,
@@ -105,7 +106,8 @@ export class EventSpeakersService {
       const { name, bio } = createEventSpeakerDto;
       let photo = ``;
       if (file) {
-        const filename = `${new Date().getTime().toString()}-${file.originalname}`;
+        const sanitized = file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
+        const filename = `${new Date().getTime().toString()}-${sanitized}`;
         photo = `${this.configService.get<string>(`MINIO_ENDPOINT`)}/expo-project-speaker/${filename}`;
         await this.s3Service.upload(
           `expo-project-speaker`,
@@ -290,7 +292,8 @@ export class EventSpeakersService {
           const oldFilename = oldFileUrl.split('/').pop() || '';
           await this.s3Service.delete(`expo-project-speaker`, oldFilename);
         }
-        const filename = `${new Date().getTime().toString()}-${file.originalname}`;
+        const sanitized = file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
+        const filename = `${new Date().getTime().toString()}-${sanitized}`;
         fileUrl = `${this.configService.get<string>(`MINIO_ENDPOINT`)}/expo-project-speaker/${filename}`;
         await this.s3Service.upload(
           `expo-project-speaker`,

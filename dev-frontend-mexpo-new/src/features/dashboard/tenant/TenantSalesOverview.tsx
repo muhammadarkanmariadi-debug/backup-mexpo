@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { toast } from "sonner";
 import {
   TrendingUp,
   Receipt,
@@ -13,6 +14,8 @@ import {
   PackageCheck,
   Calendar,
   Sparkles,
+  Download,
+  Loader2,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -31,6 +34,7 @@ import { useApiQuery } from "@/lib/hooks/useApi";
 import { keys } from "@/lib/query-keys";
 import { getTransactions, Transaction } from "@/services/transaction.service";
 import { getProducts } from "@/services/product.service";
+import { downloadTenantExport } from "@/services/report.service";
 import { TenantProduct } from "@/entities/event/tenant.entity";
 import LoadingState from "@/shared/components/ui/LoadingState";
 import { CHART_PRIMARY, CHART_SUCCESS } from "@/shared/data/chart-colors";
@@ -67,6 +71,19 @@ export default function TenantSalesOverview({
   onNavigateToTab,
 }: TenantSalesOverviewProps) {
   const [chartType, setChartType] = useState<"revenue" | "volume">("revenue");
+  const [exporting, setExporting] = useState(false);
+
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      await downloadTenantExport(event.uuid, tenantId);
+      toast.success("Laporan penjualan Excel berhasil diunduh.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Gagal mengunduh laporan penjualan.");
+    } finally {
+      setExporting(false);
+    }
+  };
 
   // Fetch transactions and products
   const { data: txns, isLoading: loadingTxns } = useApiQuery<Transaction[]>(
@@ -176,7 +193,21 @@ export default function TenantSalesOverview({
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5 shrink-0">
+        <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+          <button
+            type="button"
+            onClick={() => void handleExport()}
+            disabled={exporting}
+            className="inline-flex items-center gap-2 bg-white hover:bg-gray-50 border border-gray-200 text-gray-700 font-semibold text-xs sm:text-sm px-4 py-2.5 rounded-xl shadow-2xs transition-colors cursor-pointer disabled:opacity-50"
+          >
+            {exporting ? (
+              <Loader2 className="w-4 h-4 animate-spin text-secondary" />
+            ) : (
+              <Download className="w-4 h-4 text-gray-600" />
+            )}
+            <span>Ekspor Penjualan</span>
+          </button>
+
           <button
             type="button"
             onClick={() => onNavigateToTab?.("pos")}

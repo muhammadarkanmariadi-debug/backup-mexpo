@@ -51,7 +51,7 @@ const securityHeaders = [
       "default-src 'self'",
       "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://app.sandbox.midtrans.com https://app.midtrans.com https://accounts.google.com https://static.cloudflareinsights.com",
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-      `img-src 'self' data: blob: ${cspOrigins} https://images.unsplash.com https://img.youtube.com https://i.ytimg.com https://via.placeholder.com https://lh3.googleusercontent.com https://*.googleusercontent.com https://app.sandbox.midtrans.com https://app.midtrans.com`,
+      `img-src 'self' data: blob: ${cspOrigins} https://*.s3.amazonaws.com https://*.s3.*.amazonaws.com https://s3.*.amazonaws.com https://s3.amazonaws.com https://images.unsplash.com https://img.youtube.com https://i.ytimg.com https://via.placeholder.com https://lh3.googleusercontent.com https://*.googleusercontent.com https://app.sandbox.midtrans.com https://app.midtrans.com`,
       "font-src 'self' data: https://fonts.gstatic.com",
       `connect-src 'self' ${cspOrigins} https://app.sandbox.midtrans.com https://app.midtrans.com https://api.sandbox.midtrans.com https://api.midtrans.com https://accounts.google.com https://*.googleapis.com https://cloudflareinsights.com https://*.cloudflareinsights.com`,
       // Google Maps embeds (event location + contact page) render from www/maps.google.com.
@@ -128,6 +128,22 @@ const nextConfig: NextConfig = {
             { protocol: "https" as const, hostname: "localhost" },
           ]
         : []),
+      {
+        protocol: "https",
+        hostname: "*.s3.amazonaws.com",
+      },
+      {
+        protocol: "https",
+        hostname: "*.s3.*.amazonaws.com",
+      },
+      {
+        protocol: "https",
+        hostname: "s3.*.amazonaws.com",
+      },
+      {
+        protocol: "https",
+        hostname: "s3.amazonaws.com",
+      },
       {
         protocol: "https",
         hostname: "images.unsplash.com",

@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Camera, Loader2, Save } from "lucide-react";
 
 import Input from "@/shared/components/form/Input";
+import PhoneInput from "@/shared/components/form/PhoneInput";
 import Image from "next/image";
 import { useAuthStore } from "@/stores/auth.store";
 import { useApiMutation, useApiQuery } from "@/lib/hooks/useApi";
@@ -103,12 +104,12 @@ export default function ProfileForm() {
         value={form.full_name}
         onChange={(e) => setForm({ ...form, full_name: e.target.value })}
       />
-      <Input
+      <PhoneInput
         label="No. HP"
         name="phone"
         id="profile_phone"
         value={form.phone}
-        onChange={(e) => setForm({ ...form, phone: e.target.value })}
+        onChange={(val) => setForm({ ...form, phone: val })}
       />
       <Input
         label="Organisasi"

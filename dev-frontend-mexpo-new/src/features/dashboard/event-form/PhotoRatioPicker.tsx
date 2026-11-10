@@ -60,13 +60,15 @@ export default function PhotoRatioPicker({ photoUrl, value, onChange }: PhotoRat
   useEffect(() => {
     if (!photoUrl) return;
     let cancelled = false;
+    const isBlobOrData = photoUrl.startsWith("blob:") || photoUrl.startsWith("data:");
+    const safeUrl = isBlobOrData ? photoUrl : encodeURI(photoUrl);
     const img = new window.Image();
     img.onload = () => {
       if (!cancelled && img.naturalWidth > 0 && img.naturalHeight > 0) {
         setLoaded({ url: photoUrl, ratio: img.naturalWidth / img.naturalHeight });
       }
     };
-    img.src = photoUrl;
+    img.src = safeUrl;
     return () => {
       cancelled = true;
     };
@@ -114,7 +116,7 @@ export default function PhotoRatioPicker({ photoUrl, value, onChange }: PhotoRat
             ratio={previewRatio}
             fit={fit}
             maxHeight={200}
-            unoptimized
+            unoptimized={photoUrl.startsWith("blob:") || photoUrl.startsWith("data:")}
             className="rounded-xl border border-gray-200"
           />
         ) : (

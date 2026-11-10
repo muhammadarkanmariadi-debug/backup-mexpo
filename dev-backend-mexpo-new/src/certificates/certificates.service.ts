@@ -214,7 +214,8 @@ export class CertificatesService {
 
   /** Upload a background image to S3 and return its public URL. */
   private async uploadBackground(file: Express.Multer.File): Promise<string> {
-    const filename = `${new Date().getTime().toString()}-${file.originalname}`;
+    const sanitized = file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
+    const filename = `${new Date().getTime().toString()}-${sanitized}`;
     const url = `${this.configService.get<string>(`MINIO_ENDPOINT`)}/${BUCKET}/${filename}`;
     await this.s3Service.upload(BUCKET, filename, file.buffer, file.mimetype);
     return url;

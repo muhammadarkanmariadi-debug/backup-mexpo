@@ -123,8 +123,7 @@ export function TeamTab({ tenantId }: { tenantId: string }) {
           {list.map((m) => (
             <div key={m.uuid} className="flex items-center gap-3 bg-white px-4 py-3 border border-gray-100 rounded-xl">
               {m.user?.photo ? (
-                 
-                <Image src={m.user.photo} alt={m.user.full_name} width={40} height={40} className="rounded-full w-10 h-10 object-cover" />
+                <Image src={encodeURI(m.user.photo)} alt={m.user.full_name} width={40} height={40} className="rounded-full w-10 h-10 object-cover" />
               ) : (
                 <div className="flex justify-center items-center bg-brand-50 rounded-full w-10 h-10 text-brand-700">
                   <Users className="w-4 h-4" />

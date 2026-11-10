@@ -75,6 +75,47 @@ export async function getAmountReport(eventId: string, start?: Date, end?: Date)
   return { data: (res.data as VisitorReport) ?? null, status: res.status, message: res.message };
 }
 
+export function getExportFilename(prefix = "rekap") {
+  const now = new Date();
+  const days = ["minggu", "senin", "selasa", "rabu", "kamis", "jumat", "sabtu"];
+  const months = [
+    "januari",
+    "februari",
+    "maret",
+    "april",
+    "mei",
+    "juni",
+    "juli",
+    "agustus",
+    "september",
+    "oktober",
+    "november",
+    "desember",
+  ];
+  const dayName = days[now.getDay()];
+  const date = String(now.getDate()).padStart(2, "0");
+  const monthName = months[now.getMonth()];
+  const year = now.getFullYear();
+  return `${prefix} (${dayName}, ${date} ${monthName} ${year}).xlsx`;
+}
+
+function extractFilenameFromHeader(disposition: string | null, fallback: string): string {
+  if (!disposition) return fallback;
+  const utf8Match = disposition.match(/filename\*=UTF-8''([^;]+)/i);
+  if (utf8Match?.[1]) {
+    try {
+      return decodeURIComponent(utf8Match[1].trim());
+    } catch {
+      // fallback
+    }
+  }
+  const regularMatch = disposition.match(/filename=["']?([^"';]+)["']?/i);
+  if (regularMatch?.[1]) {
+    return regularMatch[1].trim();
+  }
+  return fallback;
+}
+
 /**
  * A16 — download the tenant-scoped Excel export (this tenant's rows only).
  */
@@ -87,10 +128,14 @@ export async function downloadTenantExport(eventId: string, tenantId: string) {
   });
   if (!res.ok) throw new Error(`Gagal mengunduh laporan (HTTP ${res.status})`);
   const blob = await res.blob();
+  const filename = extractFilenameFromHeader(
+    res.headers.get("content-disposition"),
+    getExportFilename("rekap"),
+  );
   const downloadUrl = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = downloadUrl;
-  a.download = `report-${tenantId}.xlsx`;
+  a.download = filename;
   document.body.appendChild(a);
   a.click();
   a.remove();
@@ -112,10 +157,14 @@ export async function downloadReportExport(eventId: string, start?: Date, end?: 
   });
   if (!res.ok) throw new Error(`Gagal mengunduh laporan (HTTP ${res.status})`);
   const blob = await res.blob();
+  const filename = extractFilenameFromHeader(
+    res.headers.get("content-disposition"),
+    getExportFilename("rekap"),
+  );
   const downloadUrl = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = downloadUrl;
-  a.download = `report-${eventId}.xlsx`;
+  a.download = filename;
   document.body.appendChild(a);
   a.click();
   a.remove();

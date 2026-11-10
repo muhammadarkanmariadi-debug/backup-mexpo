@@ -52,7 +52,8 @@ export class EventSponsorsService {
       const { level, name } = createEventSponsorDto;
       let photo: string = ``;
       if (file) {
-        const filename = `${new Date().getTime().toString()}-${file.originalname}`;
+        const sanitized = file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
+        const filename = `${new Date().getTime().toString()}-${sanitized}`;
         photo = `${this.configService.get<string>(`MINIO_ENDPOINT`)}/expo-project-sponsor/${filename}`;
         await this.s3Service.upload(
           `expo-project-sponsor`,
@@ -228,7 +229,8 @@ export class EventSponsorsService {
           const oldFilename = oldFileUrl.split('/').pop() || '';
           await this.s3Service.delete(`expo-project-sponsor`, oldFilename);
         }
-        const filename = `${new Date().getTime().toString()}-${file.originalname}`;
+        const sanitized = file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
+        const filename = `${new Date().getTime().toString()}-${sanitized}`;
         fileUrl = `${this.configService.get<string>(`MINIO_ENDPOINT`)}/expo-project-sponsor/${filename}`;
         await this.s3Service.upload(
           `expo-project-sponsor`,

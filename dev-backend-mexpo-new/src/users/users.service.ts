@@ -281,8 +281,9 @@ export class UsersService {
       const hashedPassword = await this.bcrypt.hashPassword(password);
       let fileUrl = ``;
       if (file) {
-        const filename = `${new Date().getTime().toString()}-${file.originalname}`;
-        fileUrl = `${this.configService.get<string>(`MINIO_ENDPOINT`)}/${this.configService.get<string>(`MINIO_BUCKET`)}/${filename}`;
+        const sanitized = file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
+        const filename = `${new Date().getTime().toString()}-${sanitized}`;
+        fileUrl = `${this.configService.get<string>(`MINIO_ENDPOINT`)}/expo-project/${filename}`;
         await this.s3Service.upload(
           `expo-project`,
           filename,
@@ -554,7 +555,7 @@ export class UsersService {
         throw new NotFoundException(`Email is not registered`);
       }
       if (findEmail.verify_at) {
-        throw new ConflictException(`Email is already verified`);
+        throw new ConflictException(`Akun Anda sudah aktif dan terverifikasi.`);
       }
 
       // Invalidate any previous, unexpired verification links for this user.
@@ -630,6 +631,58 @@ export class UsersService {
         throw error; // rethrow NestJS exceptions
       }
       throw new InternalServerErrorException(`Something were wrong. ${error}`);
+    }
+  }
+
+  async checkAccountStatus(email: string) {
+    try {
+      const findUser = await this.prisma.users.findFirst({
+        where: { email },
+        select: {
+          uuid: true,
+          email: true,
+          full_name: true,
+          is_active: true,
+          verify_at: true,
+        },
+      });
+
+      if (!findUser) {
+        return {
+          success: false,
+          data: {
+            registered: false,
+            is_active: false,
+            is_verified: false,
+          },
+          registered: false,
+          is_active: false,
+          is_verified: false,
+          message: 'Email belum terdaftar di sistem.',
+        };
+      }
+
+      const isVerified = Boolean(findUser.verify_at && findUser.is_active);
+
+      return {
+        success: true,
+        data: {
+          registered: true,
+          is_active: findUser.is_active,
+          is_verified: isVerified,
+        },
+        registered: true,
+        is_active: findUser.is_active,
+        is_verified: isVerified,
+        message: isVerified
+          ? 'Akun Anda sudah aktif dan terverifikasi.'
+          : 'Akun Anda terdaftar tetapi belum diverifikasi. Silakan periksa email Anda.',
+      };
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      throw new InternalServerErrorException(`Something went wrong. ${error}`);
     }
   }
 
@@ -732,8 +785,9 @@ export class UsersService {
           const oldFilename = oldFileUrl.split('/').pop() || '';
           await this.s3Service.delete(`expo-project`, oldFilename);
         }
-        const filename = `${new Date().getTime().toString()}-${file.originalname}`;
-        fileUrl = `${this.configService.get<string>(`MINIO_ENDPOINT`)}/${this.configService.get<string>(`MINIO_BUCKET`)}/${filename}`;
+        const sanitized = file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
+        const filename = `${new Date().getTime().toString()}-${sanitized}`;
+        fileUrl = `${this.configService.get<string>(`MINIO_ENDPOINT`)}/expo-project/${filename}`;
         await this.s3Service.upload(
           `expo-project`,
           filename,

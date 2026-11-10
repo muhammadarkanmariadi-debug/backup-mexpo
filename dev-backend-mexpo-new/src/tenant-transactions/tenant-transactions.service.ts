@@ -58,7 +58,8 @@ export class TenantTransactionsService {
         );
       let proof: string = ``;
       if (file) {
-        const filename = `${new Date().getTime().toString()}-${file.originalname}`;
+        const sanitized = file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
+        const filename = `${new Date().getTime().toString()}-${sanitized}`;
         proof = `${this.configService.get<string>(`MINIO_ENDPOINT`)}/expo-project-transactions/${filename}`;
         await this.s3Service.upload(
           `expo-project-transactions`,
@@ -287,7 +288,8 @@ export class TenantTransactionsService {
           const oldFilename = oldFileUrl.split('/').pop() || '';
           await this.s3Service.delete(`expo-project-transactions`, oldFilename);
         }
-        const filename = `${new Date().getTime().toString()}-${file.originalname}`;
+        const sanitized = file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
+        const filename = `${new Date().getTime().toString()}-${sanitized}`;
         proof = `${this.configService.get<string>(`MINIO_ENDPOINT`)}/expo-project-transactions/${filename}`;
         await this.s3Service.upload(
           `expo-project-transactions`,

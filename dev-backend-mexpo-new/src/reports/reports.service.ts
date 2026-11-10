@@ -386,6 +386,100 @@ export class ReportsService {
     }
   }
 
+  private generateExportFilename(prefix = 'rekap') {
+    const now = new Date();
+    const days = [
+      'minggu',
+      'senin',
+      'selasa',
+      'rabu',
+      'kamis',
+      'jumat',
+      'sabtu',
+    ];
+    const months = [
+      'januari',
+      'februari',
+      'maret',
+      'april',
+      'mei',
+      'juni',
+      'juli',
+      'agustus',
+      'september',
+      'oktober',
+      'november',
+      'desember',
+    ];
+    const dayName = days[now.getDay()];
+    const date = String(now.getDate()).padStart(2, '0');
+    const monthName = months[now.getMonth()];
+    const year = now.getFullYear();
+    return `${prefix} (${dayName}, ${date} ${monthName} ${year}).xlsx`;
+  }
+
+  private formatIndonesianDateTime(date: Date) {
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const day = pad(date.getDate());
+    const month = pad(date.getMonth() + 1);
+    const year = date.getFullYear();
+    const hours = pad(date.getHours());
+    const minutes = pad(date.getMinutes());
+    return `${day}/${month}/${year} ${hours}:${minutes}`;
+  }
+
+  private styleTxRow(
+    row: ExcelJS.Row,
+    index: number,
+    border: Partial<ExcelJS.Borders>,
+  ) {
+    row.height = 22;
+    const isZebra = index % 2 === 0;
+
+    row.eachCell((cell, colNumber) => {
+      cell.border = border;
+      cell.font = { name: 'Segoe UI', size: 10, color: { argb: 'FF1E293B' } };
+      if (isZebra) {
+        cell.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FFF8FAFC' },
+        };
+      }
+
+      if (colNumber === 1 || colNumber === 2 || colNumber === 3) {
+        cell.alignment = { vertical: 'middle', horizontal: 'center' };
+      } else if (colNumber === 4) {
+        cell.alignment = { vertical: 'middle', horizontal: 'left' };
+      } else if (colNumber === 5) {
+        cell.alignment = { vertical: 'middle', horizontal: 'center' };
+        cell.numFmt = '#,##0';
+      } else if (colNumber === 6 || colNumber === 7) {
+        cell.alignment = { vertical: 'middle', horizontal: 'right' };
+        cell.numFmt = '"Rp "#,##0';
+      } else if (colNumber === 8) {
+        cell.alignment = { vertical: 'middle', horizontal: 'center' };
+      } else if (colNumber === 9) {
+        cell.alignment = { vertical: 'middle', horizontal: 'center' };
+        if (cell.value === 'Lunas') {
+          cell.font = {
+            name: 'Segoe UI',
+            size: 10,
+            bold: true,
+            color: { argb: 'FF15803D' },
+          };
+        } else {
+          cell.font = {
+            name: 'Segoe UI',
+            size: 10,
+            bold: true,
+            color: { argb: 'FFDC2626' },
+          };
+        }
+      }
+    });
+  }
+
   /** A16 — Excel (.xlsx) export of the event's key reports. */
   async exportExcel(event_id: string, filter: FilterReportDto) {
     try {
@@ -418,60 +512,315 @@ export class ReportsService {
       const totalVisitors = await this.prisma.log_attendances.count({
         where: { event_id, created_at: dateWhere },
       });
-      const totalTransactions = transactions.length;
+      const totalTransactions = transactions.reduce(
+        (sum, t) => sum + (t._count.tenant_id || 0),
+        0,
+      );
       const totalAmount = transactions.reduce(
         (sum, t) => sum + (t._sum.amount || 0),
         0,
       );
 
       const workbook = new ExcelJS.Workbook();
+      workbook.creator = 'Mexpo Platform';
+      workbook.created = new Date();
 
-      const summary = workbook.addWorksheet(`Ringkasan`);
+      const borderAll: Partial<ExcelJS.Borders> = {
+        top: { style: 'thin', color: { argb: 'FF000000' } },
+        left: { style: 'thin', color: { argb: 'FF000000' } },
+        bottom: { style: 'thin', color: { argb: 'FF000000' } },
+        right: { style: 'thin', color: { argb: 'FF000000' } },
+      };
+
+      const borderHeader: Partial<ExcelJS.Borders> = {
+        top: { style: 'thin', color: { argb: 'FF000000' } },
+        left: { style: 'thin', color: { argb: 'FF000000' } },
+        bottom: { style: 'medium', color: { argb: 'FF000000' } },
+        right: { style: 'thin', color: { argb: 'FF000000' } },
+      };
+
+      const borderTotal: Partial<ExcelJS.Borders> = {
+        top: { style: 'thin', color: { argb: 'FF000000' } },
+        left: { style: 'thin', color: { argb: 'FF000000' } },
+        bottom: { style: 'double', color: { argb: 'FF000000' } },
+        right: { style: 'thin', color: { argb: 'FF000000' } },
+      };
+
+      // ── SHEET 1: RINGKASAN EVENT ───────────────────────────────────────
+      const summary = workbook.addWorksheet(`Ringkasan`, {
+        views: [{ showGridLines: true }],
+      });
       summary.columns = [
-        { header: `Metrik`, key: `metric`, width: 28 },
-        { header: `Nilai`, key: `value`, width: 24 },
+        { key: 'metric', width: 34 },
+        { key: 'value', width: 28 },
       ];
-      summary.addRows([
-        { metric: `Event`, value: findEvent.name },
-        { metric: `Total Visitor Check-in`, value: totalVisitors },
-        { metric: `Total Transaksi`, value: totalTransactions },
-        { metric: `Total Amount (Rp)`, value: totalAmount },
-      ]);
 
-      const boothSheet = workbook.addWorksheet(`Visitor per Booth`);
-      boothSheet.columns = [
-        { header: `Tenant`, key: `name`, width: 30 },
-        { header: `Booth`, key: `booth`, width: 16 },
-        { header: `Visitor Count`, key: `count`, width: 15 },
-      ];
-      visitedTenants.forEach((t) => {
-        const c =
-          boothVisitors.find((b) => b.tenant_id === t.uuid)?._count.user_id ||
-          0;
-        boothSheet.addRow({ name: t.name, booth: t.booth_number, count: c });
+      const sHeader = summary.addRow(['Metrik', 'Nilai']);
+      sHeader.height = 28;
+      sHeader.eachCell((cell, colIdx) => {
+        cell.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FF1E3A8A' },
+        };
+        cell.font = {
+          name: 'Segoe UI',
+          size: 11,
+          bold: true,
+          color: { argb: 'FFFFFFFF' },
+        };
+        cell.alignment = {
+          vertical: 'middle',
+          horizontal: colIdx === 2 ? 'right' : 'left',
+        };
+        cell.border = borderHeader;
       });
 
-      const amountSheet = workbook.addWorksheet(`Transaksi per Booth`);
-      amountSheet.columns = [
-        { header: `Tenant`, key: `name`, width: 30 },
-        { header: `Booth`, key: `booth`, width: 16 },
-        { header: `Amount (Rp)`, key: `amount`, width: 18 },
-        { header: `Jumlah Transaksi`, key: `count`, width: 18 },
+      const metricsList = [
+        { label: 'Event', value: findEvent.name },
+        {
+          label: 'Total Tenant Terdaftar',
+          value: allTenants.length,
+          numFmt: '#,##0',
+        },
+        {
+          label: 'Total Visitor Check-in',
+          value: totalVisitors,
+          numFmt: '#,##0',
+        },
+        { label: 'Total Transaksi', value: totalTransactions, numFmt: '#,##0' },
+        {
+          label: 'Total Amount (Rp)',
+          value: totalAmount,
+          numFmt: '"Rp "#,##0',
+        },
       ];
-      allTenants.forEach((t) => {
-        const tr = transactions.find((x) => x.tenant_id === t.uuid);
-        amountSheet.addRow({
-          name: t.name,
-          booth: t.booth_number,
-          amount: tr?._sum.amount || 0,
-          count: tr?._count.tenant_id || 0,
+
+      metricsList.forEach((m, idx) => {
+        const r = summary.addRow([m.label, m.value]);
+        r.height = 24;
+        const isZebra = idx % 2 === 1;
+        r.eachCell((cell, colIdx) => {
+          cell.border = borderAll;
+          cell.font = { name: 'Segoe UI', size: 10 };
+          if (isZebra) {
+            cell.fill = {
+              type: 'pattern',
+              pattern: 'solid',
+              fgColor: { argb: 'FFF8FAFC' },
+            };
+          }
+          if (colIdx === 1) {
+            cell.font = {
+              name: 'Segoe UI',
+              size: 10,
+              bold: true,
+              color: { argb: 'FF1E293B' },
+            };
+            cell.alignment = { vertical: 'middle', horizontal: 'left' };
+          } else {
+            if (typeof m.value === 'number') {
+              cell.alignment = { vertical: 'middle', horizontal: 'right' };
+              if (m.numFmt) cell.numFmt = m.numFmt;
+            } else {
+              cell.alignment = { vertical: 'middle', horizontal: 'left' };
+            }
+          }
         });
       });
 
+      // ── SHEET 2: VISITOR PER BOOTH ────────────────────────────────────
+      const boothSheet = workbook.addWorksheet(`Visitor per Booth`, {
+        views: [{ showGridLines: true }],
+      });
+      boothSheet.columns = [
+        { key: 'no', width: 8 },
+        { key: 'name', width: 32 },
+        { key: 'booth', width: 16 },
+        { key: 'count', width: 20 },
+      ];
+
+      const bHeader = boothSheet.addRow([
+        'No',
+        'Tenant',
+        'Booth',
+        'Visitor Count',
+      ]);
+      bHeader.height = 28;
+      bHeader.eachCell((c) => {
+        c.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FF1E3A8A' },
+        };
+        c.font = {
+          name: 'Segoe UI',
+          size: 10,
+          bold: true,
+          color: { argb: 'FFFFFFFF' },
+        };
+        c.alignment = { vertical: 'middle', horizontal: 'center' };
+        c.border = borderHeader;
+      });
+
+      visitedTenants.forEach((t, i) => {
+        const c =
+          boothVisitors.find((b) => b.tenant_id === t.uuid)?._count.user_id ||
+          0;
+        const row = boothSheet.addRow([
+          i + 1,
+          t.name,
+          t.booth_number || '-',
+          c,
+        ]);
+        row.height = 22;
+        const isZebra = i % 2 === 1;
+        row.eachCell((cell, col) => {
+          cell.border = borderAll;
+          cell.font = { name: 'Segoe UI', size: 10 };
+          if (isZebra)
+            cell.fill = {
+              type: 'pattern',
+              pattern: 'solid',
+              fgColor: { argb: 'FFF8FAFC' },
+            };
+          if (col === 1 || col === 3)
+            cell.alignment = { vertical: 'middle', horizontal: 'center' };
+          else if (col === 2)
+            cell.alignment = { vertical: 'middle', horizontal: 'left' };
+          else if (col === 4) {
+            cell.alignment = { vertical: 'middle', horizontal: 'right' };
+            cell.numFmt = '#,##0';
+          }
+        });
+      });
+
+      // ── SHEET 3: TRANSAKSI PER BOOTH ──────────────────────────────────
+      const amountSheet = workbook.addWorksheet(`Transaksi per Booth`, {
+        views: [{ showGridLines: true }],
+      });
+      amountSheet.columns = [
+        { key: 'no', width: 8 },
+        { key: 'name', width: 32 },
+        { key: 'booth', width: 16 },
+        { key: 'amount', width: 22 },
+        { key: 'count', width: 20 },
+      ];
+
+      const aHeader = amountSheet.addRow([
+        'No',
+        'Tenant',
+        'Booth',
+        'Amount (Rp)',
+        'Jumlah Transaksi',
+      ]);
+      aHeader.height = 28;
+      aHeader.eachCell((c) => {
+        c.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FF1E3A8A' },
+        };
+        c.font = {
+          name: 'Segoe UI',
+          size: 10,
+          bold: true,
+          color: { argb: 'FFFFFFFF' },
+        };
+        c.alignment = { vertical: 'middle', horizontal: 'center' };
+        c.border = borderHeader;
+      });
+
+      allTenants.forEach((t, i) => {
+        const tr = transactions.find((x) => x.tenant_id === t.uuid);
+        const amt = tr?._sum.amount || 0;
+        const cnt = tr?._count.tenant_id || 0;
+        const row = amountSheet.addRow([
+          i + 1,
+          t.name,
+          t.booth_number || '-',
+          amt,
+          cnt,
+        ]);
+        row.height = 22;
+        const isZebra = i % 2 === 1;
+        row.eachCell((cell, col) => {
+          cell.border = borderAll;
+          cell.font = { name: 'Segoe UI', size: 10 };
+          if (isZebra)
+            cell.fill = {
+              type: 'pattern',
+              pattern: 'solid',
+              fgColor: { argb: 'FFF8FAFC' },
+            };
+          if (col === 1 || col === 3)
+            cell.alignment = { vertical: 'middle', horizontal: 'center' };
+          else if (col === 2)
+            cell.alignment = { vertical: 'middle', horizontal: 'left' };
+          else if (col === 4) {
+            cell.alignment = { vertical: 'middle', horizontal: 'right' };
+            cell.numFmt = '"Rp "#,##0';
+          } else if (col === 5) {
+            cell.alignment = { vertical: 'middle', horizontal: 'right' };
+            cell.numFmt = '#,##0';
+          }
+        });
+      });
+
+      if (allTenants.length > 0) {
+        const totalRowNum = amountSheet.rowCount + 1;
+        const totalRow = amountSheet.addRow([
+          'TOTAL KESELURUHAN',
+          '',
+          '',
+          totalAmount,
+          totalTransactions,
+        ]);
+        totalRow.height = 26;
+        amountSheet.mergeCells(`A${totalRowNum}:C${totalRowNum}`);
+        const lCell = totalRow.getCell(1);
+        lCell.alignment = { vertical: 'middle', horizontal: 'right' };
+        lCell.font = {
+          name: 'Segoe UI',
+          size: 11,
+          bold: true,
+          color: { argb: 'FF1E3A8A' },
+        };
+
+        const amtCell = totalRow.getCell(4);
+        amtCell.alignment = { vertical: 'middle', horizontal: 'right' };
+        amtCell.font = {
+          name: 'Segoe UI',
+          size: 11,
+          bold: true,
+          color: { argb: 'FF1E3A8A' },
+        };
+        amtCell.numFmt = '"Rp "#,##0';
+
+        const cntCell = totalRow.getCell(5);
+        cntCell.alignment = { vertical: 'middle', horizontal: 'right' };
+        cntCell.font = {
+          name: 'Segoe UI',
+          size: 11,
+          bold: true,
+          color: { argb: 'FF1E3A8A' },
+        };
+        cntCell.numFmt = '#,##0';
+
+        totalRow.eachCell({ includeEmpty: true }, (c) => {
+          c.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FFDBEAFE' },
+          };
+          c.border = borderTotal;
+        });
+      }
+
       const buffer = await workbook.xlsx.writeBuffer();
-      const safeName = findEvent.name.replace(/[^\w-]+/g, `_`).slice(0, 40);
+      const filename = this.generateExportFilename('rekap');
       return {
-        filename: `report-${safeName || 'event'}.xlsx`,
+        filename,
         buffer: Buffer.from(buffer),
       };
     } catch (error) {
@@ -509,61 +858,258 @@ export class ReportsService {
       const totalTransactions = transactions.length;
 
       const workbook = new ExcelJS.Workbook();
+      workbook.creator = 'Mexpo Platform';
+      workbook.created = new Date();
 
-      const summary = workbook.addWorksheet(`Ringkasan`);
+      const borderAll: Partial<ExcelJS.Borders> = {
+        top: { style: 'thin', color: { argb: 'FF000000' } },
+        left: { style: 'thin', color: { argb: 'FF000000' } },
+        bottom: { style: 'thin', color: { argb: 'FF000000' } },
+        right: { style: 'thin', color: { argb: 'FF000000' } },
+      };
+
+      const borderHeader: Partial<ExcelJS.Borders> = {
+        top: { style: 'thin', color: { argb: 'FF000000' } },
+        left: { style: 'thin', color: { argb: 'FF000000' } },
+        bottom: { style: 'medium', color: { argb: 'FF000000' } },
+        right: { style: 'thin', color: { argb: 'FF000000' } },
+      };
+
+      const borderTotal: Partial<ExcelJS.Borders> = {
+        top: { style: 'thin', color: { argb: 'FF000000' } },
+        left: { style: 'thin', color: { argb: 'FF000000' } },
+        bottom: { style: 'double', color: { argb: 'FF000000' } },
+        right: { style: 'thin', color: { argb: 'FF000000' } },
+      };
+
+      // ── SHEET 1: RINGKASAN ──────────────────────────────────────────────
+      const summary = workbook.addWorksheet('Ringkasan', {
+        views: [{ showGridLines: true }],
+      });
+
       summary.columns = [
-        { header: `Metrik`, key: `metric`, width: 28 },
-        { header: `Nilai`, key: `value`, width: 24 },
+        { key: 'metric', width: 28 },
+        { key: 'value', width: 28 },
       ];
-      summary.addRows([
-        { metric: `Tenant`, value: tenant.name },
-        { metric: `Booth`, value: tenant.booth_number || `-` },
-        { metric: `Total Booth Visit`, value: boothVisits },
-        { metric: `Total Transaksi`, value: totalTransactions },
-        { metric: `Total Amount (Rp)`, value: totalAmount },
-      ]);
 
-      const txSheet = workbook.addWorksheet(`Transaksi`);
-      txSheet.columns = [
-        { header: `Tanggal`, key: `date`, width: 22 },
-        { header: `Produk`, key: `product`, width: 30 },
-        { header: `Qty`, key: `qty`, width: 8 },
-        { header: `Harga (Rp)`, key: `price`, width: 16 },
-        { header: `Subtotal (Rp)`, key: `subtotal`, width: 18 },
-        { header: `Metode`, key: `method`, width: 14 },
-        { header: `Status`, key: `status`, width: 14 },
+      // Table Header Row 1
+      const headerRow = summary.addRow(['Metrik', 'Nilai']);
+      headerRow.height = 28;
+      headerRow.eachCell((cell, colIdx) => {
+        cell.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FF1E3A8A' },
+        };
+        cell.font = {
+          name: 'Segoe UI',
+          size: 11,
+          bold: true,
+          color: { argb: 'FFFFFFFF' },
+        };
+        cell.alignment = {
+          vertical: 'middle',
+          horizontal: colIdx === 2 ? 'right' : 'left',
+        };
+        cell.border = borderHeader;
+      });
+
+      const metricsData: Array<{
+        label: string;
+        value: string | number;
+        numFmt?: string;
+      }> = [
+        { label: 'Tenant', value: tenant.name },
+        { label: 'Booth', value: tenant.booth_number || '-' },
+        { label: 'Total Booth Visit', value: boothVisits, numFmt: '#,##0' },
+        { label: 'Total Transaksi', value: totalTransactions, numFmt: '#,##0' },
+        {
+          label: 'Total Amount (Rp)',
+          value: totalAmount,
+          numFmt: '"Rp "#,##0',
+        },
       ];
+
+      metricsData.forEach((item, index) => {
+        const row = summary.addRow([item.label, item.value]);
+        row.height = 24;
+        const isZebra = index % 2 === 1;
+
+        row.eachCell((cell, colIdx) => {
+          cell.border = borderAll;
+          cell.font = { name: 'Segoe UI', size: 10 };
+          if (isZebra) {
+            cell.fill = {
+              type: 'pattern',
+              pattern: 'solid',
+              fgColor: { argb: 'FFF8FAFC' },
+            };
+          }
+          if (colIdx === 1) {
+            cell.font = {
+              name: 'Segoe UI',
+              size: 10,
+              bold: true,
+              color: { argb: 'FF1E293B' },
+            };
+            cell.alignment = { vertical: 'middle', horizontal: 'left' };
+          } else {
+            if (typeof item.value === 'number') {
+              cell.alignment = { vertical: 'middle', horizontal: 'right' };
+              if (item.numFmt) cell.numFmt = item.numFmt;
+            } else {
+              cell.alignment = { vertical: 'middle', horizontal: 'left' };
+            }
+          }
+        });
+      });
+
+      // ── SHEET 2: TRANSAKSI ─────────────────────────────────────────────
+      const txSheet = workbook.addWorksheet('Transaksi', {
+        views: [{ showGridLines: true }],
+      });
+
+      txSheet.columns = [
+        { key: 'no', width: 6 },
+        { key: 'date', width: 20 },
+        { key: 'tx_id', width: 16 },
+        { key: 'product', width: 32 },
+        { key: 'qty', width: 8 },
+        { key: 'price', width: 18 },
+        { key: 'subtotal', width: 20 },
+        { key: 'method', width: 18 },
+        { key: 'status', width: 14 },
+      ];
+
+      // Table Header Row
+      const txHeaderRow = txSheet.addRow([
+        'No',
+        'Tanggal',
+        'ID Transaksi',
+        'Produk',
+        'Qty',
+        'Harga (Rp)',
+        'Subtotal (Rp)',
+        'Metode',
+        'Status',
+      ]);
+      txHeaderRow.height = 28;
+      txHeaderRow.eachCell((cell) => {
+        cell.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FF1E3A8A' },
+        };
+        cell.font = {
+          name: 'Segoe UI',
+          size: 10,
+          bold: true,
+          color: { argb: 'FFFFFFFF' },
+        };
+        cell.alignment = { vertical: 'middle', horizontal: 'center' };
+        cell.border = borderHeader;
+      });
+
+      let rowIndex = 0;
+      let rowNumber = 1;
+
       transactions.forEach((t) => {
         const details = t.tenantTransactionDetails ?? [];
+        const formattedDate = this.formatIndonesianDateTime(
+          new Date(t.created_at),
+        );
+        const txCode = t.uuid ? `#${t.uuid.slice(0, 8).toUpperCase()}` : '-';
+        const method = (t.payment_method || '-').toUpperCase();
+        const statusText = t.paid ? 'Lunas' : 'Belum';
+
         if (details.length === 0) {
-          txSheet.addRow({
-            date: t.created_at.toISOString(),
-            product: `-`,
-            qty: 0,
-            price: 0,
-            subtotal: t.amount,
-            method: t.payment_method || `-`,
-            status: t.paid ? `Lunas` : `Belum`,
-          });
+          rowIndex++;
+          const row = txSheet.addRow([
+            rowNumber++,
+            formattedDate,
+            txCode,
+            '-',
+            0,
+            0,
+            t.amount,
+            method,
+            statusText,
+          ]);
+          this.styleTxRow(row, rowIndex, borderAll);
         } else {
           details.forEach((d) => {
-            txSheet.addRow({
-              date: t.created_at.toISOString(),
-              product: d.product?.name ?? `-`,
-              qty: d.quantity,
-              price: d.purchase_price,
-              subtotal: d.quantity * d.purchase_price,
-              method: t.payment_method || `-`,
-              status: t.paid ? `Lunas` : `Belum`,
-            });
+            rowIndex++;
+            const prodName = d.product?.name ?? '-';
+            const qty = d.quantity || 0;
+            const price = d.purchase_price || 0;
+            const subtotal = qty * price;
+
+            const row = txSheet.addRow([
+              rowNumber++,
+              formattedDate,
+              txCode,
+              prodName,
+              qty,
+              price,
+              subtotal,
+              method,
+              statusText,
+            ]);
+            this.styleTxRow(row, rowIndex, borderAll);
           });
         }
       });
 
+      // Total summary row
+      if (rowIndex > 0) {
+        const totalRowNumber = txSheet.rowCount + 1;
+        const totalRow = txSheet.addRow([
+          'TOTAL PENJUALAN',
+          '',
+          '',
+          '',
+          '',
+          '',
+          totalAmount,
+          '',
+          '',
+        ]);
+        totalRow.height = 26;
+
+        txSheet.mergeCells(`A${totalRowNumber}:F${totalRowNumber}`);
+        const totalLabelCell = totalRow.getCell(1);
+        totalLabelCell.alignment = { vertical: 'middle', horizontal: 'right' };
+        totalLabelCell.font = {
+          name: 'Segoe UI',
+          size: 11,
+          bold: true,
+          color: { argb: 'FF1E3A8A' },
+        };
+
+        const totalValueCell = totalRow.getCell(7);
+        totalValueCell.alignment = { vertical: 'middle', horizontal: 'right' };
+        totalValueCell.font = {
+          name: 'Segoe UI',
+          size: 11,
+          bold: true,
+          color: { argb: 'FF1E3A8A' },
+        };
+        totalValueCell.numFmt = '"Rp "#,##0';
+
+        totalRow.eachCell({ includeEmpty: true }, (cell) => {
+          cell.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FFDBEAFE' },
+          };
+          cell.border = borderTotal;
+        });
+      }
+
       const buffer = await workbook.xlsx.writeBuffer();
-      const safeName = tenant.name.replace(/[^\w-]+/g, `_`).slice(0, 40);
+      const filename = this.generateExportFilename('rekap');
       return {
-        filename: `report-${safeName || 'tenant'}.xlsx`,
+        filename,
         buffer: Buffer.from(buffer),
       };
     } catch (error) {

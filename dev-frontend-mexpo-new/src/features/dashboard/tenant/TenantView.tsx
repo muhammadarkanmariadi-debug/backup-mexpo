@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { usePathname, useSearchParams } from "next/navigation";
 import {
   Loader2,
   ScanLine,
@@ -16,6 +17,7 @@ import {
 } from "lucide-react";
 
 import { Event } from "@/entities/event/event.entity";
+import { Tenant } from "@/entities/event/tenant.entity";
 import EventHero from "@/features/dashboard/shared/EventHero";
 import EventOverview from "@/features/dashboard/shared/EventOverview";
 import ViewAction from "@/features/dashboard/shared/ViewAction";
@@ -41,8 +43,49 @@ interface Props {
 }
 
 export default function TenantView({ event }: Props) {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [badgeOpen, setBadgeOpen] = useState(false);
-  const [activeTabKey, setActiveTabKey] = useState("sales");
+
+  // Helper to determine the group id from a subtab id
+  const getGroupId = useCallback((tabId: string): string => {
+    if (["sales", "laporan", "info"].includes(tabId)) return "analitik";
+    if (["profil", "produk", "tim"].includes(tabId)) return "kelola";
+    if (["pos", "scan"].includes(tabId)) return "transaksi";
+    return "analitik";
+  }, []);
+
+  // Initialize with "sales" to guarantee identical HTML between Server (SSR) and Client during hydration
+  const [activeTabKey, setActiveTabKey] = useState<string>("sales");
+
+  const handleTabChange = useCallback((groupId: string, subTabId: string) => {
+    setActiveTabKey(subTabId);
+    try {
+      localStorage.setItem(`mexpo:tenant-tab:${event.uuid}`, subTabId);
+      const params = new URLSearchParams(window.location.search);
+      params.set("tab", subTabId);
+      window.history.replaceState(null, "", `${pathname}?${params.toString()}`);
+    } catch {
+      // ignore
+    }
+  }, [event.uuid, pathname]);
+
+  // Sync tab state after client mount (avoids SSR hydration mismatch with localStorage/searchParams)
+  useEffect(() => {
+    const tabFromUrl = searchParams.get("tab");
+    if (tabFromUrl) {
+      setActiveTabKey(tabFromUrl);
+      return;
+    }
+    try {
+      const saved = localStorage.getItem(`mexpo:tenant-tab:${event.uuid}`);
+      if (saved && saved !== "sales") {
+        setActiveTabKey(saved);
+      }
+    } catch {
+      // ignore
+    }
+  }, [searchParams, event.uuid]);
 
   // Fetch the tenant list ONCE here so every tab reuses the same data
   const { data: myTenants, isLoading } = useApiQuery(
@@ -67,7 +110,7 @@ export default function TenantView({ event }: Props) {
             <TenantSalesOverview
               event={event}
               tenantId={tenantId}
-              onNavigateToTab={(tab) => setActiveTabKey(tab)}
+              onNavigateToTab={(tab) => handleTabChange(getGroupId(tab), tab)}
             />
           ),
         },
@@ -97,6 +140,7 @@ export default function TenantView({ event }: Props) {
           icon: Store,
           content: (
             <TenantTabContent
+              tenant={tenant}
               tenantId={tenantId}
               isLoading={isLoading}
               activeTab="profil"
@@ -199,8 +243,9 @@ export default function TenantView({ event }: Props) {
     <>
       <DashboardSidebarLayout
         groups={sidebarGroups}
-        defaultGroupId="analitik"
-        defaultSubTabId={activeTabKey}
+        activeGroupId={getGroupId(activeTabKey)}
+        activeSubTabId={activeTabKey}
+        onTabChange={handleTabChange}
         sidebarHeader={sidebarHeader}
         sidebarFooter={sidebarFooter}
         backHref="/dashboard"
@@ -228,10 +273,12 @@ export default function TenantView({ event }: Props) {
 
 /** Presentational tenant-tab content — data is hoisted into TenantView. */
 function TenantTabContent({
+  tenant,
   tenantId,
   isLoading,
   activeTab,
 }: {
+  tenant?: Tenant;
   tenantId: string;
   isLoading: boolean;
   activeTab: "profil" | "produk" | "tim" | "transaksi";
@@ -254,7 +301,7 @@ function TenantTabContent({
 
   return (
     <div className="py-2">
-      {activeTab === "profil" && <ProfileTab tenantId={tenantId} />}
+      {activeTab === "profil" && <ProfileTab tenantId={tenantId} tenant={tenant} />}
       {activeTab === "produk" && <ProductsTab tenantId={tenantId} />}
       {activeTab === "tim" && <TeamTab tenantId={tenantId} />}
       {activeTab === "transaksi" && <TransactionsTab tenantId={tenantId} />}

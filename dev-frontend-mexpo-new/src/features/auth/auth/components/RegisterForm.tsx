@@ -10,6 +10,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Checkbox from '@/shared/components/form/Checkbox';
 import Input from '@/shared/components/form/Input';
+import PhoneInput from '@/shared/components/form/PhoneInput';
 import Button from '@/shared/components/button/Button';
 import { toast } from 'sonner';
 import { GoogleButton } from './GoogleButton';
@@ -48,7 +49,7 @@ export function RegisterForm() {
     toast.success(result.message ?? 'Registrasi berhasil');
 
     setUser(result.data.user);
-    router.push('/verify-email');
+    router.push(`/verify-email?email=${encodeURIComponent(data.email)}`);
   };
 
   return (
@@ -112,13 +113,13 @@ export function RegisterForm() {
             control={control}
             name="phone"
             render={({ field }) => (
-              <Input
-                {...field}
-                type="text"
+              <PhoneInput
                 id="phone"
                 label="Nomor HP"
-                placeholder="Contoh: 081234567890"
-                error={!!errors.phone}
+                required
+                value={field.value}
+                onChange={field.onChange}
+                error={errors.phone?.message}
                 hint={errors.phone?.message}
               />
             )}
