@@ -392,8 +392,13 @@ function FieldsPanel({ eventId }: { eventId: string }) {
               <label className="block mb-2 font-medium text-gray-700 text-sm">Urutan</label>
               <input
                 type="number"
+                min={0}
+                step={1}
                 value={form.position}
-                onChange={(e) => setForm({ ...form, position: Number(e.target.value) || 0 })}
+                // Order is a 0-based slot: clamp negatives / decimals (backend also rejects < 0).
+                onChange={(e) =>
+                  setForm({ ...form, position: Math.max(0, Math.trunc(Number(e.target.value) || 0)) })
+                }
                 className="bg-white px-4 py-2.5 border border-gray-300 rounded-lg w-full h-11 text-gray-800 text-sm"
               />
             </div>
