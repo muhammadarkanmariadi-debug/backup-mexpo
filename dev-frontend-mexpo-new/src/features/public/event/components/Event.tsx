@@ -9,6 +9,7 @@ import SpeakersSection from "./content/SpeakersSection";
 import RegistrationFlow from "./content/RegistrationFlow";
 import LocationSection from "./content/LocationSection";
 import SponsorsSection from "./content/SponsorsSection";
+import SouvenirCatalogSection from "./content/SouvenirCatalogSection";
 import FaqSection from "./content/FaqSection";
 import BottomCtaSection from "./content/BottomCtaSection";
 import { Event } from "@/entities/event/event.entity";
@@ -21,6 +22,7 @@ export default function EventdetailPage({ eventData }: { eventData: Event }) {
   const rundown = eventData.eventRundowns ?? [];
   const workshops = eventData.workshops ?? [];
   const tenants = eventData.tenants ?? [];
+  const souvenirCatalog = eventData.souvenir_catalog ?? [];
 
   return (
     <div className="overflow-hidden bg-white text-gray-900">
@@ -38,6 +40,7 @@ export default function EventdetailPage({ eventData }: { eventData: Event }) {
         hasWorkshops={workshops.length > 0}
         hasTenants={tenants.length > 0}
         hasSponsors={sponsors.length > 0}
+        hasSouvenirs={souvenirCatalog.length > 0}
       />
 
       {rundown.length > 0 && (
@@ -70,6 +73,9 @@ export default function EventdetailPage({ eventData }: { eventData: Event }) {
           </div>
         </section>
       )}
+
+      {/* Katalog souvenir (sistem poin) */}
+      <SouvenirCatalogSection items={souvenirCatalog} />
 
       {/* 10. Sponsor & Partner (Hanya jika event memiliki data sponsors) */}
       <SponsorsSection sponsors={sponsors} />
