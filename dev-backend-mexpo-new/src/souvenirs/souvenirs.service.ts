@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   ForbiddenException,
   HttpException,
@@ -11,10 +12,68 @@ import { PrismaService } from '../prisma/prisma.service';
 import { QuerySouvenirDto } from './dto/query-souvenir.dto';
 import { assertEventFeature } from '../events/event-features';
 import { evaluateSouvenirEligibility } from './souvenir-rules';
+import { S3Service } from '../s3/s3.service';
+import { ConfigService } from '@nestjs/config';
+import { Prisma, UserRole } from '@prisma/client';
+
+const CATALOG_BUCKET = `expo-project-souvenir`;
 
 @Injectable()
 export class SouvenirsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly s3Service: S3Service,
+    private readonly configService: ConfigService,
+  ) {}
+
+  /** Uploads a catalog item photo; returns its public URL (owner/committee/superadmin). */
+  async uploadCatalogImage(
+    event_id: string,
+    userId: string,
+    role: UserRole | undefined,
+    file?: Express.Multer.File,
+  ) {
+    try {
+      if (!file) throw new BadRequestException(`File gambar wajib diisi`);
+      const findEvent = await this.prisma.events.findFirst({
+        where: { uuid: event_id },
+        select: { uuid: true, name: true },
+      });
+      if (!findEvent) throw new NotFoundException(`Event doesn't exists`);
+      if (role !== `SUPERADMIN`) {
+        const manager = await this.prisma.user_event_roles.findFirst({
+          where: {
+            event_id,
+            user_id: userId,
+            status: `APPROVED`,
+            role: { in: [`COMMITTEE`, `OWNER`] },
+          },
+        });
+        if (!manager) {
+          throw new ForbiddenException(
+            `Sorry, you can't manage souvenirs for ${findEvent.name}`,
+          );
+        }
+      }
+      const filename = `${Date.now()}-${file.originalname}`;
+      await this.s3Service.upload(
+        CATALOG_BUCKET,
+        filename,
+        file.buffer,
+        file.mimetype,
+      );
+      return {
+        success: true,
+        message: `Foto souvenir diunggah`,
+        data: {
+          url: `${this.configService.get<string>(`MINIO_ENDPOINT`)}/${CATALOG_BUCKET}/${filename}`,
+        },
+      };
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
+      throw new InternalServerErrorException(`Something were worng: ${error}`);
+    }
+  }
   async create(
     event_id: string,
     createSouvenirDto: CreateSouvenirDto,
@@ -64,6 +123,8 @@ export class SouvenirsService {
       let souvenirName = `Standard Souvenir`;
       let pointsEarned = 0;
       let pointsSpent = 0;
+      let tierId: string | null = null;
+      let stock: number | null = null;
       if (eligibility.usePointSystem) {
         const selected = createSouvenirDto.tier_id
           ? eligibility.eligibleTiers.find(
@@ -71,10 +132,18 @@ export class SouvenirsService {
             )
           : eligibility.recommendedTier;
         if (!selected) {
+          const requested = eligibility.tiers.find(
+            (t) => t.id === createSouvenirDto.tier_id,
+          );
+          if (requested?.soldOut) {
+            throw new ConflictException(`Stok ${requested.name} sudah habis`);
+          }
           throw new ForbiddenException(
             `Poin kurang untuk jenis souvenir yang dipilih (sisa ${eligibility.availablePoints} poin)`,
           );
         }
+        tierId = selected.id;
+        stock = selected.stock ?? null;
         if (selected.minPoints <= 0) {
           const already = await this.prisma.souvenirs.findFirst({
             where: { event_id, user_id, souvenir_name: selected.name },
@@ -97,17 +166,35 @@ export class SouvenirsService {
           );
       }
 
-      const newSouvenir = await this.prisma.souvenirs.create({
-        data: {
-          user_id,
-          event_id,
-          souvenir_name: souvenirName,
-          points_earned: pointsEarned,
-          points_spent: pointsSpent,
-          created_by: userId,
-          updated_by: userId,
-        },
-      });
+      const data = {
+        user_id,
+        event_id,
+        souvenir_name: souvenirName,
+        tier_id: tierId,
+        points_earned: pointsEarned,
+        points_spent: pointsSpent,
+        created_by: userId,
+        updated_by: userId,
+      };
+      // Stock-limited item: re-count and insert atomically so two counters
+      // redeeming the last unit at once cannot oversell it.
+      const newSouvenir =
+        tierId && stock != null
+          ? await this.prisma.$transaction(
+              async (tx) => {
+                const redeemed = await tx.souvenirs.count({
+                  where: { event_id, tier_id: tierId },
+                });
+                if (redeemed >= stock) {
+                  throw new ConflictException(
+                    `Stok ${souvenirName} sudah habis`,
+                  );
+                }
+                return tx.souvenirs.create({ data });
+              },
+              { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+            )
+          : await this.prisma.souvenirs.create({ data });
       return {
         success: true,
         message: eligibility.usePointSystem
