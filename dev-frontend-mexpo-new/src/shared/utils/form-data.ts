@@ -1,3 +1,5 @@
+import { assertUploadableImage } from "@/shared/utils/upload";
+
 /**
  * Builds a multipart FormData payload for the backend.
  * - `null`/`undefined` fields are skipped (so optional DTO dates stay unset).
@@ -18,6 +20,9 @@ export function buildFormData(
       fd.append(key, String(value));
     }
   }
-  if (file) fd.append(fileKey, file);
+  if (file) {
+    assertUploadableImage(file);
+    fd.append(fileKey, file);
+  }
   return fd;
 }
