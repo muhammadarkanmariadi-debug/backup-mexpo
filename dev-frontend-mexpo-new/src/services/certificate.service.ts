@@ -4,6 +4,7 @@ import {
   CertificateTemplate,
   CertificateTemplateEnvelope,
 } from "@/entities/event/certificate-template.entity";
+import { assertUploadableImage } from "@/shared/utils/upload";
 
 export interface CertificateTemplatePayload {
   name?: string;
@@ -57,7 +58,10 @@ function buildTemplateFormData(
   if (typeof payload.is_active === "boolean") {
     fd.append("is_active", String(payload.is_active));
   }
-  if (file) fd.append("file", file);
+  if (file) {
+    assertUploadableImage(file);
+    fd.append("file", file);
+  }
   return fd;
 }
 
