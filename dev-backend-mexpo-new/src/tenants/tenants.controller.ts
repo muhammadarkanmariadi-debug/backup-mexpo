@@ -203,6 +203,7 @@ export class TenantsController {
       updateTenantDto,
       request.user.uuid,
       file,
+      request.user.role as UserRole,
     );
   }
 
