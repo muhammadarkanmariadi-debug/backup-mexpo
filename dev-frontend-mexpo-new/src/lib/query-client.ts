@@ -1,6 +1,6 @@
 "use client";
 
-import { QueryClient } from "@tanstack/react-query";
+import { QueryClient, isServer } from "@tanstack/react-query";
 
 /**
  * Global TanStack Query client for the Mexpo frontend.
@@ -16,13 +16,29 @@ import { QueryClient } from "@tanstack/react-query";
  * create/update/delete, `queryClient.invalidateQueries({ queryKey })` is called
  * (see src/lib/hooks/useApi.ts) so affected lists refetch immediately.
  */
-export const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 0,
-      refetchOnWindowFocus: true,
-      retry: 1,
-      gcTime: 5 * 60 * 1000,
+function makeQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: {
+        staleTime: 0,
+        refetchOnWindowFocus: true,
+        retry: 1,
+        gcTime: 5 * 60 * 1000,
+      },
     },
-  },
-});
+  });
+}
+
+let browserQueryClient: QueryClient | undefined;
+
+/**
+ * The server gets a fresh client per render: a module-level client would be
+ * shared by every SSR request, so one visitor's cached data would be rendered
+ * for the next (and `initialData` ignored → hydration mismatches). The browser
+ * keeps a single client for the whole session.
+ */
+export function getQueryClient() {
+  if (isServer) return makeQueryClient();
+  if (!browserQueryClient) browserQueryClient = makeQueryClient();
+  return browserQueryClient;
+}
