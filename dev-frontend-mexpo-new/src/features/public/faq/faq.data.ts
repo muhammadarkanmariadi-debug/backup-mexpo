@@ -109,7 +109,7 @@ export const faqData: FAQItem[] = [
     category: 'Kehadiran & Sertifikat',
     question: 'Bagaimana cara mendapatkan souvenir event?',
     answer:
-      'Beberapa event menyediakan hadiah souvenir yang dapat diklaim jika Anda memenuhi syarat kunjungan stan (misal mengunjungi minimal 5 booth tenant) dan/atau menghadiri seminar. Tunjukkan QR Code Anda ke meja souvenir untuk validasi.',
+      'Event yang menyediakan souvenir memakai sistem poin: Anda mendapat poin dari mengunjungi booth tenant, mengikuti seminar, dan/atau bertransaksi (sesuai pengaturan penyelenggara). Lihat item yang bisa ditukar beserta harga poin dan stoknya di bagian Katalog Souvenir pada halaman event, lalu tunjukkan QR Code Anda ke meja souvenir untuk menukar poin.',
   },
 
   // ── LOKAKARYA ──
