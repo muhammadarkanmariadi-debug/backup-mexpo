@@ -4,6 +4,8 @@ import {
   PutObjectCommand,
   GetObjectCommand,
   DeleteObjectCommand,
+  CreateBucketCommand,
+  PutBucketPolicyCommand,
 } from '@aws-sdk/client-s3';
 import { Readable } from 'stream';
 
@@ -19,8 +21,8 @@ export class S3Service {
     body: Buffer,
     contentType?: string,
   ) {
-    try {
-      await this.s3.send(
+    const put = () =>
+      this.s3.send(
         new PutObjectCommand({
           Bucket: bucket,
           Key: key,
@@ -28,6 +30,16 @@ export class S3Service {
           ContentType: contentType,
         }),
       );
+    try {
+      try {
+        await put();
+      } catch (err) {
+        // A bucket missing from the storage init script must not break every
+        // upload into it: create it (public-read, like the init script) once.
+        if ((err as Error)?.name !== 'NoSuchBucket') throw err;
+        await this.createPublicBucket(bucket);
+        await put();
+      }
     } catch (err) {
       const error = err as Error;
       if (error && error.message && error.message.includes('Invalid URL')) {
@@ -39,6 +51,39 @@ export class S3Service {
       }
     }
     return { bucket, key };
+  }
+
+  private async createPublicBucket(bucket: string) {
+    this.logger.warn(`Bucket ${bucket} does not exist; creating it`);
+    try {
+      await this.s3.send(new CreateBucketCommand({ Bucket: bucket }));
+    } catch (err) {
+      const name = (err as Error)?.name;
+      if (
+        name !== 'BucketAlreadyOwnedByYou' &&
+        name !== 'BucketAlreadyExists'
+      ) {
+        throw err;
+      }
+    }
+    // Uploaded assets are served by direct URL (MINIO_ENDPOINT/bucket/key),
+    // so objects must be anonymously readable — same as `mc anonymous set download`.
+    await this.s3.send(
+      new PutBucketPolicyCommand({
+        Bucket: bucket,
+        Policy: JSON.stringify({
+          Version: '2012-10-17',
+          Statement: [
+            {
+              Effect: 'Allow',
+              Principal: { AWS: ['*'] },
+              Action: ['s3:GetObject'],
+              Resource: [`arn:aws:s3:::${bucket}/*`],
+            },
+          ],
+        }),
+      }),
+    );
   }
 
   async getObject(bucket: string, key: string) {
