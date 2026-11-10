@@ -10,7 +10,12 @@ import {
   ValidationPipe,
   Request,
   Query,
+  UseInterceptors,
+  UploadedFile,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { UserRole } from '@prisma/client';
+import { imageFileFilter } from '../helper/upload.format';
 import { SouvenirsService } from './souvenirs.service';
 import { CreateSouvenirDto } from './dto/create-souvenir.dto';
 import { AuthGuard } from '@nestjs/passport';
@@ -37,6 +42,22 @@ export class SouvenirsController {
       event_id,
       createSouvenirDto,
       request.user.uuid,
+    );
+  }
+
+  /** Catalog item photo upload; returns `{ url }` to store in the item. */
+  @Post(`catalog-image/:event_id`)
+  @UseInterceptors(FileInterceptor(`file`, imageFileFilter))
+  uploadCatalogImage(
+    @Param(`event_id`) event_id: string,
+    @Request() request: authRequest.AuthRequest,
+    @UploadedFile() file?: Express.Multer.File,
+  ) {
+    return this.souvenirsService.uploadCatalogImage(
+      event_id,
+      request.user.uuid,
+      request.user.role as UserRole,
+      file,
     );
   }
 
