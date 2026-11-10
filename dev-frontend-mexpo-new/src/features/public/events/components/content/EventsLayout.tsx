@@ -3,19 +3,18 @@
 import React from 'react'
 import { motion } from 'framer-motion'
 
-
-
-
-
-
-import { useGroupedEvents } from '../../Hooks/useGrouped'
-// import EventsGrid from './EventsGrid'
 import CarouselSection from './CarouselSection'
 import { LoadingSpinner } from '@/shared/components/ui/LoadingSpinner'
 import ContentTitle1 from '@/shared/components/ui/ContentTitle1'
 import ContentTitle2 from '@/shared/components/ui/ContentTitle2'
 import { Event } from '@/entities/event/event.entity'
 import EventsGrid from './EventsGrid'
+import {
+  EVENT_SECTION_KEYS,
+  type EventSectionKey,
+  type EventSections,
+  type EventSectionTotals,
+} from '../../utils/eventSections'
 
 
 
@@ -23,8 +22,12 @@ type Category = 'All Events' | 'On Going' | 'Upcoming' | 'Past'
 
 interface EventsLayoutProps {
   category: Category;
-  search: string;
+  /** Single-category tab: the current page of events. */
   events: Event[];
+  /** "Semua Event" overview: events per section, fetched independently. */
+  sections: EventSections;
+  sectionTotals: EventSectionTotals;
+  onSeeAll: (section: EventSectionKey) => void;
   isLoading: boolean;
   serverPagination?: {
     currentPage: number;
@@ -63,16 +66,16 @@ const fadeUp = {
 
 const EventsLayout = ({
   category,
-  search,
   events,
+  sections,
+  sectionTotals,
+  onSeeAll,
   isLoading,
   serverPagination,
 }: EventsLayoutProps) => {
-  const grouped = useGroupedEvents(events, search);
-
   const isEmpty =
     category === 'All Events'
-      ? Object.values(grouped).every((arr) => arr.length === 0)
+      ? EVENT_SECTION_KEYS.every((key) => sections[key].length === 0)
       : events.length === 0;
 
   if (isLoading) return <LoadingSpinner />;
@@ -93,13 +96,15 @@ const EventsLayout = ({
     <div>
       {category === 'All Events' ? (
         <div className='flex flex-col gap-20'>
-          {(['Upcoming', 'On Going', 'Past'] as const).map((cat) =>
-            grouped[cat].length > 0 ? (
+          {EVENT_SECTION_KEYS.map((cat) =>
+            sections[cat].length > 0 ? (
               <motion.div key={cat} {...fadeUp}>
                 <CarouselSection
-                  events={grouped[cat].slice(0, 6)}
+                  events={sections[cat]}
                   category={cat}
                   {...SECTION_META[cat]}
+                  totalCount={sectionTotals[cat]}
+                  onSeeAll={() => onSeeAll(cat)}
                 />
               </motion.div>
             ) : null
