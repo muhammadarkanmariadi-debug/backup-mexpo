@@ -1,5 +1,6 @@
 import { httpGet, httpPost, httpPut } from "@/shared/utils/http-client";
 import { META_DYNAMIC } from "@/shared/utils/http-meta";
+import { assertUploadableImage } from "@/shared/utils/upload";
 
 export interface AboutHeroContent {
   tagline: string;
@@ -65,6 +66,7 @@ export async function updateSiteContent(sectionKey: string, content: any) {
 }
 
 export async function uploadContentImage(file: File) {
+  assertUploadableImage(file);
   const fd = new FormData();
   fd.append("file", file);
   const res = await httpPost<UploadImageResult>("site-contents/upload", fd, "token");
