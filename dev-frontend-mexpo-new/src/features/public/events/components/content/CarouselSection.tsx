@@ -15,6 +15,9 @@ interface CarouselSectionProps {
   label: string
   variant?: 'primary' | 'secondary'
   emptyMessage?: string
+  /** Total events in this category; a "see all" link shows when it exceeds what is listed. */
+  totalCount?: number
+  onSeeAll?: () => void
 }
 
 const CarouselSection = ({
@@ -23,6 +26,8 @@ const CarouselSection = ({
   label,
   variant = 'secondary',
   emptyMessage = 'Tidak ada event tersedia.',
+  totalCount,
+  onSeeAll,
 }: CarouselSectionProps) => {
   const { currentSlide, nextSlide, prevSlide, goToSlide, emblaApi, emblaRef } =
     useCarousel({ data: events })
@@ -90,6 +95,18 @@ const CarouselSection = ({
                 }`}
             />
           ))}
+        </div>
+      )}
+
+      {onSeeAll && totalCount != null && totalCount > events.length && (
+        <div className="mt-6 flex justify-center">
+          <button
+            type="button"
+            onClick={onSeeAll}
+            className="rounded-lg border border-gray-200 bg-white px-6 py-2.5 text-sm font-semibold text-gray-600 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800"
+          >
+            Lihat Semua ({totalCount})
+          </button>
         </div>
       )}
     </div>
