@@ -615,6 +615,8 @@ model souvenirs {
   user_id    String   @default("")
   users      users    @relation(fields: [user_id], references: [uuid], onDelete: Cascade)
   souvenir_name String @default("")
+  /// Catalog item (souvenir_rules.tiers[].id) redeemed — used for stock counting.
+  tier_id       String?
   points_earned Int    @default(0)
   points_spent  Int    @default(0)
   created_by String   @default("")
@@ -623,6 +625,8 @@ model souvenirs {
   editor     users    @relation("editor_souvenirs", fields: [updated_by], references: [uuid])
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
+
+  @@index([event_id, tier_id])
 }
 
 model ticket_types {
