@@ -9,6 +9,7 @@ interface EventStickyNavProps {
   hasWorkshops?: boolean;
   hasTenants?: boolean;
   hasSponsors?: boolean;
+  hasSouvenirs?: boolean;
 }
 
 export default function EventStickyNav({
@@ -18,6 +19,7 @@ export default function EventStickyNav({
   hasWorkshops = false,
   hasTenants = false,
   hasSponsors = false,
+  hasSouvenirs = false,
 }: EventStickyNavProps) {
   const navItems = [
     { id: "informasi", label: "Informasi" },
@@ -26,6 +28,7 @@ export default function EventStickyNav({
     ...(hasLocation ? [{ id: "lokasi", label: "Lokasi" }] : []),
     ...(hasWorkshops ? [{ id: "workshop", label: "Lokakarya" }] : []),
     ...(hasTenants ? [{ id: "tenant", label: "Penyewa" }] : []),
+    ...(hasSouvenirs ? [{ id: "souvenir", label: "Souvenir" }] : []),
     ...(hasSponsors ? [{ id: "sponsor", label: "Sponsor" }] : []),
     { id: "faq", label: "FAQ" },
   ];
