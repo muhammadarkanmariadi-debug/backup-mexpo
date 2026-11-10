@@ -43,6 +43,7 @@ import {
   uid,
 } from "@/features/certificates/certificate-fields";
 import { DEFAULT_CERTIFICATE_TEMPLATE } from "@/features/certificates/default-certificate";
+import { fitFrame, hasFrame, liftLegacyFrame, setFrame } from "@/features/certificates/frame";
 import { downloadCertificatePdf } from "@/features/certificates/export-certificate";
 import { LayersPanel } from "@/features/certificates/LayersPanel";
 
@@ -361,7 +362,11 @@ export function CertificateDesigner({ event }: { event: Event }) {
   const handleSelectTemplate = (t: CertificateTemplate) => {
     setEditingId(t.uuid);
     setName(t.name);
-    setDraft(t.template ? (t.template as CertificateTemplateEnvelope) : cloneTemplate(DEFAULT_CERTIFICATE_TEMPLATE));
+    setDraft(
+      t.template
+        ? liftLegacyFrame(t.template as CertificateTemplateEnvelope)
+        : cloneTemplate(DEFAULT_CERTIFICATE_TEMPLATE),
+    );
     setSelectedId(null);
     setBgFile(null);
     setBgPreviewUrl("");
@@ -847,6 +852,17 @@ export function CertificateDesigner({ event }: { event: Event }) {
                 </div>
               )}
 
+              <label className="flex cursor-pointer items-center gap-2 text-xs font-medium text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={hasFrame(draft)}
+                  onChange={(e) => setDraft((prev) => setFrame(prev, e.target.checked))}
+                  className="accent-secondary"
+                />
+                Tampilkan bingkai Mexpo
+                <span className="font-normal text-gray-400">(tetap ada saat latar diganti)</span>
+              </label>
+
               <div className="grid grid-cols-2 gap-2">
                 <Field label="Lebar (px)">
                   <input
@@ -855,10 +871,12 @@ export function CertificateDesigner({ event }: { event: Event }) {
                     min={200}
                     max={4000}
                     onChange={(e) =>
-                      setDraft((prev) => ({
-                        ...prev,
-                        width: Math.max(200, Number(e.target.value) || 200),
-                      }))
+                      setDraft((prev) =>
+                        fitFrame({
+                          ...prev,
+                          width: Math.max(200, Number(e.target.value) || 200),
+                        }),
+                      )
                     }
                     className={inputCls}
                   />
@@ -870,10 +888,12 @@ export function CertificateDesigner({ event }: { event: Event }) {
                     min={200}
                     max={4000}
                     onChange={(e) =>
-                      setDraft((prev) => ({
-                        ...prev,
-                        height: Math.max(200, Number(e.target.value) || 200),
-                      }))
+                      setDraft((prev) =>
+                        fitFrame({
+                          ...prev,
+                          height: Math.max(200, Number(e.target.value) || 200),
+                        }),
+                      )
                     }
                     className={inputCls}
                   />
