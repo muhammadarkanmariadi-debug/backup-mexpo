@@ -103,8 +103,8 @@ export default function AboutManager() {
       } else {
         toast.error(res.message || "Gagal mengunggah foto");
       }
-    } catch {
-      toast.error("Terjadi kesalahan saat mengunggah foto");
+    } catch (err) {
+      toast.error(err instanceof Error && err.message ? err.message : "Terjadi kesalahan saat mengunggah foto");
     } finally {
       setIsUploading(false);
     }
@@ -127,8 +127,8 @@ export default function AboutManager() {
       } else {
         toast.error(res.message || "Gagal mengunggah foto");
       }
-    } catch {
-      toast.error("Terjadi kesalahan saat mengunggah foto");
+    } catch (err) {
+      toast.error(err instanceof Error && err.message ? err.message : "Terjadi kesalahan saat mengunggah foto");
     } finally {
       setIsUploading(false);
     }
