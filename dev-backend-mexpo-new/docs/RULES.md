@@ -32,6 +32,8 @@
 | A visitor who already claimed cannot claim again | [DOCX] Visitor Flow | `[DONE]` — one `souvenirs` row per `(event_id, user_id)` |
 | Redemption must be **rule-validated at scan time** | [DOCX] Visitor Flow | `[DONE]` (Sprint 6/A6+B7) — souvenir counter UI scans QR → `POST /souvenirs/check/:event_id` (rules + already-claimed) → grant; server re-validates |
 
+| **Point system + souvenir catalog is the only mode offered in the UI** | QA 2026-11-10 (#12/#13) | `[DONE]` — event form + souvenir quick settings always save `usePointSystem: true`; the min-booth/min-transaction form was removed (legacy events keep their old rules until edited). Catalog items (`souvenir_rules.tiers[]`) carry `name`, `description`, `image` (upload `POST /souvenirs/catalog-image/:event_id`, bucket `expo-project-souvenir`), `minPoints` (price) and `stock` (null = unlimited). An item is redeemable when affordable **and** in stock; a stock-limited redemption re-counts inside a Serializable transaction so the last unit cannot be oversold. Public `GET /public-api/events/:id` returns `souvenir_catalog` with `remaining`/`soldOut` |
+
 > ⚠️ **CONTRADICTION (resolved):** docx = configurable rule-based engine; the engine now exists (A5) and **all three rules** (`minVisitedBooth`, `minTransaction`, `joinedSeminar`) are evaluated. The booth rule is only active when explicitly configured, so owners can fully opt out of it. `souvenir-rules.dto.ts`'s self-comment ("minTransaction accepted but NOT evaluated") is **stale** — it IS evaluated now.
 
 ### 1.3 Attendance & QR
