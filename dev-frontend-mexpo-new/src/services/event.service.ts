@@ -6,6 +6,7 @@ import {
   httpPost,
 } from "@/shared/utils/http-client";
 import { META_DYNAMIC } from "@/shared/utils/http-meta";
+import { assertUploadableImage } from "@/shared/utils/upload";
 
 export interface CreateEventPayload {
   name: string;
@@ -90,7 +91,10 @@ function buildEventFormData(
   if (payload.ticket_mode) fd.append("ticket_mode", payload.ticket_mode);
   if (payload.features) fd.append("features", JSON.stringify(payload.features));
   if (payload.souvenir_rules) fd.append("souvenir_rules", JSON.stringify(payload.souvenir_rules));
-  if (file) fd.append("file", file);
+  if (file) {
+    assertUploadableImage(file);
+    fd.append("file", file);
+  }
   return fd;
 }
 
