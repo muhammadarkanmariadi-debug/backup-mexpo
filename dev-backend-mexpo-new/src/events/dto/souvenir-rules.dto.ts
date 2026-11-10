@@ -5,6 +5,7 @@ import {
   IsInt,
   IsOptional,
   IsString,
+  MaxLength,
   Min,
   ValidateNested,
 } from 'class-validator';
@@ -55,12 +56,16 @@ export class TransactionPointDto {
   pointsPerAmountStep?: number;
 }
 
-/** A souvenir type/tier defined by the organizer, unlocked at `minPoints`. */
+/**
+ * A souvenir catalog item defined by the organizer. Redeeming it costs
+ * `minPoints` from the visitor's balance.
+ */
 export class SouvenirTierDto {
   @IsString()
   id: string;
 
   @IsString()
+  @MaxLength(120)
   name: string;
 
   @IsInt()
@@ -70,7 +75,21 @@ export class SouvenirTierDto {
 
   @IsOptional()
   @IsString()
+  @MaxLength(500)
   description?: string;
+
+  /** Photo URL (uploaded via POST /souvenirs/catalog-image/:event_id). */
+  @IsOptional()
+  @IsString()
+  @MaxLength(2048)
+  image?: string;
+
+  /** Units available; absent/null = unlimited. */
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Type(() => Number)
+  stock?: number | null;
 }
 
 /**
