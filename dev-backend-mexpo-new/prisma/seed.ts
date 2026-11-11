@@ -317,10 +317,10 @@ const main = async () => {
   // ==========================================
   console.log('\n📦 Phase 2: Seeding Tenant Categories...');
   const categories = [
-    { uuid: CAT_FB, name: 'Food & Beverage' },
-    { uuid: CAT_TECH, name: 'Technology & Software' },
-    { uuid: CAT_EDU, name: 'Education & Career' },
-    { uuid: CAT_MERCH, name: 'Merchandise & Creative' },
+    { uuid: CAT_FB, name: 'Food & Beverage', description: 'Kuliner, makanan ringan, dan aneka minuman.' },
+    { uuid: CAT_TECH, name: 'Technology & Software', description: 'Inovasi teknologi informasi, aplikasi, dan hardware.' },
+    { uuid: CAT_EDU, name: 'Education & Career', description: 'Institusi pendidikan, kursus, dan pengembangan karir.' },
+    { uuid: CAT_MERCH, name: 'Merchandise & Creative', description: 'Karya kreatif, apparel, kerajinan tangan, dan souvenir.' },
   ];
   for (const cat of categories) {
     await prisma.tenant_categories.upsert({
@@ -328,10 +328,12 @@ const main = async () => {
       create: {
         uuid: cat.uuid,
         name: cat.name,
+        description: cat.description,
+        is_active: true,
         created_by: saId,
         updated_by: saId,
       },
-      update: { name: cat.name },
+      update: { name: cat.name, description: cat.description, is_active: true },
     });
   }
   console.log(`✓ Seeded ${categories.length} tenant categories.`);
