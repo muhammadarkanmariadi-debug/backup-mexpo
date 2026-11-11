@@ -30,6 +30,18 @@ export interface AmountCategoryRow {
   count_transaction: number;
 }
 
+export interface TopProductReportRow {
+  uuid: string;
+  name: string;
+  photo: string;
+  price: number;
+  tenant_name: string;
+  booth_number: string;
+  total_qty: number;
+  total_transactions: number;
+  total_revenue: number;
+}
+
 export interface VisitorReport {
   name: string;
   counts: number;
@@ -73,6 +85,11 @@ export async function getVisitorReport(eventId: string, start?: Date, end?: Date
 export async function getAmountReport(eventId: string, start?: Date, end?: Date) {
   const res = await httpGet(`reports/amount/${eventId}`, "Basic", META_DYNAMIC, dateQuery(start, end));
   return { data: (res.data as VisitorReport) ?? null, status: res.status, message: res.message };
+}
+
+export async function getTopProductsReport(eventId: string, start?: Date, end?: Date) {
+  const res = await httpGet(`reports/top-products/${eventId}`, "Basic", META_DYNAMIC, dateQuery(start, end));
+  return { data: (res.data as TopProductReportRow[]) ?? [], status: res.status, message: res.message };
 }
 
 export function getExportFilename(prefix = "rekap") {

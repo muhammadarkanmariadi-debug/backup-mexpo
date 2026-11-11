@@ -94,6 +94,7 @@ export function useClientList<T>({
     setPage: pagination.setPage,
     totalPages: pagination.totalPages,
     itemsPerPage: pagination.itemsPerPage,
+    setItemsPerPage: pagination.setItemsPerPage,
     totalItems: pagination.totalItems,
     total: pagination.totalItems,
   };
