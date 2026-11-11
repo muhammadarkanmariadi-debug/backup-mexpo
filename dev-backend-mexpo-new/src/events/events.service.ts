@@ -19,6 +19,7 @@ import { QueryEventDto } from './dto/query-event.dto';
 import { EventRole, EventStatus, Prisma, UserRole } from '@prisma/client';
 import { buildOrderBy } from '../helper/sort';
 import { isUuid, uniqueSlug } from '../helper/slug';
+import { jsonFilterPath } from '../helper/db-provider';
 
 /** True when the event's feature flag marks it as a paid-ticket event. */
 function isPaidTicketFeature(features?: unknown): boolean {
@@ -827,7 +828,7 @@ export class EventsService {
           payout_status: 'NOT_SETTLED',
           status: { in: ['PUBLISHED', 'FINISHED'] },
           payout_account_number: { not: '' },
-          features: { path: ['settlement_requested'], equals: true },
+          features: { path: jsonFilterPath('settlement_requested'), equals: true },
         },
       }),
       this.prisma.contact_message.count({

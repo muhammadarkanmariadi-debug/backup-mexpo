@@ -1,13 +1,15 @@
 import { useState } from "react";
 import { toast } from "sonner";
-import { Loader2, Plus, Trash2, Receipt, ScanLine } from "lucide-react";
+import { Loader2, Plus, Trash2, Receipt, ScanLine, Camera, X, CheckCircle2 } from "lucide-react";
 import { DataPagination } from "@/shared/components/ui/DataPagination";
 import SortMenu from "@/shared/components/ui/SortMenu";
 import { Modal } from "@/shared/components/ui/Modal";
 import { TenantProduct } from "@/entities/event/tenant.entity";
 import { useApiQuery } from "@/lib/hooks/useApi";
 import { keys } from "@/lib/query-keys";
-import { useResolveQr } from "@/lib/hooks/useResolveQr";
+import { resolveQr } from "@/services/qr.service";
+import { useQrScanner } from "@/shared/hooks/useQrScanner";
+import { soundEffects } from "@/shared/utils/sound";
 import { useList } from "@/shared/hooks/useList";
 import { getProducts } from "@/services/product.service";
 import {
@@ -88,22 +90,52 @@ export function TransactionsTab({ tenantId }: { tenantId: string }) {
     () => getProducts(tenantId),
   );
 
-  const resolve = useResolveQr({
-    onSuccess: (data) => {
-      setVisitorId(data.user_id);
-      setVisitorName(data.user.full_name);
-      setVisitorQr("");
-    },
-    onError: () => toast.error("QR tidak dikenali."),
-  });
+  const { scanning, startScan, stopScan } = useQrScanner("pos-visitor-scanner");
 
-  const handleVisitorScan = (code?: string) => {
+  const handleVisitorDecoded = async (code: string) => {
+    const value = code.trim();
+    if (!value) return;
+    try {
+      const res = await resolveQr(value);
+      if (!res.status || !res.data) {
+        soundEffects.playError();
+        toast.error(res.message || "QR pengunjung tidak dikenali.");
+        return;
+      }
+      soundEffects.playSuccess();
+      setVisitorId(res.data.user_id);
+      setVisitorName(res.data.user.full_name);
+      setVisitorQr("");
+      toast.success(`Pengunjung terpasang: ${res.data.user.full_name}`);
+      void stopScan();
+    } catch {
+      soundEffects.playError();
+      toast.error("Gagal memvalidasi QR pengunjung.");
+    }
+  };
+
+  const handleVisitorScan = async (code?: string) => {
     const value = (code ?? visitorQr).trim();
     if (!value) {
       toast.error("Masukkan atau scan QR pengunjung.");
       return;
     }
-    resolve.mutate(value);
+    try {
+      const res = await resolveQr(value);
+      if (!res.status || !res.data) {
+        soundEffects.playError();
+        toast.error(res.message || "QR pengunjung tidak dikenali.");
+        return;
+      }
+      soundEffects.playSuccess();
+      setVisitorId(res.data.user_id);
+      setVisitorName(res.data.user.full_name);
+      setVisitorQr("");
+      toast.success(`Pengunjung terpasang: ${res.data.user.full_name}`);
+    } catch {
+      soundEffects.playError();
+      toast.error("Gagal memvalidasi QR pengunjung.");
+    }
   };
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -111,12 +143,18 @@ export function TransactionsTab({ tenantId }: { tenantId: string }) {
   const { confirm, dialogs } = useConfirm();
 
   const resetForm = () => {
+    void stopScan();
     setLines([{ product_id: "", quantity: "1" }]);
     setPaymentMethod("CASH");
     setPaid(true);
     setVisitorId("");
     setVisitorName("");
     setVisitorQr("");
+  };
+
+  const closeModal = () => {
+    void stopScan();
+    setIsModalOpen(false);
   };
 
   const total = lines.reduce((sum, l) => {
@@ -189,7 +227,7 @@ export function TransactionsTab({ tenantId }: { tenantId: string }) {
         </button>
       </div>
 
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Input Transaksi" maxWidth="max-w-2xl">
+      <Modal isOpen={isModalOpen} onClose={closeModal} title="Input Transaksi" maxWidth="max-w-2xl">
         <form onSubmit={submit} className="space-y-4">
           {lines.map((l, idx) => (
             <div key={idx} className="gap-2 grid grid-cols-1 sm:grid-cols-[1fr_6rem_auto]">
@@ -248,33 +286,89 @@ export function TransactionsTab({ tenantId }: { tenantId: string }) {
           </div>
 
           <div className="pt-2 border-t border-gray-100">
-            <label className="mb-2 block font-medium text-gray-700 text-sm">
-              Pengunjung (opsional — scan QR)
-            </label>
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-              <input
-                type="text"
-                value={visitorQr}
-                onChange={(e) => setVisitorQr(e.target.value)}
-                placeholder="Tempel / scan QR pengunjung"
-                className="h-11 w-full sm:w-64 rounded-lg border border-gray-300 px-4 py-2.5 text-sm bg-white text-gray-800 focus:border-brand-300 focus:ring-brand-500/10 focus:outline-hidden transition-colors"
-              />
-              <button
-                type="button"
-                onClick={() => void handleVisitorScan()}
-                className="inline-flex items-center justify-center gap-1 bg-white hover:bg-gray-50 px-3 border border-gray-200 rounded-lg font-medium text-gray-700 text-sm h-11"
-              >
-                <ScanLine className="w-4 h-4" /> Cari
-              </button>
-              {visitorName && (
-                <span className="inline-flex items-center gap-2 rounded-lg bg-teal-50 px-3 py-1.5 text-sm text-teal-700 h-11">
-                  {visitorName}
-                  <button type="button" onClick={() => { setVisitorId(""); setVisitorName(""); }} className="hover:text-red-600 font-bold">
-                    ×
-                  </button>
+            <div className="flex items-center justify-between mb-2">
+              <label className="font-medium text-gray-700 text-sm">
+                Pengunjung (opsional — scan QR)
+              </label>
+              {!scanning && !visitorName && (
+                <span className="text-xs text-gray-500">
+                  Untuk klaim suvenir belanja
                 </span>
               )}
             </div>
+
+            {scanning ? (
+              <div className="flex flex-col items-center justify-center p-3 bg-gray-900 rounded-xl space-y-3">
+                <div
+                  id="pos-visitor-scanner"
+                  className="w-full max-w-xs aspect-square overflow-hidden rounded-lg border border-gray-700 bg-black"
+                />
+                <p className="text-xs text-gray-300 text-center">
+                  Arahkan kamera ke QR badge pengunjung untuk auto-attach
+                </p>
+                <button
+                  type="button"
+                  onClick={() => void stopScan()}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-200 text-xs font-medium border border-gray-700 transition-colors"
+                >
+                  <X className="w-3.5 h-3.5" />
+                  Tutup Kamera
+                </button>
+              </div>
+            ) : visitorName ? (
+              <div className="flex items-center justify-between p-3 bg-teal-50 border border-teal-200 rounded-lg">
+                <div className="flex items-center gap-2 text-teal-800 text-sm">
+                  <CheckCircle2 className="w-4 h-4 text-teal-600 shrink-0" />
+                  <div>
+                    <span className="font-semibold">{visitorName}</span>
+                    <span className="text-xs text-teal-600 block">Pengunjung terhubung dengan transaksi ini</span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setVisitorId("");
+                    setVisitorName("");
+                  }}
+                  className="p-1 rounded-md hover:bg-teal-100 text-teal-700 hover:text-red-600 transition-colors"
+                  title="Hapus pengunjung"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            ) : (
+              <div className="flex flex-col sm:flex-row gap-2">
+                <input
+                  type="text"
+                  value={visitorQr}
+                  onChange={(e) => setVisitorQr(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      void handleVisitorScan();
+                    }
+                  }}
+                  placeholder="Tempel kode / email pengunjung"
+                  className="h-11 flex-1 rounded-lg border border-gray-300 px-4 py-2.5 text-sm bg-white text-gray-800 focus:border-brand-300 focus:ring-brand-500/10 focus:outline-hidden transition-colors"
+                />
+                <button
+                  type="button"
+                  onClick={() => void handleVisitorScan()}
+                  className="inline-flex items-center justify-center gap-1.5 bg-white hover:bg-gray-50 px-3.5 border border-gray-200 rounded-lg font-medium text-gray-700 text-sm h-11 shrink-0"
+                >
+                  <ScanLine className="w-4 h-4 text-gray-500" />
+                  <span>Cari</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void startScan(handleVisitorDecoded)}
+                  className="inline-flex items-center justify-center gap-1.5 bg-teal-600 hover:bg-teal-700 text-white px-3.5 rounded-lg font-medium text-sm h-11 shrink-0 transition-colors"
+                >
+                  <Camera className="w-4 h-4" />
+                  <span>Scan Kamera</span>
+                </button>
+              </div>
+            )}
           </div>
 
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center bg-gray-50 px-4 py-3 rounded-lg gap-4 mt-4">
@@ -282,7 +376,7 @@ export function TransactionsTab({ tenantId }: { tenantId: string }) {
             <div className="flex gap-2 w-full sm:w-auto">
               <button
                 type="button"
-                onClick={() => setIsModalOpen(false)}
+                onClick={closeModal}
                 className="hover:bg-gray-200 bg-gray-100 px-4 py-2 text-gray-600 text-sm font-semibold rounded-lg w-full sm:w-auto h-11"
               >
                 Batal

@@ -92,10 +92,10 @@ export class ContactMessagesService {
     if (query.search && query.search.trim() !== '') {
       const term = query.search.trim();
       where.OR = [
-        { name: { contains: term, mode: 'insensitive' } },
-        { email: { contains: term, mode: 'insensitive' } },
-        { subject: { contains: term, mode: 'insensitive' } },
-        { message: { contains: term, mode: 'insensitive' } },
+        { name: { contains: term } },
+        { email: { contains: term } },
+        { subject: { contains: term } },
+        { message: { contains: term } },
       ];
     }
 

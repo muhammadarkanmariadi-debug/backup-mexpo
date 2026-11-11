@@ -691,7 +691,7 @@ model transactions {
   platform_fee      Int               @default(0)
   status            TransactionStatus @default(PENDING)
   payment_method    String            @default("")
-  snap_token        String            @default("") @db.Text
+  snap_token        String            @db.Text
   paid_at           DateTime?
   expired_at        DateTime?
   refunded_at       DateTime?

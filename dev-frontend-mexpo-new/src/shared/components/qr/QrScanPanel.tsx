@@ -13,7 +13,7 @@ import {
 import Input from "@/shared/components/form/Input";
 import Button from "@/shared/components/button/Button";
 import Image from "next/image";
-import { useQrScanner } from "@/shared/hooks/useQrScanner";
+import { useQrScanner, UseQrScannerOptions } from "@/shared/hooks/useQrScanner";
 import { ResolvedQr } from "@/services/qr.service";
 import { cn } from "@/shared/utils/cn";
 
@@ -45,6 +45,10 @@ interface QrScanPanelProps {
   renderUserDetails?: (resolved: ResolvedQr) => React.ReactNode;
   /** Success/error banner. */
   result?: { ok: boolean; message: string } | null;
+  /** Scanner options (e.g. continuous mode & cooldown). */
+  scannerOptions?: UseQrScannerOptions;
+  /** Custom label for the manual search button. */
+  searchButtonLabel?: string;
 }
 
 /**
@@ -62,8 +66,13 @@ export function QrScanPanel({
   renderUserAction,
   renderUserDetails,
   result,
+  scannerOptions,
+  searchButtonLabel = "Cari Pengunjung",
 }: QrScanPanelProps) {
-  const { scanning, startScan, stopScan } = useQrScanner(containerId);
+  const { scanning, startScan, stopScan } = useQrScanner(
+    containerId,
+    scannerOptions,
+  );
   const palette = ACCENT_CLASSES[accent];
 
   const handleDecoded = (text: string) => {
@@ -71,16 +80,23 @@ export function QrScanPanel({
     onSearch(text);
   };
 
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSearch();
+  };
+
   return (
     <div className="space-y-4 rounded-xl border border-gray-100 bg-white p-5">
-      <Input
-        label="QR Code Pengunjung"
-        value={qrValue}
-        onChange={(e) => {
-          onQrChange(e.target.value);
-        }}
-        placeholder="Scan QR, ketik kode (cth: MEXPO-EV1-VIS-3), atau email pengunjung"
-      />
+      <form onSubmit={handleSubmit}>
+        <Input
+          label="QR Code Pengunjung"
+          value={qrValue}
+          onChange={(e) => {
+            onQrChange(e.target.value);
+          }}
+          placeholder="Scan QR, ketik kode (cth: MEXPO-EV1-VIS-3), atau email pengunjung"
+        />
+      </form>
 
       <div className="flex flex-wrap items-center gap-2">
         <Button
@@ -96,7 +112,7 @@ export function QrScanPanel({
             )
           }
         >
-          Cari Pengunjung
+          {searchButtonLabel}
         </Button>
 
         {!scanning ? (
@@ -119,6 +135,13 @@ export function QrScanPanel({
           >
             Hentikan Scan
           </Button>
+        )}
+
+        {scanning && scannerOptions?.continuous && (
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">
+            <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" />
+            Auto Scan Aktif
+          </span>
         )}
       </div>
 

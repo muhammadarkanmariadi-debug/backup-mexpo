@@ -87,8 +87,8 @@ export class QrCodesService {
       const found = await this.prisma.qr_codes.findFirst({
         where: {
           OR: [
-            { code_data: { equals: codeData, mode: 'insensitive' } },
-            { uuid: { equals: codeData, mode: 'insensitive' } },
+            { code_data: { equals: codeData } },
+            { uuid: { equals: codeData } },
           ],
         },
       });
@@ -133,8 +133,8 @@ export class QrCodesService {
           where: {
             OR: [
               { uuid: codeData },
-              { email: { equals: codeData, mode: 'insensitive' } },
-              { full_name: { equals: codeData, mode: 'insensitive' } },
+              { email: { equals: codeData } },
+              { full_name: { equals: codeData } },
             ],
           },
         });
