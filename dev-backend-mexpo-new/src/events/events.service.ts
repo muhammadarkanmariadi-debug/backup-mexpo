@@ -151,6 +151,7 @@ export class EventsService {
       const { page, quantity, search, status, event_type } = query;
       const take = quantity ?? undefined;
       const skip = page && quantity ? (page - 1) * quantity : undefined;
+      const term = search?.trim();
 
       const where: Prisma.eventsWhereInput = {
         status: status ?? undefined,
@@ -164,16 +165,16 @@ export class EventsService {
               },
             }
           : undefined,
-        OR:
-          search && search.trim() !== ''
-            ? [
-                { name: { contains: search } },
-                { description: { contains: search } },
-                { organizer_name: { contains: search } },
-                { location: { contains: search } },
-                { creator: { full_name: { contains: search } } },
-              ]
-            : undefined,
+        OR: term
+          ? [
+              { name: { contains: term, mode: 'insensitive' } },
+              { slug: { contains: term, mode: 'insensitive' } },
+              { description: { contains: term, mode: 'insensitive' } },
+              { organizer_name: { contains: term, mode: 'insensitive' } },
+              { location: { contains: term, mode: 'insensitive' } },
+              { creator: { full_name: { contains: term, mode: 'insensitive' } } },
+            ]
+          : undefined,
       };
 
       const counts = await this.prisma.events.count({ where });
@@ -647,14 +648,20 @@ export class EventsService {
       const { page, quantity, search } = query;
       const take = quantity ?? undefined;
       const skip = page && quantity ? (page - 1) * quantity : undefined;
+      const term = search?.trim();
 
       const where: Prisma.eventsWhereInput = {
         status: { in: [EventStatus.PENDING, EventStatus.REJECTED] },
-        OR: [
-          { name: { contains: search ?? `` } },
-          { description: { contains: search ?? `` } },
-          { organizer_name: { contains: search ?? `` } },
-        ],
+        OR: term
+          ? [
+              { name: { contains: term, mode: 'insensitive' } },
+              { slug: { contains: term, mode: 'insensitive' } },
+              { description: { contains: term, mode: 'insensitive' } },
+              { organizer_name: { contains: term, mode: 'insensitive' } },
+              { location: { contains: term, mode: 'insensitive' } },
+              { creator: { full_name: { contains: term, mode: 'insensitive' } } },
+            ]
+          : undefined,
       };
 
       const counts = await this.prisma.events.count({ where });
