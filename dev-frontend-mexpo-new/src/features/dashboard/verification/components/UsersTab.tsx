@@ -176,6 +176,30 @@ export function UsersTab({ event }: Props) {
                   <p className="text-gray-500 text-xs mt-0.5">
                     {u.user?.email} • {labelFor(ROLE_LABELS, u.role, u.role)} • {labelFor(APPROVAL_STATUS_LABELS, u.status, u.status)}
                   </p>
+                  {/* Registration details the visitor filled in. */}
+                  {(u.user?.phone || u.user?.organization || u.created_at) && (
+                    <p className="text-gray-500 text-xs mt-0.5">
+                      {[
+                        u.user?.phone,
+                        u.user?.organization,
+                        u.created_at
+                          ? `Daftar ${new Date(u.created_at).toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short" })}`
+                          : null,
+                      ]
+                        .filter(Boolean)
+                        .join(" • ")}
+                    </p>
+                  )}
+                  {u.registrationAnswers && u.registrationAnswers.length > 0 && (
+                    <dl className="mt-2 flex flex-wrap gap-x-4 gap-y-1 rounded-lg bg-gray-50 px-3 py-2 text-xs">
+                      {u.registrationAnswers.map((a) => (
+                        <div key={a.field_key} className="flex gap-1">
+                          <dt className="text-gray-500">{a.label}:</dt>
+                          <dd className="font-medium text-gray-800">{a.value || "-"}</dd>
+                        </div>
+                      ))}
+                    </dl>
+                  )}
                 </div>
 
                 <div className="flex items-center gap-2">
