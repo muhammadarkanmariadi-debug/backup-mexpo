@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import { Event, getEventRole, getRoleRoute } from "@/entities/event/event.entity";
 import Image from "next/image";
 import { formatDateRange, formatDateWithDay } from "@/shared/utils/format";
-import { updateEvent } from "@/services/event.service";
+import { updateEventPhoto } from "@/services/event.service";
 import RoleBadge from "@/shared/components/ui/RoleBadge";
 
 
@@ -117,17 +117,21 @@ export default function CardCommitteeEvent({ data, onPhotoUpdated }: Props) {
     }
     setPhotoUpdating(true);
     try {
-      // Photo-only update: payload is empty, only the file is sent.
-      const res = await updateEvent(data.uuid, {} as never, file);
-      if (!res.status) throw new Error();
-      toast.success("Foto event diperbarui.");
+      const res = await updateEventPhoto(data.uuid, file);
+      if (!res.status) {
+        throw new Error(res.message || "Gagal mengunggah foto.");
+      }
+      toast.success("Foto event berhasil diperbarui.");
       onPhotoUpdated?.();
-    } catch {
-      toast.error("Gagal mengunggah foto.");
+    } catch (err) {
+      toast.error(err instanceof Error && err.message ? err.message : "Gagal mengunggah foto.");
     } finally {
       setPhotoUpdating(false);
     }
   };
+
+  const isBlobOrData = data.photo?.startsWith("blob:") || data.photo?.startsWith("data:");
+  const safePhotoSrc = data.photo && !isBlobOrData ? encodeURI(data.photo) : data.photo;
 
   return (
     <motion.div
@@ -140,7 +144,7 @@ export default function CardCommitteeEvent({ data, onPhotoUpdated }: Props) {
         {/* Event image — editable by committee/admin */}
         <div className="relative w-full sm:w-36 h-32 sm:h-24 shrink-0">
           <Image
-            src={data.photo || "/images/cards/card-e.png"}
+            src={safePhotoSrc || "/images/cards/card-e.png"}
             alt={data.name}
             fill
             sizes="(max-width: 640px) 100vw, 144px"
