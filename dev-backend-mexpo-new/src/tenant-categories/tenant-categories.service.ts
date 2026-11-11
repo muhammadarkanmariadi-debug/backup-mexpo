@@ -18,14 +18,20 @@ export class TenantCategoriesService {
     userId: string,
   ) {
     try {
-      const { name } = createTenantCategoryDto;
+      const { name, description, is_active } = createTenantCategoryDto;
       const findExistingName = await this.prisma.tenant_categories.findFirst({
         where: { name },
       });
       if (findExistingName)
         throw new ConflictException(`Category '${name}' already exists`);
       const newCategory = await this.prisma.tenant_categories.create({
-        data: { name, created_by: userId, updated_by: userId },
+        data: {
+          name,
+          description: description ?? '',
+          is_active: is_active ?? true,
+          created_by: userId,
+          updated_by: userId,
+        },
       });
       return {
         success: true,
@@ -40,23 +46,27 @@ export class TenantCategoriesService {
 
   async findAll(queryTenantCategoryDto: QueryTenantCategoryDto) {
     try {
-      const { page, quantity, search } = queryTenantCategoryDto;
+      const { page, quantity, search, is_active } = queryTenantCategoryDto;
       const take = quantity ?? undefined;
       const skip = page && quantity ? (page - 1) * quantity : undefined;
 
+      const whereClause: any = {};
+      if (search) {
+        whereClause.name = { contains: search, mode: 'insensitive' };
+      }
+      if (is_active !== undefined) {
+        whereClause.is_active = is_active;
+      }
+
       const counts = await this.prisma.tenant_categories.count({
-        where: {
-          OR: [{ name: { contains: search ?? `` } }],
-        },
+        where: whereClause,
       });
 
       const categories = await this.prisma.tenant_categories.findMany({
         skip,
         take,
         orderBy: { name: `asc` },
-        where: {
-          OR: [{ name: { contains: search ?? `` } }],
-        },
+        where: whereClause,
         include: {
           creator: { select: { full_name: true } },
           editor: { select: { full_name: true } },
@@ -106,14 +116,42 @@ export class TenantCategoriesService {
         },
       });
       if (!findCategory) throw new NotFoundException(`Category doesn't exists`);
-      const { name } = updateTenantCategoryDto;
+      const { name, description, is_active } = updateTenantCategoryDto;
       const updateCategory = await this.prisma.tenant_categories.update({
         where: { uuid: id },
-        data: { name: name ?? findCategory.name },
+        data: {
+          name: name ?? findCategory.name,
+          description:
+            description !== undefined ? description : findCategory.description,
+          is_active:
+            is_active !== undefined ? is_active : findCategory.is_active,
+        },
       });
       return {
         success: true,
         message: `Category has updated successfully`,
+        data: updateCategory,
+      };
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
+      throw new InternalServerErrorException(`Something were wrong: ${error}`);
+    }
+  }
+
+  async toggleActive(id: string) {
+    try {
+      const findCategory = await this.prisma.tenant_categories.findFirst({
+        where: { uuid: id },
+      });
+      if (!findCategory) throw new NotFoundException(`Category doesn't exists`);
+
+      const updateCategory = await this.prisma.tenant_categories.update({
+        where: { uuid: id },
+        data: { is_active: !findCategory.is_active },
+      });
+      return {
+        success: true,
+        message: `Status kategori berhasil diubah menjadi ${updateCategory.is_active ? 'Aktif' : 'Nonaktif'}`,
         data: updateCategory,
       };
     } catch (error) {

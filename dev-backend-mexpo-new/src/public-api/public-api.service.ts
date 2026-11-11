@@ -20,6 +20,7 @@ import {
   Prisma,
 } from '@prisma/client';
 import { isUuid } from '../helper/slug';
+import { jsonFilterPath } from '../helper/db-provider';
 import { PaymentsService } from '../payments/payments.service';
 import { WebhookService } from '../integrations/webhook.service';
 import * as QRCode from 'qrcode';
@@ -229,7 +230,7 @@ export class PublicApiService {
         ticketFilter = {
           OR: [
             { ticket_mode: `PAID` },
-            { features: { path: [`paidTicket`], equals: true } },
+            { features: { path: jsonFilterPath(`paidTicket`), equals: true } },
           ],
         };
       } else if (ticket_mode === `FREE`) {
@@ -238,7 +239,7 @@ export class PublicApiService {
             { ticket_mode: { not: `PAID` } },
             {
               OR: [
-                { features: { path: [`paidTicket`], equals: false } },
+                { features: { path: jsonFilterPath(`paidTicket`), equals: false } },
                 { features: { equals: Prisma.AnyNull } },
               ],
             },

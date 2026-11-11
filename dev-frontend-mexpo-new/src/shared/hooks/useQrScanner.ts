@@ -4,6 +4,19 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Html5Qrcode } from "html5-qrcode";
 import { toast } from "sonner";
 
+export interface UseQrScannerOptions {
+  /**
+   * If true, keeps the camera running continuously across scans without stopping.
+   * Default: false (stops immediately on single decode).
+   */
+  continuous?: boolean;
+  /**
+   * Cooldown window in ms to prevent re-triggering the same exact QR code repeatedly.
+   * Default: 3000 ms.
+   */
+  cooldownMs?: number;
+}
+
 /**
  * Wraps the `html5-qrcode` camera scanner lifecycle used by the check-in,
  * booth and souvenir counter flows (previously triplicated per page).
@@ -13,10 +26,20 @@ import { toast } from "sonner";
  * mounting before initializing (see root AGENTS.md "html5-qrcode gotcha").
  *
  * @param containerId id of the `<div />` that hosts the camera preview.
+ * @param options configuration for continuous scanning mode and debounce cooldown.
  */
-export function useQrScanner(containerId: string) {
+export function useQrScanner(
+  containerId: string,
+  options?: UseQrScannerOptions,
+) {
   const [scanning, setScanning] = useState(false);
   const scannerRef = useRef<Html5Qrcode | null>(null);
+
+  const optionsRef = useRef(options);
+  optionsRef.current = options;
+
+  const lastDecodedRef = useRef<{ text: string; time: number } | null>(null);
+  const isProcessingRef = useRef<boolean>(false);
 
   // Stop + release the camera when the consuming component unmounts.
   useEffect(() => {
@@ -38,7 +61,18 @@ export function useQrScanner(containerId: string) {
       scannerRef.current.clear();
       scannerRef.current = null;
     }
+    lastDecodedRef.current = null;
+    isProcessingRef.current = false;
     setScanning(false);
+  }, []);
+
+  const resetCooldown = useCallback(() => {
+    lastDecodedRef.current = null;
+    isProcessingRef.current = false;
+  }, []);
+
+  const setProcessing = useCallback((processing: boolean) => {
+    isProcessingRef.current = processing;
   }, []);
 
   const startScan = useCallback(
@@ -52,10 +86,29 @@ export function useQrScanner(containerId: string) {
           { facingMode: "environment" },
           { fps: 10, qrbox: { width: 220, height: 220 } },
           (decodedText) => {
-            // A successful decode stops the camera and hands the payload up.
-            setScanning(false);
-            void stopScan();
-            onDecoded(decodedText);
+            const continuous = optionsRef.current?.continuous ?? false;
+            const cooldownMs = optionsRef.current?.cooldownMs ?? 3000;
+            const now = Date.now();
+            const last = lastDecodedRef.current;
+
+            if (continuous) {
+              // Block if another scan is actively in-flight
+              if (isProcessingRef.current) {
+                return;
+              }
+              // Block duplicate scan if it is the same exact code within the cooldown window
+              if (last && last.text === decodedText && now - last.time < cooldownMs) {
+                return;
+              }
+
+              lastDecodedRef.current = { text: decodedText, time: now };
+              onDecoded(decodedText);
+            } else {
+              // Single-scan mode: stop camera immediately
+              setScanning(false);
+              void stopScan();
+              onDecoded(decodedText);
+            }
           },
           () => {},
         );
@@ -84,5 +137,5 @@ export function useQrScanner(containerId: string) {
     [containerId, stopScan],
   );
 
-  return { scanning, startScan, stopScan };
+  return { scanning, startScan, stopScan, resetCooldown, setProcessing };
 }

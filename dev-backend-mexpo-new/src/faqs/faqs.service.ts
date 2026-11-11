@@ -53,9 +53,9 @@ export class FaqsService {
     if (search && search.trim() !== '') {
       const term = search.trim();
       where.OR = [
-        { question: { contains: term, mode: 'insensitive' } },
-        { answer: { contains: term, mode: 'insensitive' } },
-        { category: { contains: term, mode: 'insensitive' } },
+        { question: { contains: term } },
+        { answer: { contains: term } },
+        { category: { contains: term } },
       ];
     }
 

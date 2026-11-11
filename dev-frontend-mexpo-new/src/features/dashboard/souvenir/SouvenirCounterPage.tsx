@@ -96,9 +96,9 @@ export default function SouvenirCounterPage({ event }: { event: Event }) {
         setResult({ ok: true, message });
         setSelectedTierId(null);
         setHistoryKey((k) => k + 1);
-        if (checkResult?.usePointSystem && resolved) {
-          // Point balance is spendable: refresh the balance so the committee
-          // can redeem the remaining points right away.
+        if (resolved) {
+          // One souvenir per account per event: re-check so the visitor's card
+          // shows "sudah mengambil" with the redeemed item and the new balance.
           check.mutate({ eventId: event.uuid, userId: resolved.user_id });
           return;
         }
@@ -237,7 +237,7 @@ export default function SouvenirCounterPage({ event }: { event: Event }) {
               )}
 
               {checkResult.alreadyClaimed ? (
-                <div className="mt-3 flex items-center gap-2 rounded-lg bg-warning-50 p-3 text-sm text-warning-700">
+                <div className="mt-3 flex items-center gap-2 rounded-lg bg-brand-50 p-3 text-sm text-brand-700">
                   <XCircle className="h-4 w-4 shrink-0" /> Sudah mengambil souvenir
                   {checkResult.claimedSouvenir?.souvenir_name
                     ? ` (${checkResult.claimedSouvenir.souvenir_name}`

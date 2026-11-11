@@ -13,7 +13,7 @@
  * When only individual params are set, DB_PROVIDER=mysql must be set for a
  * MySQL target (the default when unset is postgresql).
  */
-
+import 'dotenv/config';
 export type DbProvider = 'mysql' | 'postgresql';
 
 export function resolveDbProvider(
@@ -26,10 +26,19 @@ export function resolveDbProvider(
 }
 
 export function isMysqlDatabase(
-  databaseUrl?: string,
-  providerOverride?: string,
+  databaseUrl: string = process.env.DATABASE_URL ?? '',
+  providerOverride: string = process.env.DB_PROVIDER ?? '',
 ): boolean {
   return resolveDbProvider(databaseUrl, providerOverride) === 'mysql';
+}
+
+/**
+ * Returns the proper JSON path filter format for Prisma queries:
+ * - MySQL: `'$.key'` (or `'$.nested.key'`)
+ * - PostgreSQL: `['key']` (or `['nested', 'key']`)
+ */
+export function jsonFilterPath(key: string): any {
+  return isMysqlDatabase() ? `$.${key}` : [key];
 }
 
 /**
@@ -45,12 +54,12 @@ export function buildDatabaseUrl(
   const host = env.DB_HOST;
   const user = env.DB_USER;
   const password = env.DB_PASSWORD ?? '';
-  const name = env.DB_NAME;
+  const name = env.DB_NAME || env.DB_DATABASE;
   if (!host || !user || !name) {
     throw new Error(
       `Database connection parameters are incomplete. Set DB_HOST, DB_USER ` +
-        `and DB_NAME (plus DB_PASSWORD) in .env. Provider resolved to ` +
-        `"${provider}".`,
+      `and DB_NAME (or DB_DATABASE) in .env. Provider resolved to ` +
+      `"${provider}".`,
     );
   }
   const port = env.DB_PORT || (provider === 'mysql' ? '3306' : '5432');
@@ -85,5 +94,5 @@ export function hasDbConfig(
   env: Record<string, string | undefined> = process.env,
 ): boolean {
   if (env.DATABASE_URL) return true;
-  return Boolean(env.DB_HOST && env.DB_USER && env.DB_NAME);
+  return Boolean(env.DB_HOST && env.DB_USER && (env.DB_NAME || env.DB_DATABASE));
 }

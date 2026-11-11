@@ -1,4 +1,9 @@
-import { PrismaService } from '../prisma/prisma.service';
+import {
+  buildPointLedger,
+  loadPointActivity,
+  type Db,
+  type LedgerEntry,
+} from './point-ledger';
 
 /**
  * Configurable souvenir eligibility rules (A5).
@@ -39,7 +44,7 @@ export type SouvenirCatalogItem = SouvenirTier & {
  * Redemptions are counted per item through `souvenirs.tier_id`.
  */
 export async function getSouvenirCatalog(
-  prisma: PrismaService,
+  prisma: Db,
   event: { uuid: string; souvenir_rules: unknown },
 ): Promise<SouvenirCatalogItem[]> {
   const rules = (event.souvenir_rules ?? {}) as SouvenirRules;
@@ -110,6 +115,8 @@ export type SouvenirEligibility = {
   /** Remaining balance = totalPoints - spentPoints (used to unlock tiers). */
   availablePoints: number;
   pointBreakdown: PointBreakdown;
+  /** Point history (earnings and redemptions), newest first. */
+  ledger: LedgerEntry[];
   tiers: (SouvenirCatalogItem & { unlocked: boolean; missingPoints: number })[];
   eligibleTiers: SouvenirTier[];
   recommendedTier: SouvenirTier | null;
@@ -123,7 +130,7 @@ export type SouvenirEligibility = {
 };
 
 export async function evaluateSouvenirEligibility(
-  prisma: PrismaService,
+  prisma: Db,
   event: { uuid: string; souvenir_rules: unknown },
   userId: string,
 ): Promise<SouvenirEligibility> {
@@ -139,65 +146,16 @@ export async function evaluateSouvenirEligibility(
 
   // ---------- Point system mode ----------
   if (usePointSystem) {
-    const boothCfg = rules.boothVisitPoint;
-    const seminarCfg = rules.seminarPoint;
-    const txCfg = rules.transactionPoint;
-
-    const boothEnabled = boothCfg?.enabled === true;
-    const seminarEnabled = seminarCfg?.enabled === true;
-    const txEnabled = txCfg?.enabled === true;
-
-    const [boothVisits, seminarCount, txAgg] = await Promise.all([
-      boothEnabled
-        ? prisma.booth_visits.count({
-            where: { user_id: userId, event_id: event.uuid },
-          })
-        : Promise.resolve(0),
-      seminarEnabled
-        ? prisma.workshop_bookings.count({
-            where: {
-              user_id: userId,
-              status: { not: `CANCELLED` },
-              workshop: { event_id: event.uuid },
-            },
-          })
-        : Promise.resolve(0),
-      txEnabled
-        ? prisma.tenant_transactions.aggregate({
-            where: { event_id: event.uuid, visitor_id: userId },
-            _sum: { amount: true },
-            _count: { _all: true },
-          })
-        : Promise.resolve(null),
-    ]);
-
-    const transactionCount = txAgg?._count._all ?? 0;
-    const transactionTotal = txAgg?._sum.amount ?? 0;
-
-    const boothPoints = boothEnabled
-      ? boothVisits * (boothCfg?.pointsPerVisit ?? 0)
-      : 0;
-    const seminarPoints = seminarEnabled
-      ? seminarCount * (seminarCfg?.pointsPerSeminar ?? 0)
-      : 0;
-    const amountStep = txCfg?.amountStep ?? 0;
-    const txPoints = txEnabled
-      ? transactionCount * (txCfg?.pointsPerTransaction ?? 0) +
-        (amountStep > 0
-          ? Math.floor(transactionTotal / amountStep) *
-            (txCfg?.pointsPerAmountStep ?? 0)
-          : 0)
-      : 0;
-
-    const totalPoints = boothPoints + seminarPoints + txPoints;
-
-    // Points already redeemed for souvenirs are deducted from the balance.
-    const spentAgg = await prisma.souvenirs.aggregate({
-      where: { event_id: event.uuid, user_id: userId },
-      _sum: { points_spent: true },
-    });
-    const spentPoints = spentAgg._sum.points_spent ?? 0;
-    const availablePoints = Math.max(0, totalPoints - spentPoints);
+    // The balance is derived from the point ledger (history), so the history
+    // shown to a visitor always adds up to the balance.
+    const ledger = buildPointLedger(
+      rules,
+      await loadPointActivity(prisma, event.uuid, userId, rules),
+    );
+    const totalPoints = ledger.earned;
+    const spentPoints = ledger.spent;
+    const availablePoints = ledger.available;
+    const { booth, seminar, transaction } = ledger.breakdown;
 
     const catalog = await getSouvenirCatalog(prisma, event);
     const tiers = catalog.map((t) => ({
@@ -233,33 +191,17 @@ export async function evaluateSouvenirEligibility(
       totalPoints,
       spentPoints,
       availablePoints,
-      pointBreakdown: {
-        booth: {
-          enabled: boothEnabled,
-          count: boothVisits,
-          points: boothPoints,
-        },
-        seminar: {
-          enabled: seminarEnabled,
-          count: seminarCount,
-          points: seminarPoints,
-        },
-        transaction: {
-          enabled: txEnabled,
-          count: transactionCount,
-          totalAmount: transactionTotal,
-          points: txPoints,
-        },
-      },
+      pointBreakdown: ledger.breakdown,
+      ledger: ledger.entries,
       tiers,
       eligibleTiers,
       recommendedTier,
       data: {
-        boothVisits,
-        seminarCount,
-        joinedSeminar: seminarCount > 0,
-        transactionCount,
-        transactionTotal,
+        boothVisits: booth.count,
+        seminarCount: seminar.count,
+        joinedSeminar: seminar.count > 0,
+        transactionCount: transaction.count,
+        transactionTotal: transaction.totalAmount,
       },
     };
   }
@@ -326,6 +268,7 @@ export async function evaluateSouvenirEligibility(
     spentPoints: 0,
     availablePoints: 0,
     pointBreakdown: emptyBreakdown,
+    ledger: [],
     tiers: [],
     eligibleTiers: [],
     recommendedTier: null,

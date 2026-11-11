@@ -91,11 +91,12 @@
   --color-brand-300: #9cb9ff;
   --color-brand-400: #7592ff;
   --color-brand-500: #3c85f3;
-  --color-brand-600: #3641f5;
-  --color-brand-700: #2a31d8;
-  --color-brand-800: #252dae;
-  --color-brand-900: #262e89;
-  --color-brand-950: #161950;
+  /* 600–950 are darker shades of the Mexpo blue (500). They used to lean violet (#3641f5…), which made every hover look purple. */
+  --color-brand-600: #1e70eb;
+  --color-brand-700: #145bc8;
+  --color-brand-800: #144b9f;
+  --color-brand-900: #143d7b;
+  --color-brand-950: #11284a;
 
   --color-blue-light-25: #f5fbff;
   --color-blue-light-50: #f0f9ff;

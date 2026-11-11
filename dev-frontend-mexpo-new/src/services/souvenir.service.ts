@@ -105,3 +105,69 @@ export async function grantSouvenir(
     "token",
   );
 }
+
+// ── Visitor self-service (own points, history, redemption) ──
+
+type PointLedgerType = "EARN" | "SPEND";
+type PointLedgerSource = "BOOTH" | "SEMINAR" | "TRANSACTION" | "REDEEM";
+
+export interface PointLedgerEntry {
+  id: string;
+  type: PointLedgerType;
+  source: PointLedgerSource;
+  label: string;
+  points: number;
+  at: string;
+}
+
+type MySouvenirItemState = "REDEEMABLE" | "LOCKED" | "UNAVAILABLE" | "REDEEMED";
+
+export interface MySouvenirItem {
+  id: string;
+  name: string;
+  description: string;
+  image: string;
+  /** Point price. */
+  points: number;
+  /** null = unlimited stock. */
+  remaining: number | null;
+  missingPoints: number;
+  state: MySouvenirItemState;
+}
+
+export interface EarnRule {
+  source: "BOOTH" | "SEMINAR" | "TRANSACTION";
+  title: string;
+  description: string;
+}
+
+interface MySouvenirOverview {
+  enabled: true;
+  totalPoints: number;
+  spentPoints: number;
+  availablePoints: number;
+  ledger: PointLedgerEntry[];
+  earnRules: EarnRule[];
+  items: MySouvenirItem[];
+  /** One souvenir per account per event. */
+  canRedeem: boolean;
+  redeemed: { name: string; image: string; pointsSpent: number; at: string } | null;
+}
+
+/** `enabled: false` when the event does not use the point system. */
+export type MySouvenir = MySouvenirOverview | { enabled: false };
+
+/** The caller's own points, history, catalog state and redemption. */
+export async function getMySouvenir(eventId: string) {
+  const res = await httpGet(`souvenirs/me/${eventId}`, "token", META_DYNAMIC);
+  return { data: res.data as unknown as MySouvenir, status: res.status, message: res.message };
+}
+
+/** Redeem the caller's points for one catalog item (once per event). */
+export async function redeemSouvenir(eventId: string, tierId: string) {
+  return await httpPost(
+    `souvenirs/redeem/${eventId}`,
+    JSON.stringify({ tier_id: tierId }),
+    "token",
+  );
+}

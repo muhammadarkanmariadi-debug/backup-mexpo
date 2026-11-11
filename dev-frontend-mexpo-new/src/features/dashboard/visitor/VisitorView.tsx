@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { Loader2, Award, IdCard, User, UserPlus, BookOpen, CalendarDays, Mic, Handshake, Phone, Store, CreditCard } from "lucide-react";
+import { Loader2, Award, IdCard, User, UserPlus, BookOpen, CalendarDays, Mic, Handshake, Phone, Store, CreditCard, Gift } from "lucide-react";
 
 import DashboardTabs, { TabGroup } from "@/features/dashboard/shared/DashboardTabs";
 import { Info, QrCode } from "lucide-react";
@@ -26,6 +26,7 @@ import SpeakersTab from "@/shared/components/tabs/Speakers";
 import SponsorsTab from "@/shared/components/tabs/Sponsors";
 import ContactsTab from "@/shared/components/tabs/Contact";
 import { BadgeModal } from "@/features/dashboard/badge/BadgeModal";
+import VisitorSouvenirSection from "@/features/dashboard/souvenir/VisitorSouvenirSection";
 import { checkout } from "@/services/payment.service";
 import { loadSnapScript, payWithSnap } from "@/shared/utils/snap";
 import { PaymentIntent } from "@/entities/payment/payment.entity";
@@ -36,6 +37,8 @@ export default function VisitorView({ event }: Props) {
   const isOpen = new Date() < new Date(event.registration_deadline);
   const [badgeOpen, setBadgeOpen] = useState(false);
   const [paymentBusy, setPaymentBusy] = useState(false);
+  // Controlled tab group so the Souvenir tab can jump to Penyewa / Lokakarya.
+  const [activeGroup, setActiveGroup] = useState("overview");
 
   const { data: qr, isLoading: loadingQr } = useApiQuery<MyQr | null>(
     keys.qr.my(event.uuid),
@@ -127,6 +130,7 @@ export default function VisitorView({ event }: Props) {
   const sponsorsContent = <SponsorsTab sponsors={event.eventSponsors ?? []} />;
   const contactsContent = <ContactsTab contactList={event.eventContacts ?? []} />;
   const tenantsContent = <TenantTab tenantData={event.tenants ?? []} />;
+  const souvenirContent = <VisitorSouvenirSection event={event} onNavigate={setActiveGroup} />;
 
   const tabGroups: TabGroup[] = [
 {
@@ -192,7 +196,18 @@ export default function VisitorView({ event }: Props) {
         { id: "list", label: "Penyewa", icon: Store },
       ],
       content: tenantsContent,
-    }
+    },
+    // Souvenir is on unless the organizer explicitly turned the feature off.
+    ...(event.features?.souvenir === false
+      ? []
+      : [
+          {
+            id: "souvenir",
+            label: "Souvenir",
+            subTabs: [{ id: "list", label: "Souvenir", icon: Gift }],
+            content: souvenirContent,
+          },
+        ]),
   ];
 
   if (isPending) {
@@ -280,7 +295,7 @@ export default function VisitorView({ event }: Props) {
       </div>
 
       {/* ── Tabs Content ── */}
-      <DashboardTabs groups={tabGroups} />
+      <DashboardTabs groups={tabGroups} activeGroupId={activeGroup} onGroupChange={setActiveGroup} />
 
       {/* ID Badge popup (PDF) — replaces the old /dashboard/[uuid]/badge page. */}
       <BadgeModal event={event} open={badgeOpen} onClose={() => setBadgeOpen(false)} role={userRole || "VISITOR"} />

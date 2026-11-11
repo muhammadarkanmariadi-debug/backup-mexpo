@@ -18,6 +18,7 @@ import { UserRole } from '@prisma/client';
 import { imageFileFilter } from '../helper/upload.format';
 import { SouvenirsService } from './souvenirs.service';
 import { CreateSouvenirDto } from './dto/create-souvenir.dto';
+import { RedeemSouvenirDto } from './dto/redeem-souvenir.dto';
 import { AuthGuard } from '@nestjs/passport';
 import FormatValidation from '../helper/validation.format';
 import * as authRequest from '../auth/auth.types';
@@ -43,6 +44,26 @@ export class SouvenirsController {
       createSouvenirDto,
       request.user.uuid,
     );
+  }
+
+  /** The caller's own points, history, catalog state and redemption. */
+  @Get(`me/:event_id`)
+  findMine(
+    @Param(`event_id`) event_id: string,
+    @Request() request: authRequest.AuthRequest,
+  ) {
+    return this.souvenirsService.findMine(event_id, request.user.uuid);
+  }
+
+  /** A visitor redeems their own points for one catalog item. */
+  @Post(`redeem/:event_id`)
+  @UsePipes(new ValidationPipe({ exceptionFactory: FormatValidation }))
+  redeem(
+    @Param(`event_id`) event_id: string,
+    @Body() dto: RedeemSouvenirDto,
+    @Request() request: authRequest.AuthRequest,
+  ) {
+    return this.souvenirsService.redeem(event_id, dto, request.user.uuid);
   }
 
   /** Catalog item photo upload; returns `{ url }` to store in the item. */

@@ -22,6 +22,9 @@ export const keys = {
     approvalQueue: (query: Record<string, string>) =>
       ["events", "approval-queue", query] as const,
   },
+  souvenir: {
+    my: (eventUuid: string) => ["souvenir", "my", eventUuid] as const,
+  },
   qr: {
     all: ["qr"] as const,
     my: (eventUuid: string) => ["qr", "my", eventUuid] as const,

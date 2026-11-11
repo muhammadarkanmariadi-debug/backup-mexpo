@@ -1,23 +1,22 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import { toast } from "sonner";
-import { Store } from "lucide-react";
+import { CheckCircle2, Store } from "lucide-react";
 
 import PageHeader from "@/shared/components/ui/PageHeader";
 import PageShell from "@/shared/components/ui/PageShell";
-import Button from "@/shared/components/button/Button";
 import { QrScanPanel } from "@/shared/components/qr/QrScanPanel";
 import SearchableSelect from "@/shared/components/form/SearchableSelect";
-import { useResolveQr } from "@/lib/hooks/useResolveQr";
-import { useApiMutation, useApiQuery } from "@/lib/hooks/useApi";
+import { useApiQuery } from "@/lib/hooks/useApi";
 import { keys } from "@/lib/query-keys";
 import { getMyTenants } from "@/services/event-data.service";
-import { ResolvedQr } from "@/services/qr.service";
+import { resolveQr, ResolvedQr } from "@/services/qr.service";
 import { checkInTenant } from "@/services/attendance.service";
 import { Event } from "@/entities/event/event.entity";
 import { Tenant } from "@/entities/event/tenant.entity";
 import { Loader2 } from "lucide-react";
+import { soundEffects } from "@/shared/utils/sound";
 
 interface Props {
   event: Event;
@@ -26,8 +25,11 @@ interface Props {
 export default function BoothCheckInPage({ event }: Props) {
   const [tenantId, setTenantId] = useState("");
   const [qrCode, setQrCode] = useState("");
+  const [isProcessing, setIsProcessing] = useState(false);
   const [resolved, setResolved] = useState<ResolvedQr | null>(null);
   const [result, setResult] = useState<{ ok: boolean; message: string } | null>(null);
+
+  const clearTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Tenant list for the booth selector — server-backed via TanStack Query.
   const { data: myTenants, isLoading: loadingTenants } = useApiQuery<Tenant[]>(
@@ -35,68 +37,88 @@ export default function BoothCheckInPage({ event }: Props) {
     () => getMyTenants(event.uuid),
   );
   const tenants = myTenants ?? [];
-  // Fall back to the first tenant while the user hasn't picked one yet.
   const activeTenantId = tenantId || tenants[0]?.uuid || "";
 
-  const resolve = useResolveQr({
-    onSuccess: (data) => {
-      setResolved(data);
-    },
-    onError: (err) => {
-      setResolved(null);
-      setResult({
-        ok: false,
-        message: err instanceof Error ? err.message : "QR tidak dikenali",
-      });
-    },
-  });
+  /**
+   * Direct instant booth check-in pipeline (Zero-touch).
+   */
+  const handleExecuteDirectBoothCheckIn = useCallback(
+    async (codeToProcess?: string) => {
+      const code = (codeToProcess ?? qrCode).trim();
+      if (!code) {
+        toast.error("Masukkan atau scan QR code pengunjung.");
+        return;
+      }
+      if (!activeTenantId) {
+        toast.error("Pilih penyewa / booth terlebih dahulu.");
+        return;
+      }
 
-  const checkIn = useApiMutation(
-    () => {
-      if (!resolved) throw new Error("Pengunjung belum di-resolve.");
-      if (!activeTenantId) throw new Error("Pilih penyewa/booth terlebih dahulu.");
-      return checkInTenant(activeTenantId, resolved.user_id);
-    },
-    {
-      onSuccess: (res) => {
-        const message =
-          typeof res === "object" && res && "message" in res && res.message
-            ? String(res.message)
-            : "Booth visit tercatat.";
-        setResult({ ok: true, message });
-        setResolved(null);
+      if (clearTimerRef.current) {
+        clearTimeout(clearTimerRef.current);
+      }
+
+      setIsProcessing(true);
+      setResult(null);
+
+      try {
+        // 1. Resolve QR
+        const resolveRes = await resolveQr(code);
+        if (!resolveRes.status || !resolveRes.data) {
+          throw new Error(resolveRes.message || "QR Code tidak dikenali.");
+        }
+        const resolvedData = resolveRes.data;
+        setResolved(resolvedData);
+
+        // 2. Record booth visit
+        const visitRes = (await checkInTenant(
+          activeTenantId,
+          resolvedData.user_id,
+        )) as unknown as { status: boolean; message?: string };
+
+        const msg = visitRes?.message || "";
+        const isAlready =
+          msg.toLowerCase().includes("already") ||
+          msg.toLowerCase().includes("sudah");
+
+        if (isAlready) {
+          soundEffects.playWarning();
+          setResult({
+            ok: true,
+            message: `Kunjungan ${resolvedData.user.full_name} sudah tercatat sebelumnya.`,
+          });
+        } else {
+          soundEffects.playSuccess();
+          setResult({
+            ok: true,
+            message: `Kunjungan booth berhasil dicatat: ${resolvedData.user.full_name}`,
+          });
+        }
+
         setQrCode("");
-      },
-      onError: (err) => {
+      } catch (err) {
+        soundEffects.playError();
+        setResolved(null);
         setResult({
           ok: false,
-          message: err instanceof Error ? err.message : "Check-in booth gagal",
+          message: err instanceof Error ? err.message : "Gagal mencatat kunjungan booth.",
         });
-      },
+      } finally {
+        setIsProcessing(false);
+        // Auto-dismiss the preview after 3 seconds
+        clearTimerRef.current = setTimeout(() => {
+          setResolved(null);
+          setResult(null);
+        }, 3000);
+      }
     },
+    [activeTenantId, qrCode],
   );
-
-  const handleSearch = (code?: string) => {
-    const value = (code ?? qrCode).trim();
-    if (!value) {
-      toast.error("Masukkan atau scan QR code pengunjung.");
-      return;
-    }
-    setResult(null);
-    setResolved(null);
-    resolve.mutate(value);
-  };
-
-  const handleCheckIn = () => {
-    if (!resolved) return;
-    setResult(null);
-    checkIn.mutate();
-  };
 
   return (
     <PageShell className="py-8">
       <PageHeader
-        title="Scan Booth"
+        title="Scan Kunjungan Booth"
         subtitle={event.name}
         icon={{
           node: <Store className="h-5 w-5" />,
@@ -131,27 +153,20 @@ export default function BoothCheckInPage({ event }: Props) {
             accent="teal"
             qrValue={qrCode}
             onQrChange={setQrCode}
-            searching={resolve.isPending}
-            onSearch={handleSearch}
+            searching={isProcessing}
+            onSearch={(scannedCode) => void handleExecuteDirectBoothCheckIn(scannedCode)}
             resolved={resolved}
             result={result}
+            scannerOptions={{
+              continuous: true,
+              cooldownMs: 3500,
+            }}
+            searchButtonLabel="Catat Kunjungan Langsung"
             renderUserAction={() => (
-              <Button
-                type="button"
-                size="xs"
-                variant="success"
-                disabled={checkIn.isPending}
-                onClick={handleCheckIn}
-                startIcon={
-                  checkIn.isPending ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Store className="h-4 w-4" />
-                  )
-                }
-              >
-                Catat Kunjungan
-              </Button>
+              <span className="inline-flex items-center gap-1 rounded-full bg-teal-100 px-2.5 py-1 text-xs font-semibold text-teal-800">
+                <CheckCircle2 className="h-3.5 w-3.5" />
+                Kunjungan Tercatat
+              </span>
             )}
           />
         </div>
