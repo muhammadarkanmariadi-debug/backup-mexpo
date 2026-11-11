@@ -208,38 +208,48 @@ async function main() {
       continue;
     }
 
-    try {
-      const messageBytes = sodium.from_string(String(secretValue));
-      const encryptedBytes = sodium.crypto_box_seal(messageBytes, publicKeyBytes);
-      const encryptedBase64 = sodium.to_base64(encryptedBytes, sodium.base64_variants.ORIGINAL);
+    let success = false;
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        const messageBytes = sodium.from_string(String(secretValue));
+        const encryptedBytes = sodium.crypto_box_seal(messageBytes, publicKeyBytes);
+        const encryptedBase64 = sodium.to_base64(encryptedBytes, sodium.base64_variants.ORIGINAL);
 
-      const putRes = await fetch(
-        `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/actions/secrets/${secretName}`,
-        {
-          method: 'PUT',
-          headers: {
-            Authorization: `Bearer ${token}`,
-            Accept: 'application/vnd.github+json',
-            'X-GitHub-Api-Version': '2022-11-28',
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            encrypted_value: encryptedBase64,
-            key_id: publicKeyId,
-          }),
+        const putRes = await fetch(
+          `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/actions/secrets/${secretName}`,
+          {
+            method: 'PUT',
+            headers: {
+              Authorization: `Bearer ${token}`,
+              Accept: 'application/vnd.github+json',
+              'X-GitHub-Api-Version': '2022-11-28',
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              encrypted_value: encryptedBase64,
+              key_id: publicKeyId,
+            }),
+          }
+        );
+
+        if (putRes.ok || putRes.status === 201 || putRes.status === 204) {
+          console.log(` ✔️ Set secret: ${secretName}`);
+          successCount++;
+          success = true;
+          break;
+        } else {
+          const errorText = await putRes.text();
+          console.error(` ❌ Failed to set ${secretName} (attempt ${attempt}): ${putRes.status} ${errorText}`);
         }
-      );
-
-      if (putRes.ok || putRes.status === 201 || putRes.status === 204) {
-        console.log(` ✔️ Set secret: ${secretName}`);
-        successCount++;
-      } else {
-        const errorText = await putRes.text();
-        console.error(` ❌ Failed to set ${secretName}: ${putRes.status} ${errorText}`);
-        failCount++;
+      } catch (err) {
+        if (attempt === 3) {
+          console.error(` ❌ Error setting ${secretName}:`, err.message);
+        } else {
+          await new Promise((r) => setTimeout(r, 600));
+        }
       }
-    } catch (err) {
-      console.error(` ❌ Error setting ${secretName}:`, err.message);
+    }
+    if (!success) {
       failCount++;
     }
   }
