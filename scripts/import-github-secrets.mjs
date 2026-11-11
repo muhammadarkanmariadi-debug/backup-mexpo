@@ -2,6 +2,9 @@ import fs from 'fs';
 import path from 'path';
 import readline from 'readline';
 import { execSync } from 'child_process';
+import { createRequire } from 'module';
+
+const require = createRequire(import.meta.url);
 
 let REPO_OWNER = process.env.REPO_OWNER || 'arkan12-maker';
 let REPO_NAME = process.env.REPO_NAME || 'backup-mexpo';
@@ -124,14 +127,12 @@ async function main() {
   // Check and install libsodium-wrappers if missing
   let sodium;
   try {
-    const libsodium = await import('libsodium-wrappers');
-    sodium = libsodium.default || libsodium;
+    sodium = require('libsodium-wrappers');
     await sodium.ready;
   } catch (err) {
     console.log('📦 Installing temporary libsodium-wrappers dependency...');
     execSync('npm install --no-save libsodium-wrappers', { stdio: 'inherit' });
-    const libsodium = await import('libsodium-wrappers');
-    sodium = libsodium.default || libsodium;
+    sodium = require('libsodium-wrappers');
     await sodium.ready;
   }
 
@@ -168,6 +169,12 @@ async function main() {
   if (!allSecrets.EC2_USER) {
     allSecrets.EC2_USER = 'ubuntu';
   }
+
+  // Mirror EC2_* and SSH_* for cross-workflow compatibility
+  if (allSecrets.EC2_HOST) allSecrets.SSH_HOST = allSecrets.EC2_HOST;
+  if (allSecrets.EC2_USER) allSecrets.SSH_USER = allSecrets.EC2_USER;
+  if (allSecrets.EC2_PORT) allSecrets.SSH_PORT = allSecrets.EC2_PORT;
+  if (allSecrets.EC2_SSH_KEY) allSecrets.SSH_KEY = allSecrets.EC2_SSH_KEY;
 
   console.log(`\nFetching public key for ${REPO_OWNER}/${REPO_NAME}...`);
   const pubKeyRes = await fetch(
