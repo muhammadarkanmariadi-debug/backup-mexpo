@@ -29,9 +29,9 @@ export default function TenantApplyForm({ event }: { event: Event }) {
   });
 
   const { data: categories = [], isLoading: loadingCategories } = useApiQuery<TenantCategory[]>(
-    keys.tenantCategories(),
+    [...keys.tenantCategories(), "active"],
     async () => {
-      const res = await getTenantCategories();
+      const res = await getTenantCategories({ is_active: true });
       return res.data;
     }
   );
@@ -46,6 +46,7 @@ export default function TenantApplyForm({ event }: { event: Event }) {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (busy) return;
     if (!form.category_id) {
       toast.error("Silakan pilih kategori");
       return;

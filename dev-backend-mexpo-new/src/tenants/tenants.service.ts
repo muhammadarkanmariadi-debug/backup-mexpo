@@ -326,10 +326,45 @@ export class TenantsService {
         );
       }
 
-      // Check if user already has a pending or approved TENANT role
+      // 1. Check if user already has an existing tenant application for this event
+      const existingTenantMember = await this.prisma.tenant_members.findFirst({
+        where: {
+          user_id: userId,
+          tenant: { event_id },
+        },
+        include: { tenant: true },
+      });
+
+      if (existingTenantMember) {
+        const tenantStatus = existingTenantMember.tenant?.status || 'PENDING';
+        throw new ConflictException(
+          `Anda sudah mengajukan pendaftaran tenant untuk event ini (Status: ${tenantStatus}).`,
+        );
+      }
+
+      // 2. Check if user already has a pending or approved TENANT role in this event
       let userEventRole = await this.prisma.user_event_roles.findFirst({
         where: { user_id: userId, event_id, role: `TENANT` },
       });
+
+      if (userEventRole && userEventRole.status !== 'REJECTED') {
+        throw new ConflictException(
+          `Anda sudah mengajukan pendaftaran tenant untuk event ini (Status: ${userEventRole.status}).`,
+        );
+      }
+
+      // 3. Check if tenant name is already used in this event
+      const existingTenantName = await this.prisma.tenants.findFirst({
+        where: {
+          event_id,
+          name: { equals: name.trim(), mode: 'insensitive' },
+        },
+      });
+      if (existingTenantName) {
+        throw new ConflictException(
+          `Nama tenant "${name}" sudah terdaftar pada event ini. Silakan gunakan nama lain.`,
+        );
+      }
 
       if (!userEventRole) {
         userEventRole = await this.prisma.user_event_roles.create({
@@ -341,6 +376,11 @@ export class TenantsService {
             created_by: userId,
             updated_by: userId,
           },
+        });
+      } else if (userEventRole.status === 'REJECTED') {
+        await this.prisma.user_event_roles.update({
+          where: { uuid: userEventRole.uuid },
+          data: { status: `PENDING`, updated_by: userId },
         });
       }
 
