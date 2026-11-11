@@ -67,6 +67,13 @@ export class TenantCategoriesController {
     return this.tenantCategoriesService.update(id, updateTenantCategoryDto);
   }
 
+  @Put(':id/toggle-status')
+  @UseGuards(RoleGuard)
+  @Roles(`SUPERADMIN`)
+  toggleStatus(@Param('id') id: string) {
+    return this.tenantCategoriesService.toggleActive(id);
+  }
+
   @Delete(':id')
   @UseGuards(RoleGuard)
   @Roles(`SUPERADMIN`)

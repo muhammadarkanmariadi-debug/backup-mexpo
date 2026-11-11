@@ -442,15 +442,17 @@ enum BookingStatus {
 }
 
 model tenant_categories {
-  uuid       String    @id @default(uuid())
-  name       String    @default("")
-  created_by String    @default("")
-  creator    users     @relation("creator_tenant_categories", fields: [created_by], references: [uuid])
-  updated_by String    @default("")
-  editor     users     @relation("editor_tenant_categories", fields: [updated_by], references: [uuid])
-  created_at DateTime  @default(now())
-  updated_at DateTime  @updatedAt
-  tenants    tenants[]
+  uuid        String    @id @default(uuid())
+  name        String    @default("")
+  description String    @default("") @db.Text
+  is_active   Boolean   @default(true)
+  created_by  String    @default("")
+  creator     users     @relation("creator_tenant_categories", fields: [created_by], references: [uuid])
+  updated_by  String    @default("")
+  editor      users     @relation("editor_tenant_categories", fields: [updated_by], references: [uuid])
+  created_at  DateTime  @default(now())
+  updated_at  DateTime  @updatedAt
+  tenants     tenants[]
 }
 
 model tenants {
