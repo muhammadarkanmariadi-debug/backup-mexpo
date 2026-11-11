@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Download, Printer } from "lucide-react";
 import type { Stage as StageType } from "konva/lib/Stage";
 
@@ -37,6 +37,24 @@ export function CertificatePreview({
 }: CertificatePreviewProps) {
   const stageRef = useRef<StageType | null>(null);
 
+  // Shrink the canvas to the available width so the whole certificate is
+  // visible (it is 1200px wide by default and used to be cut off in modals).
+  const panelRef = useRef<HTMLDivElement | null>(null);
+  const [panelWidth, setPanelWidth] = useState(0);
+  useEffect(() => {
+    const el = panelRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver((entries) => {
+      const w = entries[0]?.contentRect.width ?? 0;
+      if (w > 0) setPanelWidth(w);
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+  // 32px = the panel's horizontal padding.
+  const fitScale =
+    panelWidth > 0 ? Math.min(1, Math.max(0.1, (panelWidth - 32) / template.width)) : 1;
+
   const handleExport = (print: boolean) => {
     const stage = stageRef.current;
     if (!stage) return;
@@ -50,6 +68,7 @@ export function CertificatePreview({
   return (
     <div>
       <div
+        ref={panelRef}
         className="w-full overflow-auto rounded-xl border border-gray-200 bg-white p-4"
         style={{ maxHeight: "60vh" }}
       >
@@ -58,6 +77,7 @@ export function CertificatePreview({
             template={template}
             data={data}
             stageRef={stageRef}
+            fitScale={fitScale}
           />
         ) : null}
       </div>
