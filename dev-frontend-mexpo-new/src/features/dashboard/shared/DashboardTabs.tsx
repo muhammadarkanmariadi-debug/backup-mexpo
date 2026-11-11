@@ -23,14 +23,23 @@ export type TabGroup = {
 
 interface DashboardTabsProps {
   groups: TabGroup[];
+  /**
+   * Optional controlled mode: when set, this group is the active one, so a
+   * parent can switch tabs (e.g. a "how to earn points" shortcut).
+   */
+  activeGroupId?: string;
+  onGroupChange?: (groupId: string) => void;
 }
 
-export default function DashboardTabs({ groups }: DashboardTabsProps) {
-  const [activeGroup, setActiveGroup] = useState<string>(groups[0]?.id || "");
+export default function DashboardTabs({ groups, activeGroupId, onGroupChange }: DashboardTabsProps) {
+  const [internalGroup, setInternalGroup] = useState<string>(groups[0]?.id || "");
   const [activeSub, setActiveSub] = useState<string>(groups[0]?.subTabs[0]?.id || "");
+  const activeGroup = activeGroupId ?? internalGroup;
 
   const currentGroup = groups.find((g) => g.id === activeGroup);
-  const currentSub = currentGroup?.subTabs.find((s) => s.id === activeSub);
+  // Falls back to the group's first sub tab when the group was switched from outside.
+  const currentSub =
+    currentGroup?.subTabs.find((s) => s.id === activeSub) ?? currentGroup?.subTabs[0];
 
   const activeIndex = groups.findIndex((g) => g.id === activeGroup);
 
@@ -44,7 +53,8 @@ export default function DashboardTabs({ groups }: DashboardTabsProps) {
             <button
               key={group.id}
               onClick={() => {
-                setActiveGroup(group.id);
+                setInternalGroup(group.id);
+                onGroupChange?.(group.id);
                 if (group.subTabs.length > 0) {
                   setActiveSub(group.subTabs[0].id);
                 } else {
@@ -68,7 +78,7 @@ export default function DashboardTabs({ groups }: DashboardTabsProps) {
         <div className={`bg-secondary overflow-hidden shadow-sm mb-6 ${activeIndex === 0 ? "rounded-b-xl rounded-tr-xl" : "rounded-xl"}`}>
           <div className="flex gap-6 px-6 pt-4 overflow-x-auto scrollbar-hide">
             {currentGroup.subTabs.map((sub) => {
-              const isSubActive = activeSub === sub.id;
+              const isSubActive = currentSub?.id === sub.id;
               
               const content = (
                 <span className="flex items-center gap-2">
