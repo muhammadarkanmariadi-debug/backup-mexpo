@@ -386,6 +386,124 @@ export class ReportsService {
     }
   }
 
+  async findTopProducts(event_id: string, filter: FilterReportDto) {
+    try {
+      const findEvent = await this.prisma.events.findFirst({
+        where: { uuid: event_id },
+      });
+      if (!findEvent) throw new NotFoundException(`Event doesn't exists`);
+
+      const { start_date, end_date } = filter;
+      if (start_date && end_date) {
+        if (start_date > end_date)
+          throw new BadRequestException(
+            `Start date must be less than End Date`,
+          );
+      }
+
+      const dateWhere = this.buildDateFilter(start_date, end_date);
+
+      const details = await this.prisma.tenant_transaction_details.findMany({
+        where: {
+          transaction: {
+            event_id,
+            created_at: dateWhere,
+          },
+        },
+        include: {
+          product: {
+            include: {
+              tenant: {
+                select: {
+                  uuid: true,
+                  name: true,
+                  booth_number: true,
+                },
+              },
+            },
+          },
+          transaction: {
+            select: {
+              uuid: true,
+            },
+          },
+        },
+      });
+
+      const productMap = new Map<
+        string,
+        {
+          uuid: string;
+          name: string;
+          photo: string;
+          price: number;
+          tenant_name: string;
+          booth_number: string;
+          total_qty: number;
+          transaction_ids: Set<string>;
+          total_revenue: number;
+        }
+      >();
+
+      for (const d of details) {
+        const prod = d.product;
+        if (!prod) continue;
+        const qty = Number(d.quantity) || 0;
+        const unitPrice = Number(d.purchase_price) || Number(prod.price) || 0;
+        const rev = qty * unitPrice;
+
+        const existing = productMap.get(prod.uuid);
+        if (!existing) {
+          productMap.set(prod.uuid, {
+            uuid: prod.uuid,
+            name: prod.name,
+            photo: prod.photo || '',
+            price: Number(prod.price) || unitPrice,
+            tenant_name: prod.tenant?.name || '-',
+            booth_number: prod.tenant?.booth_number || '-',
+            total_qty: qty,
+            transaction_ids: new Set(
+              d.transaction_id ? [d.transaction_id] : [],
+            ),
+            total_revenue: rev,
+          });
+        } else {
+          existing.total_qty += qty;
+          if (d.transaction_id) {
+            existing.transaction_ids.add(d.transaction_id);
+          }
+          existing.total_revenue += rev;
+        }
+      }
+
+      const results = Array.from(productMap.values())
+        .map((item) => ({
+          uuid: item.uuid,
+          name: item.name,
+          photo: item.photo,
+          price: item.price,
+          tenant_name: item.tenant_name,
+          booth_number: item.booth_number,
+          total_qty: item.total_qty,
+          total_transactions: item.transaction_ids.size,
+          total_revenue: item.total_revenue,
+        }))
+        .sort(
+          (a, b) =>
+            b.total_qty - a.total_qty || b.total_revenue - a.total_revenue,
+        );
+
+      return {
+        success: true,
+        message: `Top products report retrieved successfully`,
+        data: results,
+      };
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
+      throw new InternalServerErrorException(`Something were wrong: ${error}`);
+    }
+  }
+
   private generateExportFilename(prefix = 'rekap') {
     const now = new Date();
     const days = [
@@ -806,6 +924,144 @@ export class ReportsService {
           color: { argb: 'FF1E3A8A' },
         };
         cntCell.numFmt = '#,##0';
+
+        totalRow.eachCell({ includeEmpty: true }, (c) => {
+          c.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FFDBEAFE' },
+          };
+          c.border = borderTotal;
+        });
+      }
+
+      // ── SHEET 4: PRODUK TERLARIS ──────────────────────────────────────
+      const topProductsResult = await this.findTopProducts(event_id, filter);
+      const topProducts = topProductsResult.data || [];
+
+      const productSheet = workbook.addWorksheet(`Produk Terlaris`, {
+        views: [{ showGridLines: true }],
+      });
+      productSheet.columns = [
+        { key: 'no', width: 8 },
+        { key: 'name', width: 32 },
+        { key: 'tenant', width: 28 },
+        { key: 'booth', width: 14 },
+        { key: 'price', width: 18 },
+        { key: 'qty', width: 18 },
+        { key: 'tx_count', width: 18 },
+        { key: 'revenue', width: 22 },
+      ];
+
+      const pHeader = productSheet.addRow([
+        'No',
+        'Nama Produk',
+        'Tenant',
+        'Booth',
+        'Harga Satuan (Rp)',
+        'Jumlah Terjual (Qty)',
+        'Total Transaksi',
+        'Total Omzet (Rp)',
+      ]);
+      pHeader.height = 28;
+      pHeader.eachCell((c) => {
+        c.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FF1E3A8A' },
+        };
+        c.font = {
+          name: 'Segoe UI',
+          size: 10,
+          bold: true,
+          color: { argb: 'FFFFFFFF' },
+        };
+        c.alignment = { vertical: 'middle', horizontal: 'center' };
+        c.border = borderHeader;
+      });
+
+      let totalProductQty = 0;
+      let totalProductRevenue = 0;
+
+      topProducts.forEach((p, i) => {
+        totalProductQty += p.total_qty;
+        totalProductRevenue += p.total_revenue;
+        const row = productSheet.addRow([
+          i + 1,
+          p.name,
+          p.tenant_name,
+          p.booth_number || '-',
+          p.price,
+          p.total_qty,
+          p.total_transactions,
+          p.total_revenue,
+        ]);
+        row.height = 22;
+        const isZebra = i % 2 === 1;
+        row.eachCell((cell, col) => {
+          cell.border = borderAll;
+          cell.font = { name: 'Segoe UI', size: 10 };
+          if (isZebra)
+            cell.fill = {
+              type: 'pattern',
+              pattern: 'solid',
+              fgColor: { argb: 'FFF8FAFC' },
+            };
+          if (col === 1 || col === 4) {
+            cell.alignment = { vertical: 'middle', horizontal: 'center' };
+          } else if (col === 2 || col === 3) {
+            cell.alignment = { vertical: 'middle', horizontal: 'left' };
+          } else if (col === 5 || col === 8) {
+            cell.alignment = { vertical: 'middle', horizontal: 'right' };
+            cell.numFmt = '"Rp "#,##0';
+          } else if (col === 6 || col === 7) {
+            cell.alignment = { vertical: 'middle', horizontal: 'right' };
+            cell.numFmt = '#,##0';
+          }
+        });
+      });
+
+      if (topProducts.length > 0) {
+        const totalRow = productSheet.addRow([
+          '',
+          'TOTAL',
+          '',
+          '',
+          '',
+          totalProductQty,
+          '',
+          totalProductRevenue,
+        ]);
+        totalRow.height = 24;
+        totalRow.getCell(2).alignment = {
+          vertical: 'middle',
+          horizontal: 'left',
+        };
+        totalRow.getCell(2).font = {
+          name: 'Segoe UI',
+          size: 11,
+          bold: true,
+          color: { argb: 'FF1E3A8A' },
+        };
+        const qtyCell = totalRow.getCell(6);
+        qtyCell.alignment = { vertical: 'middle', horizontal: 'right' };
+        qtyCell.font = {
+          name: 'Segoe UI',
+          size: 11,
+          bold: true,
+          color: { argb: 'FF1E3A8A' },
+        };
+        qtyCell.numFmt = '#,##0';
+
+        const revCell = totalRow.getCell(8);
+        revCell.alignment = { vertical: 'middle', horizontal: 'right' };
+        revCell.font = {
+          name: 'Segoe UI',
+          size: 11,
+          bold: true,
+          color: { argb: 'FF1E3A8A' },
+        };
+        revCell.numFmt = '"Rp "#,##0';
 
         totalRow.eachCell({ includeEmpty: true }, (c) => {
           c.fill = {

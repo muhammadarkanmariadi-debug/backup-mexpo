@@ -39,6 +39,10 @@ export async function createTenant(eventId: string, payload: TenantProfilePayloa
   return await httpPost(`tenants/${eventId}`, fd, "token");
 }
 
+export async function deleteTenant(tenantId: string) {
+  return await httpDelete(`tenants/${tenantId}`, "token");
+}
+
 export async function applyTenant(eventId: string, payload: TenantProfilePayload, logo?: File) {
   const fd = buildFormData(payload as unknown as Record<string, unknown>, logo);
   return await httpPost(`tenants/apply/${eventId}`, fd, "token");

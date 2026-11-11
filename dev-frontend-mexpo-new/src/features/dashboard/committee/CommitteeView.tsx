@@ -25,6 +25,7 @@ import {
   Award,
   Wallet,
   FileText,
+  Store,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -55,6 +56,7 @@ import RegistrationManager from "@/features/dashboard/registration/RegistrationM
 import CheckInTabWrapper from "@/features/dashboard/checkin/CheckInTabWrapper";
 import SouvenirCounterPage from "@/features/dashboard/souvenir/SouvenirCounterPage";
 import WorkshopsManager from "@/features/dashboard/workshops/WorkshopsManager";
+import TenantsManager from "@/features/dashboard/tenants/TenantsManager";
 import TeamManager from "@/features/dashboard/team/TeamManager";
 import AttendancePage from "@/features/dashboard/attendance/AttendancePage";
 import CertificateDesignerWrapper from "@/features/dashboard/certificate-designer/CertificateDesignerWrapper";
@@ -226,6 +228,12 @@ export default function CommitteeView({ event }: Props) {
           label: "Lokakarya (Workshop)",
           icon: BookOpen,
           content: <WorkshopsManager event={event} />,
+        },
+        {
+          id: "tenant",
+          label: "Penyewa (Tenant)",
+          icon: Store,
+          content: <TenantsManager event={event} />,
         },
         {
           id: "souvenir",

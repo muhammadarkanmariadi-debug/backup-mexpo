@@ -252,10 +252,11 @@ export class PublicApiService {
         const q = search.trim();
         searchFilter = {
           OR: [
-            { name: { contains: q } },
-            { description: { contains: q } },
-            { organizer_name: { contains: q } },
-            { location: { contains: q } },
+            { name: { contains: q, mode: 'insensitive' } },
+            { slug: { contains: q, mode: 'insensitive' } },
+            { description: { contains: q, mode: 'insensitive' } },
+            { organizer_name: { contains: q, mode: 'insensitive' } },
+            { location: { contains: q, mode: 'insensitive' } },
           ],
         };
       }

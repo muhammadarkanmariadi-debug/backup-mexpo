@@ -117,7 +117,6 @@ export const WorkshopTab = ({
 
       if (result.status) {
         toast.success(result.message || `Berhasil mendaftar lokakarya!`)
-        if (onRefetchWorkshops) onRefetchWorkshops()
       } else {
         toast.error(
           result.message || 'Gagal mendaftar. Kuota mungkin sudah penuh.'
@@ -127,6 +126,10 @@ export const WorkshopTab = ({
       toast.error('Terjadi kesalahan koneksi ke server')
     } finally {
       setSubmittingWorkshopId(null)
+      // Always refetch, not just on success: if the visitor was already
+      // registered (other tab/device, double click) or the quota changed, the
+      // list must reflect the server state instead of staying stale.
+      onRefetchWorkshops?.()
     }
   }
 

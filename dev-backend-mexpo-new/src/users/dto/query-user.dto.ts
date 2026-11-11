@@ -26,7 +26,13 @@ export class QueryUserDto {
   @IsBoolean()
   // Query params arrive as strings ("true"/"false"); @Type(() => Boolean)
   // would coerce "false" into a truthy Boolean object. Parse explicitly.
-  @Transform(({ value }) => value === 'true' || value === true)
+  // ValidationPipe runs this twice and also for an absent key: keep
+  // `undefined` as "no filter" instead of turning it into `false`.
+  @Transform(({ value }: { value?: unknown }) =>
+    value === undefined || value === ''
+      ? undefined
+      : value === 'true' || value === true,
+  )
   is_active?: boolean;
 
   @IsOptional()

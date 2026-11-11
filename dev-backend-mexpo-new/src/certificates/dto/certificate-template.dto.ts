@@ -52,7 +52,14 @@ export class CreateCertificateTemplateDto {
 
   @IsOptional()
   @IsBoolean()
-  @Transform(({ value }: { value?: unknown }) => value === 'true')
+  // Multipart sends "true"/"false" strings. ValidationPipe runs this transform
+  // twice (string -> boolean, then boolean -> plain), so a boolean must pass
+  // through unchanged or `true` would be turned into `false` on the second run.
+  @Transform(({ value }: { value?: unknown }) =>
+    value === undefined || value === null || value === ''
+      ? undefined
+      : value === true || value === 'true',
+  )
   is_active?: boolean;
 }
 
@@ -77,7 +84,14 @@ export class UpdateCertificateTemplateDto {
 
   @IsOptional()
   @IsBoolean()
-  @Transform(({ value }: { value?: unknown }) => value === 'true')
+  // Multipart sends "true"/"false" strings. ValidationPipe runs this transform
+  // twice (string -> boolean, then boolean -> plain), so a boolean must pass
+  // through unchanged or `true` would be turned into `false` on the second run.
+  @Transform(({ value }: { value?: unknown }) =>
+    value === undefined || value === null || value === ''
+      ? undefined
+      : value === true || value === 'true',
+  )
   is_active?: boolean;
 }
 

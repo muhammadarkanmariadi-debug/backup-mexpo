@@ -120,4 +120,13 @@ export class ReportsController {
   ) {
     return this.reportsService.findAmountByEvent(event_id, query);
   }
+
+  @Get(`/top-products/:event_id`)
+  @UsePipes(new ValidationPipe({ exceptionFactory: FormatValidation }))
+  findTopProducts(
+    @Param(`event_id`) event_id: string,
+    @Query() query: FilterReportDto,
+  ) {
+    return this.reportsService.findTopProducts(event_id, query);
+  }
 }
