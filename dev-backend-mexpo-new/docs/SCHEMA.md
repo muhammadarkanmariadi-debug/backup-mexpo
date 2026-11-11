@@ -365,7 +365,7 @@ Relations: `users_bio` (1:1), all audit FKs (`creator_*`/`editor_*` on ~20 table
 | `created_by` / `updated_by` | String | FK audit | |
 | `created_at` / `updated_at` | DateTime | | |
 
-> Point mode allows repeated redemptions while the balance lasts; standard (legacy) mode is one row per `(event_id, user_id)`, service-enforced. Item stock lives in the catalog JSON (`tiers[].stock`, null = unlimited); remaining = stock − redemptions with that `tier_id`.
+> One souvenir per account per event in every mode: at most one row per `(event_id, user_id)`, enforced in `SouvenirsService.grant` inside a Serializable transaction (no DB unique constraint, because pre-2026-11-11 point-mode events may already hold several rows). The visitor's point balance is the sum of their activity (booth visits, workshop bookings, transactions) minus `points_spent` — see `souvenirs/point-ledger.ts`. Item stock lives in the catalog JSON (`tiers[].stock`, null = unlimited); remaining = stock − redemptions with that `tier_id`.
 
 ### 2.25 `ticket_types` (Sprint 3 / A1)
 | Column | Type | Constraints | Notes |
