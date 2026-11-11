@@ -73,24 +73,24 @@ export async function getAllEvents(query?: Record<string, string>) {
 
 /** Builds multipart FormData for POST/PUT /events (backend FileInterceptor). */
 function buildEventFormData(
-  payload: CreateEventPayload,
+  payload: Partial<CreateEventPayload>,
   file?: File | null
 ): FormData {
   const fd = new FormData();
-  fd.append("name", payload.name);
-  fd.append("description", payload.description);
-  fd.append("location", payload.location);
-  if (payload.organizer_name) fd.append("organizer_name", payload.organizer_name);
-  fd.append("start_date", payload.start_date);
-  fd.append("end_date", payload.end_date);
-  if (payload.registration_start) fd.append("registration_start", payload.registration_start);
-  if (payload.registration_deadline) fd.append("registration_deadline", payload.registration_deadline);
-  fd.append("quota", String(payload.quota ?? 0));
-  if (payload.visibility) fd.append("visibility", payload.visibility);
-  if (payload.event_type) fd.append("event_type", payload.event_type);
-  if (payload.ticket_mode) fd.append("ticket_mode", payload.ticket_mode);
-  if (payload.features) fd.append("features", JSON.stringify(payload.features));
-  if (payload.souvenir_rules) fd.append("souvenir_rules", JSON.stringify(payload.souvenir_rules));
+  if (payload.name !== undefined) fd.append("name", payload.name);
+  if (payload.description !== undefined) fd.append("description", payload.description);
+  if (payload.location !== undefined) fd.append("location", payload.location);
+  if (payload.organizer_name !== undefined) fd.append("organizer_name", payload.organizer_name);
+  if (payload.start_date !== undefined) fd.append("start_date", payload.start_date);
+  if (payload.end_date !== undefined) fd.append("end_date", payload.end_date);
+  if (payload.registration_start !== undefined) fd.append("registration_start", payload.registration_start);
+  if (payload.registration_deadline !== undefined) fd.append("registration_deadline", payload.registration_deadline);
+  if (payload.quota !== undefined) fd.append("quota", String(payload.quota));
+  if (payload.visibility !== undefined) fd.append("visibility", payload.visibility);
+  if (payload.event_type !== undefined) fd.append("event_type", payload.event_type);
+  if (payload.ticket_mode !== undefined) fd.append("ticket_mode", payload.ticket_mode);
+  if (payload.features !== undefined) fd.append("features", JSON.stringify(payload.features));
+  if (payload.souvenir_rules !== undefined) fd.append("souvenir_rules", JSON.stringify(payload.souvenir_rules));
   if (file) {
     assertUploadableImage(file);
     fd.append("file", file);
@@ -104,10 +104,15 @@ export async function createEvent(payload: CreateEventPayload, file?: File | nul
 
 export async function updateEvent(
   uuid: string,
-  payload: CreateEventPayload,
+  payload: Partial<CreateEventPayload>,
   file?: File | null
 ) {
   return await httpPut(`events/${uuid}`, buildEventFormData(payload, file), "token");
+}
+
+/** Photo-only update for an event (sends only the file in multipart form data). */
+export async function updateEventPhoto(uuid: string, file: File) {
+  return await updateEvent(uuid, {}, file);
 }
 
 /** @deprecated A3 — publishing now goes through publish-request + super admin approval. */
