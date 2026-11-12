@@ -52,6 +52,9 @@ export default function KioskCheckInModal({
   onSuccessCheckIn,
 }: Props) {
   const [feedback, setFeedback] = useState<ScanFeedback | null>(null);
+  const feedbackRef = useRef<ScanFeedback | null>(null);
+  feedbackRef.current = feedback;
+
   const [scanning, setScanning] = useState(false);
   const [facingMode, setFacingMode] = useState<"user" | "environment">("user");
   const scannerRef = useRef<Html5Qrcode | null>(null);
@@ -203,19 +206,25 @@ export default function KioskCheckInModal({
         scannerRef.current = scanner;
         setScanning(true);
 
+        const onFrameDecoded = (decodedText: string) => {
+          // Do not process new scans while previous feedback popup is still visible
+          if (isProcessingRef.current || feedbackRef.current !== null) {
+            return;
+          }
+          const now = Date.now();
+          const last = lastScannedRef.current;
+          // Prevent re-scanning the same badge within 8 seconds
+          if (last && last.code === decodedText && now - last.time < 8000) {
+            return;
+          }
+          lastScannedRef.current = { code: decodedText, time: now };
+          void handleProcessQr(decodedText);
+        };
+
         await scanner.start(
           { facingMode: targetFacing },
           { fps: 12, qrbox: { width: 260, height: 260 } },
-          (decodedText) => {
-            const now = Date.now();
-            const last = lastScannedRef.current;
-            // Ignore same QR code if scanned within 3.5 seconds cooldown
-            if (last && last.code === decodedText && now - last.time < 3500) {
-              return;
-            }
-            lastScannedRef.current = { code: decodedText, time: now };
-            void handleProcessQr(decodedText);
-          },
+          onFrameDecoded,
           () => { },
         );
       } catch {
@@ -223,18 +232,23 @@ export default function KioskCheckInModal({
         const altFacing = targetFacing === "user" ? "environment" : "user";
         try {
           if (scannerRef.current) {
+            const onFrameDecodedFallback = (decodedText: string) => {
+              if (isProcessingRef.current || feedbackRef.current !== null) {
+                return;
+              }
+              const now = Date.now();
+              const last = lastScannedRef.current;
+              if (last && last.code === decodedText && now - last.time < 8000) {
+                return;
+              }
+              lastScannedRef.current = { code: decodedText, time: now };
+              void handleProcessQr(decodedText);
+            };
+
             await scannerRef.current.start(
               { facingMode: altFacing },
               { fps: 12, qrbox: { width: 260, height: 260 } },
-              (decodedText) => {
-                const now = Date.now();
-                const last = lastScannedRef.current;
-                if (last && last.code === decodedText && now - last.time < 3500) {
-                  return;
-                }
-                lastScannedRef.current = { code: decodedText, time: now };
-                void handleProcessQr(decodedText);
-              },
+              onFrameDecodedFallback,
               () => { },
             );
             setFacingMode(altFacing);
@@ -357,10 +371,10 @@ export default function KioskCheckInModal({
             <div
               onClick={(e) => e.stopPropagation()}
               className={`relative w-full max-w-md rounded-2xl p-6 text-center shadow-2xl backdrop-blur-md transition-all animate-in zoom-in-95 duration-200 ${feedback.type === "success"
-                  ? "border border-emerald-500/40 bg-emerald-950/95 text-emerald-50"
-                  : feedback.type === "warning"
-                    ? "border border-amber-500/40 bg-amber-950/95 text-amber-50"
-                    : "border border-rose-500/40 bg-rose-950/95 text-rose-50"
+                ? "border border-emerald-500/40 bg-emerald-950/95 text-emerald-50"
+                : feedback.type === "warning"
+                  ? "border border-amber-500/40 bg-amber-950/95 text-amber-50"
+                  : "border border-rose-500/40 bg-rose-950/95 text-rose-50"
                 }`}
             >
               <button

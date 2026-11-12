@@ -299,7 +299,7 @@ export default function CheckInPage({ event, workshops }: Props) {
         result={result}
         scannerOptions={{
           continuous: true,
-          cooldownMs: 3500,
+          cooldownMs: 8000,
         }}
         searchButtonLabel={action === "out" ? "Check-out Langsung" : "Check-in Langsung"}
         renderUserAction={() => (
