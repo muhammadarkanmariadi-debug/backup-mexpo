@@ -10,6 +10,7 @@ import {
   ValidationPipe,
   Request,
   Query,
+  ParseIntPipe,
   UseInterceptors,
   UploadedFile,
 } from '@nestjs/common';
@@ -97,8 +98,15 @@ export class SouvenirsController {
   }
 
   @Get('detail/:id')
-  findOne(@Param('id') id: string) {
-    return this.souvenirsService.findOne(+id);
+  findOne(
+    @Param('id', ParseIntPipe) id: number,
+    @Request() request: authRequest.AuthRequest,
+  ) {
+    return this.souvenirsService.findOne(
+      id,
+      request.user.uuid,
+      request.user.role as UserRole,
+    );
   }
 
   @Get(`:event_id`)
@@ -112,7 +120,14 @@ export class SouvenirsController {
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.souvenirsService.remove(+id);
+  remove(
+    @Param('id', ParseIntPipe) id: number,
+    @Request() request: authRequest.AuthRequest,
+  ) {
+    return this.souvenirsService.remove(
+      id,
+      request.user.uuid,
+      request.user.role as UserRole,
+    );
   }
 }
