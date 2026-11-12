@@ -58,7 +58,7 @@ export default function VisitorSouvenirSection({ event, onNavigate }: Props) {
   const { data, isLoading, isError, error, refetch } = useApiQuery<MySouvenir>(
     keys.souvenir.my(event.uuid),
     () => getMySouvenir(event.uuid),
-    { retry: 0 },
+    { retry: 0, enabled: Boolean(event.uuid) },
   );
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
