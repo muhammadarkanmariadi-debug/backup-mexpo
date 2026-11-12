@@ -49,6 +49,9 @@ interface QrScanPanelProps {
   scannerOptions?: UseQrScannerOptions;
   /** Custom label for the manual search button. */
   searchButtonLabel?: string;
+  /** Label / placeholder of the text input (defaults suit the visitor-QR flows). */
+  inputLabel?: string;
+  inputPlaceholder?: string;
 }
 
 /**
@@ -68,6 +71,8 @@ export function QrScanPanel({
   result,
   scannerOptions,
   searchButtonLabel = "Cari Pengunjung",
+  inputLabel = "QR Code Pengunjung",
+  inputPlaceholder = "Scan QR, ketik kode (cth: MEXPO-EV1-VIS-3), atau email pengunjung",
 }: QrScanPanelProps) {
   const { scanning, startScan, stopScan } = useQrScanner(
     containerId,
@@ -89,12 +94,12 @@ export function QrScanPanel({
     <div className="space-y-4 rounded-xl border border-gray-100 bg-white p-5">
       <form onSubmit={handleSubmit}>
         <Input
-          label="QR Code Pengunjung"
+          label={inputLabel}
           value={qrValue}
           onChange={(e) => {
             onQrChange(e.target.value);
           }}
-          placeholder="Scan QR, ketik kode (cth: MEXPO-EV1-VIS-3), atau email pengunjung"
+          placeholder={inputPlaceholder}
         />
       </form>
 
