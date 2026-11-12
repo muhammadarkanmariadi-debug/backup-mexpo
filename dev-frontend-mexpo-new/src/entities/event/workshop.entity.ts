@@ -1,12 +1,13 @@
 import { EventSpeaker } from "./speaker.entity";
 
-export type WorkshopBookingStatus = 'REGISTERED' | 'CHECKED_IN' | 'CANCELLED';
+export type WorkshopBookingStatus = 'REGISTERED' | 'CHECKED_IN' | 'CHECKED_OUT' | 'CANCELLED';
 
 export interface WorkshopBooking {
   uuid: string;
   workshop_id: string;
   user_id: string;
   checkin_at: string | null;
+  checkout_at?: string | null;
   status: WorkshopBookingStatus;
   created_by: string;
   updated_by: string;

@@ -135,6 +135,11 @@ export default function CheckInPage({ event, workshops }: Props) {
         }
 
         const msg = attRes?.message || "";
+        // A visitor who never registered for the workshop is booked on the spot
+        // when a slot is free; the backend says so in `data.auto_booked`.
+        const autoBooked = Boolean(
+          (attRes as { data?: { auto_booked?: boolean } } | null)?.data?.auto_booked,
+        );
         const isAlready =
           msg.toLowerCase().includes("already saved") ||
           msg.toLowerCase().includes("sudah");
@@ -150,7 +155,9 @@ export default function CheckInPage({ event, workshops }: Props) {
           const successMsg =
             action === "out"
               ? `Check-out berhasil: ${resolvedData.user.full_name}`
-              : `Check-in berhasil: ${resolvedData.user.full_name}`;
+              : autoBooked
+                ? `Check-in berhasil: ${resolvedData.user.full_name}. ${msg}`
+                : `Check-in berhasil: ${resolvedData.user.full_name}`;
           setResult({ ok: true, message: successMsg });
 
           // Add to recent activity log

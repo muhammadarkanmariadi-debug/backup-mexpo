@@ -313,7 +313,11 @@ export function CertificateStage({
   transformerRef,
   fitScale,
 }: CertificateStageProps) {
-  const { width, height, background, nodes } = template;
+  // Older rows may lack a background or nodes: treat them as white / empty
+  // instead of crashing the page.
+  const { width, height } = template;
+  const nodes = template.nodes ?? [];
+  const background = template.background ?? { type: "color", value: "#ffffff" };
   const bgColor =
     background.type === "color" ? (background.value ?? "#ffffff") : undefined;
   const bgImage = background.type === "image" ? background.url : undefined;

@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+  #!/usr/bin/env node
 /**
  * Satu perintah untuk menjalankan Mexpo (Backend + Frontend).
  *

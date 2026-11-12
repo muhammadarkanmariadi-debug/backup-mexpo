@@ -10,6 +10,7 @@ import {
   CheckCircle2,
   ChevronDown,
   FileText,
+  Gift,
   Globe,
   LayoutGrid,
   Loader2,
@@ -37,7 +38,6 @@ import {
   EVENT_TYPE_LABELS,
   EVENT_FEATURE_LABELS,
 } from "@/shared/data/labels";
-import SouvenirCatalogEditor, { normalizeCatalog } from "@/features/dashboard/souvenir/SouvenirCatalogEditor";
 
 const EVENT_TYPES: { value: EventType; label: string }[] = [
   { value: "EXPO", label: EVENT_TYPE_LABELS.EXPO },
@@ -216,9 +216,6 @@ export default function EventForm({ event }: Props) {
     amountStep: event?.souvenir_rules?.transactionPoint?.amountStep ?? 50000,
     pointsPerAmountStep: event?.souvenir_rules?.transactionPoint?.pointsPerAmountStep ?? 10,
   });
-  const [souvenirTiers, setSouvenirTiers] = useState<SouvenirTier[]>(
-    event?.souvenir_rules?.tiers ?? [],
-  );
 
   const clearError = (key: string) =>
     setErrors((prev) => {
@@ -370,7 +367,7 @@ export default function EventForm({ event }: Props) {
                 amountStep: Number(souvenirRules.amountStep) || 0,
                 pointsPerAmountStep: Number(souvenirRules.pointsPerAmountStep) || 0,
               },
-              tiers: normalizeCatalog(souvenirTiers),
+              tiers: event?.souvenir_rules?.tiers ?? [],
             },
       };
 
@@ -1026,11 +1023,17 @@ export default function EventForm({ event }: Props) {
                           </div>
                         </div>
 
-                        <SouvenirCatalogEditor
-                          eventId={event?.uuid}
-                          items={souvenirTiers}
-                          onChange={setSouvenirTiers}
-                        />
+                        <div className="flex items-start gap-3 p-3.5 rounded-xl border border-blue-200 bg-white">
+                          <div className="w-8 h-8 rounded-lg bg-blue-50 text-secondary flex items-center justify-center shrink-0 mt-0.5">
+                            <Gift className="w-4 h-4" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-xs font-bold text-gray-800">Katalog Suvenir</p>
+                            <p className="text-[11px] text-gray-500 mt-0.5 leading-relaxed">
+                              Daftar item suvenir, foto, stok, dan detail barang dikelola langsung pada tab <strong>Syarat Souvenir</strong> di dashboard event.
+                            </p>
+                          </div>
+                        </div>
                       </div>
                   </div>
                 )}
