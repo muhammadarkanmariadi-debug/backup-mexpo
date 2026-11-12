@@ -10,8 +10,9 @@ describe('AttendancesService - Scanner Permission Protection', () => {
     workshops: { findFirst: jest.Mock };
     user_event_roles: { findFirst: jest.Mock };
     log_attendances: { findFirst: jest.Mock; create: jest.Mock; update: jest.Mock };
-    workshop_bookings: { findFirst: jest.Mock; create: jest.Mock; update: jest.Mock };
+    workshop_bookings: { findFirst: jest.Mock; create: jest.Mock; update: jest.Mock; count: jest.Mock };
     booth_visits: { findMany: jest.Mock };
+    $transaction: jest.Mock;
   };
 
   beforeEach(async () => {
@@ -20,8 +21,10 @@ describe('AttendancesService - Scanner Permission Protection', () => {
       workshops: { findFirst: jest.fn() },
       user_event_roles: { findFirst: jest.fn() },
       log_attendances: { findFirst: jest.fn(), create: jest.fn(), update: jest.fn() },
-      workshop_bookings: { findFirst: jest.fn(), create: jest.fn(), update: jest.fn() },
+      workshop_bookings: { findFirst: jest.fn(), create: jest.fn(), update: jest.fn(), count: jest.fn().mockResolvedValue(0) },
       booth_visits: { findMany: jest.fn() },
+      // Interactive transactions run the callback against the same mock client.
+      $transaction: jest.fn((cb: (tx: unknown) => unknown) => cb(prisma)),
     };
 
     const module: TestingModule = await Test.createTestingModule({
