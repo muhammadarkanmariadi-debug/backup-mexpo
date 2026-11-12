@@ -138,6 +138,9 @@ export default function KioskCheckInModal({
         }
 
         const msg = attRes?.message || "";
+        const autoBooked = Boolean(
+          (attRes as { data?: { auto_booked?: boolean } } | null)?.data?.auto_booked,
+        );
         const isAlready =
           msg.toLowerCase().includes("already saved") ||
           msg.toLowerCase().includes("sudah");
@@ -158,7 +161,9 @@ export default function KioskCheckInModal({
             message:
               curAction === "out"
                 ? "Check-out berhasil dicatat."
-                : "Check-in berhasil. Selamat menikmati acara!",
+                : autoBooked
+                  ? "Check-in berhasil. Anda otomatis didaftarkan ke lokakarya ini. Selamat menikmati acara!"
+                  : "Check-in berhasil. Selamat menikmati acara!",
             user: resolved.user,
           });
           curOnSuccess?.(resolved, msg || "Check-in berhasil");
