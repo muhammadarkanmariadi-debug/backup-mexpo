@@ -195,7 +195,10 @@ All backend DTOs use **class-validator + class-transformer** (no Zod on backend)
 ### 3.4 Attendance (all `[CODE]` — docx rules differ)
 - **Event check-in** (`POST /attendances/event/:event_id`): recorder must be APPROVED COMMITTEE/OWNER; target must be APPROVED VISITOR (COMMITTEE/OWNER/TENANT excluded); **once per calendar day** per user per event.
 - **Booth visit** (`POST /attendances/tenant/:tenant_id`): recorder must be APPROVED `tenant_members`; **once per day per tenant** per user.
-- **Workshop check-in** (`POST /attendances/workshop/:workshop_id`): creates/updates `workshop_bookings` → `CHECKED_IN` + sets `checkin_at`; if `workshop.quota > 0` and full, rejected.
+- **Workshop check-in** (`POST /attendances/workshop/:workshop_id`): the person must be an `APPROVED` member of the event (else 403). Only checked-in people (`CHECKED_IN`/`CHECKED_OUT`) occupy an **attendance slot**; `quota` = seats in the room (`quota <= 0` = unlimited). A booking alone holds no slot, so a no-show or late visitor leaves the seat free.
+  - **Walk-in auto-booking:** a member with no booking (or a cancelled one) who checks in while a slot is free is booked automatically (`workshop_bookings` row, `CHECKED_IN`, `checkin_at` set; response `auto_booked: true`, message `Peserta belum terdaftar: otomatis didaftarkan dan check-in (slot kehadiran N/quota)`).
+  - **Full room:** when attended ≥ quota, check-in is rejected with `409 Slot kehadiran workshop penuh (N/quota)` — this also applies to a booked visitor who arrives after walk-ins took their seat (no reservation window).
+  - Re-scanning an already checked-in person is idempotent. Slot check + write run in one Serializable transaction (P2034 → 409). Online registration still caps at `quota` bookings (cancelled rows included), separate from attendance slots.
 
 ### 3.5 Reports
 - All report endpoints are behind **HTTP Basic auth** (`BASIC_AUTH_USERNAME`/`BASIC_AUTH_PASSWORD`), not JWT.
@@ -266,7 +269,7 @@ Status: `[FIXED]` = resolved in the Sprint 0/1 execution · `[OPEN]` = still lat
 | Visitor re-registers to same event | Public-api upserts role to APPROVED (idempotent-ish) | Confirmed desired? `[NEEDS CLARIFICATION]` |
 | Duplicate souvenir claim | Service prevents 2nd row (implicit 400/conflict) | Return explicit "already claimed" message (docx requires) |
 | Souvenir eligibility not met | `ForbiddenException("Sorry, you still visit N booth")` — leaks the count to the caller | Decide if count exposure is acceptable |
-| Workshop full | Booking rejected when `quota > 0` and count ≥ quota | Race conditions possible (count-then-insert, no DB constraint) — consider transactional/unique guard |
+| Workshop full | Online booking rejected when `quota > 0` and count ≥ quota; **check-in** rejected when checked-in count ≥ quota (see §attendance, walk-in auto-booking) | Booking: race conditions possible (count-then-insert, no DB constraint) — consider transactional/unique guard |
 | Same-day double event check-in | Returns existing row + today's booth-visit count (idempotent) | Keep; document as "once per day" |
 | Check-in target is COMMITTEE/OWNER/TENANT | Rejected for event check-in | Matches docx (visitor-only attendance) |
 | Tenant rejected | Sets `status = REJECTED` (FIX-03 — no longer deletes the row) | Preserved record keeps audit trail; deletion is explicit via `DELETE` |
