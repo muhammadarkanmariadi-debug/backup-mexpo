@@ -48,23 +48,6 @@ export interface VisitorReport {
   amounts?: number;
 }
 
-export interface VisitorTimelinePoint {
-  time: string;
-  label: string;
-  count: number;
-  booth_visits: number;
-  cumulative: number;
-}
-
-export interface VisitorTimelineData {
-  mode: 'hourly' | 'daily';
-  total_attendances: number;
-  total_booth_visits: number;
-  peak_label: string;
-  peak_count: number;
-  timeline: VisitorTimelinePoint[];
-}
-
 export type DateRange = { start_date?: string; end_date?: string };
 
 function dateQuery(start?: Date, end?: Date): DateRange {
@@ -97,11 +80,6 @@ export async function getAmountCategoryReport(eventId: string, start?: Date, end
 export async function getVisitorReport(eventId: string, start?: Date, end?: Date) {
   const res = await httpGet(`reports/visitor/${eventId}`, "Basic", META_DYNAMIC, dateQuery(start, end));
   return { data: (res.data as VisitorReport) ?? null, status: res.status, message: res.message };
-}
-
-export async function getVisitorTimelineReport(eventId: string, start?: Date, end?: Date) {
-  const res = await httpGet(`reports/visitor-timeline/${eventId}`, "Basic", META_DYNAMIC, dateQuery(start, end));
-  return { data: (res.data as VisitorTimelineData) ?? null, status: res.status, message: res.message };
 }
 
 export async function getAmountReport(eventId: string, start?: Date, end?: Date) {

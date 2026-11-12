@@ -251,8 +251,12 @@ export class EventRundownsService {
       const { title, description, start_time, end_time } =
         updateEventRundownDto;
 
-      const targetStartDate = start_time ? new Date(start_time) : new Date(findRundown.start_time);
-      const targetEndDate = end_time ? new Date(end_time) : new Date(findRundown.end_time);
+      const targetStartDate = start_time
+        ? new Date(start_time)
+        : new Date(findRundown.start_time);
+      const targetEndDate = end_time
+        ? new Date(end_time)
+        : new Date(findRundown.end_time);
 
       if (findRundown.event) {
         if (targetStartDate < new Date(findRundown.event.start_date)) {

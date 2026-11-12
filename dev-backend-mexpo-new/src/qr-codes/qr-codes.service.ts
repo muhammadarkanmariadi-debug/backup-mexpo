@@ -117,7 +117,9 @@ export class QrCodesService {
 
       // 3) Shorthand alias: `MEXPO-EV1-VIS-3` or `VIS-3`
       if (!eventId || !userId) {
-        const shortMatch = /^(?:MEXPO-)?(?:EV(\d+)-)?VIS-(\d+)$/i.exec(codeData);
+        const shortMatch = /^(?:MEXPO-)?(?:EV(\d+)-)?VIS-(\d+)$/i.exec(
+          codeData,
+        );
         if (shortMatch) {
           const evNum = shortMatch[1] || '1';
           const visNum = shortMatch[2].padStart(12, '0');

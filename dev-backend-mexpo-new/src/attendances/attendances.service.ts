@@ -16,7 +16,10 @@ import { EventRole } from '@prisma/client';
 import { QueryAttendanceDto } from './dto/query-attendance.dto';
 import { buildOrderBy } from '../helper/sort';
 import { Prisma } from '@prisma/client';
-import { UpdateAttendanceDto, UpdateWorkshopAttendanceDto } from './dto/update-attendance.dto';
+import {
+  UpdateAttendanceDto,
+  UpdateWorkshopAttendanceDto,
+} from './dto/update-attendance.dto';
 import { ATTENDED_STATUSES, hasAttendanceSlot } from './workshop-slots';
 
 const ATTENDANCE_SORTABLE: Record<
@@ -402,7 +405,7 @@ export class AttendancesService {
       const counts = await this.prisma.workshop_bookings.count({
         where: {
           workshop_id,
-          status: { in: [`CHECKED_IN`, `CHECKED_OUT`]},
+          status: { in: [`CHECKED_IN`, `CHECKED_OUT`] },
           created_at:
             start_date && end_date
               ? {

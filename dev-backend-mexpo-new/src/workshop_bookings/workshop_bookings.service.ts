@@ -228,7 +228,7 @@ export class WorkshopBookingsService {
       const bookings = await this.prisma.workshop_bookings.findMany({
         where: {
           user_id: userId,
-          status: { in: [`CHECKED_IN`, `CHECKED_OUT`]},
+          status: { in: [`CHECKED_IN`, `CHECKED_OUT`] },
           workshop: { event_id },
         },
         include: { workshop: true },

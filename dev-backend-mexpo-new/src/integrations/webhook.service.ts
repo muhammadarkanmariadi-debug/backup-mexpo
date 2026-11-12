@@ -75,7 +75,9 @@ export class WebhookService {
     payload: WebhookRegistrationPayload,
   ): Promise<boolean> {
     if (!callbackUrl || !this.isSafeUrl(callbackUrl)) {
-      this.logger.warn(`Rejected dispatch to unsafe or invalid webhook URL: ${callbackUrl}`);
+      this.logger.warn(
+        `Rejected dispatch to unsafe or invalid webhook URL: ${callbackUrl}`,
+      );
       return false;
     }
 

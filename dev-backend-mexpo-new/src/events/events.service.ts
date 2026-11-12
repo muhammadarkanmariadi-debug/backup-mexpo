@@ -173,7 +173,9 @@ export class EventsService {
               { description: { contains: term, mode: 'insensitive' } },
               { organizer_name: { contains: term, mode: 'insensitive' } },
               { location: { contains: term, mode: 'insensitive' } },
-              { creator: { full_name: { contains: term, mode: 'insensitive' } } },
+              {
+                creator: { full_name: { contains: term, mode: 'insensitive' } },
+              },
             ]
           : undefined,
       };
@@ -660,7 +662,9 @@ export class EventsService {
               { description: { contains: term, mode: 'insensitive' } },
               { organizer_name: { contains: term, mode: 'insensitive' } },
               { location: { contains: term, mode: 'insensitive' } },
-              { creator: { full_name: { contains: term, mode: 'insensitive' } } },
+              {
+                creator: { full_name: { contains: term, mode: 'insensitive' } },
+              },
             ]
           : undefined,
       };
@@ -828,7 +832,10 @@ export class EventsService {
           payout_status: 'NOT_SETTLED',
           status: { in: ['PUBLISHED', 'FINISHED'] },
           payout_account_number: { not: '' },
-          features: { path: jsonFilterPath('settlement_requested'), equals: true },
+          features: {
+            path: jsonFilterPath('settlement_requested'),
+            equals: true,
+          },
         },
       }),
       this.prisma.contact_message.count({

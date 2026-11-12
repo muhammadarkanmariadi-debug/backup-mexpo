@@ -58,8 +58,8 @@ export function buildDatabaseUrl(
   if (!host || !user || !name) {
     throw new Error(
       `Database connection parameters are incomplete. Set DB_HOST, DB_USER ` +
-      `and DB_NAME (or DB_DATABASE) in .env. Provider resolved to ` +
-      `"${provider}".`,
+        `and DB_NAME (or DB_DATABASE) in .env. Provider resolved to ` +
+        `"${provider}".`,
     );
   }
   const port = env.DB_PORT || (provider === 'mysql' ? '3306' : '5432');
@@ -94,5 +94,7 @@ export function hasDbConfig(
   env: Record<string, string | undefined> = process.env,
 ): boolean {
   if (env.DATABASE_URL) return true;
-  return Boolean(env.DB_HOST && env.DB_USER && (env.DB_NAME || env.DB_DATABASE));
+  return Boolean(
+    env.DB_HOST && env.DB_USER && (env.DB_NAME || env.DB_DATABASE),
+  );
 }

@@ -157,7 +157,7 @@ interface DataPaginationProps {
   /** Callback saat halaman berubah */
   onPageChange: (page: number) => void
   /** Callback saat jumlah item per halaman berubah */
-  onItemsPerPageChange: (size: number) => void
+onItemsPerPageChange: (size: number) => void
   /** Opsi jumlah item per halaman (default: PAGE_SIZE_OPTIONS) */
   pageSizeOptions?: readonly number[]
 }

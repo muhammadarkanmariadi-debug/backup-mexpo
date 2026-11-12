@@ -239,7 +239,12 @@ export class PublicApiService {
             { ticket_mode: { not: `PAID` } },
             {
               OR: [
-                { features: { path: jsonFilterPath(`paidTicket`), equals: false } },
+                {
+                  features: {
+                    path: jsonFilterPath(`paidTicket`),
+                    equals: false,
+                  },
+                },
                 { features: { equals: Prisma.AnyNull } },
               ],
             },

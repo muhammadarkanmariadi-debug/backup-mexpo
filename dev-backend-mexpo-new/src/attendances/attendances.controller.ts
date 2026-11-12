@@ -18,7 +18,10 @@ import FormatValidation from '../helper/validation.format';
 import * as authType from '../auth/auth.types';
 import { QueryAttendanceDto } from './dto/query-attendance.dto';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { UpdateAttendanceDto, UpdateWorkshopAttendanceDto } from './dto/update-attendance.dto';
+import {
+  UpdateAttendanceDto,
+  UpdateWorkshopAttendanceDto,
+} from './dto/update-attendance.dto';
 
 @ApiTags('Attendances')
 @ApiBearerAuth()
@@ -106,7 +109,7 @@ export class AttendancesController {
   checkout(
     @Param(`event_id`) event_id: string,
     @Body() updateAttendanceDto: UpdateAttendanceDto,
-    @Request() request: authType.AuthRequest
+    @Request() request: authType.AuthRequest,
   ) {
     return this.attendancesService.checkout(
       event_id,
@@ -121,7 +124,7 @@ export class AttendancesController {
   checkoutWorkshop(
     @Param(`workshop_id`) workshop_id: string,
     @Body() updateWorkshopAttendanceDto: UpdateWorkshopAttendanceDto,
-    @Request() request: authType.AuthRequest
+    @Request() request: authType.AuthRequest,
   ) {
     return this.attendancesService.checkoutWorkshop(
       workshop_id,

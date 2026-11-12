@@ -113,8 +113,12 @@ export class EventUsersService {
             },
           });
 
-          this.sendParticipantTicketEmail(event_id, findUser.uuid).catch((err) =>
-            console.error('Failed auto-sending ticket email upon invite:', err),
+          this.sendParticipantTicketEmail(event_id, findUser.uuid).catch(
+            (err) =>
+              console.error(
+                'Failed auto-sending ticket email upon invite:',
+                err,
+              ),
           );
 
           return {
@@ -180,14 +184,16 @@ export class EventUsersService {
         if (createEventUserDto?.email) {
           /** assume that process create by event's owner or superadmin */
           if (userRole !== 'SUPERADMIN') {
-            const findEventOwner = await this.prisma.user_event_roles.findFirst({
-              where: {
-                user_id: userId,
-                role: `OWNER`,
-                event_id,
-                status: `APPROVED`,
+            const findEventOwner = await this.prisma.user_event_roles.findFirst(
+              {
+                where: {
+                  user_id: userId,
+                  role: `OWNER`,
+                  event_id,
+                  status: `APPROVED`,
+                },
               },
-            });
+            );
             if (!findEventOwner)
               throw new ConflictException(
                 `User is not as owner at ${findEvent.name}`,

@@ -1,4 +1,7 @@
-import { CreateAttendanceDto, CreateWorkshopAttendance } from './create-attendance.dto';
+import {
+  CreateAttendanceDto,
+  CreateWorkshopAttendance,
+} from './create-attendance.dto';
 
 export class UpdateAttendanceDto extends CreateAttendanceDto {}
 

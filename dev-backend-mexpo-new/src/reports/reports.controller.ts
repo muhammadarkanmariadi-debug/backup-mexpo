@@ -94,15 +94,6 @@ export class ReportsController {
     return this.reportsService.findAllEventVisitor(event_id, query);
   }
 
-  @Get(`/visitor-timeline/:event_id`)
-  @UsePipes(new ValidationPipe({ exceptionFactory: FormatValidation }))
-  findVisitorTimeline(
-    @Param(`event_id`) event_id: string,
-    @Query() query: FilterReportDto,
-  ) {
-    return this.reportsService.findVisitorTimeline(event_id, query);
-  }
-
   @Get(`/amount/booth/:event_id`)
   @UsePipes(new ValidationPipe({ exceptionFactory: FormatValidation }))
   findTransactionEachBooth(
