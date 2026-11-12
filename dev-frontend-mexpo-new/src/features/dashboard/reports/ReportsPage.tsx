@@ -23,6 +23,8 @@ import {
   Pie,
   Cell,
   Legend,
+  LineChart,
+  Line,
 } from "recharts";
 
 import { Event } from "@/entities/event/event.entity";
@@ -41,6 +43,7 @@ import {
   getAmountBoothReport,
   getAmountCategoryReport,
   getVisitorReport,
+  getVisitorTimelineReport,
   getAmountReport,
   getTopProductsReport,
   downloadReportExport,
@@ -49,6 +52,7 @@ import {
   AmountReportRow,
   AmountCategoryRow,
   TopProductReportRow,
+  VisitorTimelineData,
 } from "@/services/report.service";
 
 const PIE_COLORS = CHART_COLORS;
@@ -91,6 +95,10 @@ export default function ReportsPage({ event }: { event: Event }) {
   const { data: visitorData } = useApiQuery<unknown>(
     [...rangeKey, "visitor"],
     () => getVisitorReport(event.uuid, from ?? undefined, to ?? undefined),
+  );
+  const { data: timelineData } = useApiQuery<VisitorTimelineData | null>(
+    [...rangeKey, "visitor-timeline"],
+    () => getVisitorTimelineReport(event.uuid, from ?? undefined, to ?? undefined),
   );
   const { data: amountData } = useApiQuery<unknown>(
     [...rangeKey, "amount-total"],
@@ -254,18 +262,36 @@ export default function ReportsPage({ event }: { event: Event }) {
       {loading ? (
         <div className="flex justify-center py-20">
           <Loader2 className="h-6 w-6 animate-spin text-secondary" />
-        </div>
-      ) : (
-        <div className="space-y-10">
-          {/* â•â•â• Section 1 â€” Attendance â•â•â• */}
-          {/* Section 1 — Attendance */}
-          <section>
-            <h2 className="mb-4 flex items-center gap-2 text-lg font-bold text-gray-900">
-              <Users className="h-5 w-5 text-secondary" /> Kehadiran
-            </h2>
+          </div>
+        ) : (
+          <div className="space-y-10">
+            {/* â•â•â• Section 1 â€” Attendance â•â•â• */}
+            {/* Section 1 — Attendance */}
+            <section>
+              <h2 className="mb-4 flex items-center gap-2 text-lg font-bold text-gray-900">
+                <Users className="h-5 w-5 text-secondary" /> Kehadiran
+              </h2>
 
             {/* Total attendance cards */}
-            <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="rounded-xl border border-gray-100 bg-white p-5">
+                <p className="text-xs text-gray-500">Total Pengunjung Event</p>
+                <p className="mt-1 text-2xl font-semibold text-gray-900">
+                  {(timelineData?.total_attendances ?? 0).toLocaleString("id-ID")}
+                </p>
+                <p className="mt-0.5 text-xs text-gray-400">
+                  {timelineData?.peak_label
+                    ? `Puncak: ${timelineData.peak_label}`
+                    : "Pengunjung masuk venue"}
+                </p>
+              </div>
+              <div className="rounded-xl border border-gray-100 bg-white p-5">
+                <p className="text-xs text-gray-500">Total Kunjungan Booth</p>
+                <p className="mt-1 text-2xl font-semibold text-gray-900">
+                  {(timelineData?.total_booth_visits ?? totalVisitors).toLocaleString("id-ID")}
+                </p>
+                <p className="mt-0.5 text-xs text-gray-400">Total interaksi booth</p>
+              </div>
               <div className="rounded-xl border border-gray-100 bg-white p-5">
                 <p className="text-xs text-gray-500">Penyewa Terpopuler (#1)</p>
                 <p
@@ -278,14 +304,43 @@ export default function ReportsPage({ event }: { event: Event }) {
                   <p className="mt-0.5 text-xs text-gray-500 truncate">
                     Booth {bestBooth.booth_number || "-"} ({bestBooth.counts.toLocaleString("id-ID")} pengunjung)
                   </p>
-                )}
-              </div>
-              <div className="rounded-xl border border-gray-100 bg-white p-5">
-                <p className="text-xs text-gray-500">Total Kehadiran</p>
-                <p className="mt-1 text-2xl font-semibold text-gray-900">
-                  {totalVisitors.toLocaleString("id-ID")}
-                </p>
-                <p className="mt-0.5 text-xs text-gray-400">Total kunjungan booth</p>
+                  <p className="mt-0.5 text-xs text-gray-400">
+                    {timelineData?.peak_label
+                      ? `Puncak: ${timelineData.peak_label}`
+                      : "Pengunjung masuk venue"}
+                  </p>
+                </div>
+                <div className="rounded-xl border border-gray-100 bg-white p-5">
+                  <p className="text-xs text-gray-500">Total Kunjungan Booth</p>
+                  <p className="mt-1 text-2xl font-semibold text-gray-900">
+                    {(timelineData?.total_booth_visits ?? totalVisitors).toLocaleString("id-ID")}
+                  </p>
+                  <p className="mt-0.5 text-xs text-gray-400">Total interaksi booth</p>
+                </div>
+                <div className="rounded-xl border border-gray-100 bg-white p-5">
+                  <p className="text-xs text-gray-500">Penyewa Terpopuler (#1)</p>
+                  <p
+                    className="mt-1 text-lg font-semibold text-gray-900 truncate"
+                    title={bestBooth?.name || "-"}
+                  >
+                    {bestBooth ? bestBooth.name : "-"}
+                  </p>
+                  {bestBooth && (
+                    <p className="mt-0.5 text-xs text-gray-500 truncate">
+                      Booth {bestBooth.booth_number || "-"} ({bestBooth.counts.toLocaleString("id-ID")} pengunjung)
+                    </p>
+                  )}
+                </div>
+                <div className="rounded-xl border border-gray-100 bg-white p-5">
+                  <p className="text-xs text-gray-500">Penyewa &amp; Kategori</p>
+                  <p className="mt-1 text-2xl font-semibold text-gray-900">
+                    {boothList.length}{" "}
+                    <span className="text-xs font-normal text-gray-500">penyewa</span>
+                  </p>
+                  <p className="mt-0.5 text-xs text-gray-400">
+                    {categoryList.length} kategori terdata
+                  </p>
+                </div>
               </div>
               <div className="rounded-xl border border-gray-100 bg-white p-5">
                 <p className="text-xs text-gray-500">Penyewa &amp; Kategori</p>
@@ -299,17 +354,175 @@ export default function ReportsPage({ event }: { event: Event }) {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-              {/* Bar: attendance by tenant (Top 10) */}
-              <div className="rounded-xl border border-gray-100 bg-white p-5">
-                <div className="mb-3">
-                  <p className="text-sm font-semibold text-gray-700">Grafik 10 Penyewa Terpopuler (Kunjungan)</p>
-                  <p className="text-xs text-gray-400">Berdasarkan total pengunjung di booth</p>
+            {/* Line chart: Perkembangan Pengunjung Event */}
+            <div className="mb-4 rounded-xl border border-gray-100 bg-white p-5">
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <p className="text-sm font-semibold text-gray-700">Grafik Perkembangan Pengunjung</p>
+                  <p className="text-xs text-gray-400">
+                    {timelineData?.mode === "daily"
+                      ? "Tren kunjungan masuk event dan aktivitas booth per hari"
+                      : "Tren kunjungan masuk event dan aktivitas booth per jam"}
+                  </p>
                 </div>
-                {top10BoothList.length === 0 ? (
-                  <div className="flex h-48 items-center justify-center text-sm text-gray-400">
-                    Belum ada data kunjungan booth.
+                {timelineData?.peak_label ? (
+                  <div className="flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-brand-600">
+                    <span className="inline-block h-2 w-2 rounded-full bg-brand-500" />
+                    Waktu Puncak: {timelineData.peak_label} ({timelineData.peak_count.toLocaleString("id-ID")} pengunjung)
                   </div>
+                ) : null}
+              </div>
+
+              {!timelineData || timelineData.timeline.length === 0 ? (
+                <div className="flex h-56 items-center justify-center text-sm text-gray-400">
+                  Belum ada data riwayat check-in pengunjung.
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height={280}>
+                  <LineChart
+                    data={timelineData.timeline}
+                    margin={{ top: 10, right: 20, left: -10, bottom: 0 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                    <XAxis
+                      dataKey="label"
+                      tick={{ fontSize: 11 }}
+                      tickLine={false}
+                    />
+                    <YAxis
+                      allowDecimals={false}
+                      tick={{ fontSize: 11 }}
+                      tickLine={false}
+                      axisLine={false}
+                    />
+                    <Tooltip
+                      formatter={(v, name) => [
+                        `${Number(v ?? 0).toLocaleString("id-ID")} orang`,
+                        name,
+                      ]}
+                    />
+                    <Legend />
+                    <Line
+                      type="monotone"
+                      dataKey="count"
+                      name="Pengunjung Masuk"
+                      stroke={CHART_PRIMARY}
+                      strokeWidth={2.5}
+                      dot={{ r: 3 }}
+                      activeDot={{ r: 5 }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="booth_visits"
+                      name="Kunjungan Booth"
+                      stroke={CHART_COLORS[1]}
+                      strokeWidth={2}
+                      dot={{ r: 3 }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="cumulative"
+                      name="Total Akumulasi"
+                      stroke={CHART_SUCCESS}
+                      strokeWidth={2}
+                      strokeDasharray="4 4"
+                      dot={false}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+
+              {/* Line chart: Perkembangan Pengunjung Event */}
+              <div className="mb-4 rounded-xl border border-gray-100 bg-white p-5">
+                <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <p className="text-sm font-semibold text-gray-700">Grafik Perkembangan Pengunjung</p>
+                    <p className="text-xs text-gray-400">
+                      {timelineData?.mode === "daily"
+                        ? "Tren kunjungan masuk event dan aktivitas booth per hari"
+                        : "Tren kunjungan masuk event dan aktivitas booth per jam"}
+                    </p>
+                  </div>
+                  {timelineData?.peak_label ? (
+                    <div className="flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-brand-600">
+                      <span className="inline-block h-2 w-2 rounded-full bg-brand-500" />
+                      Waktu Puncak: {timelineData.peak_label} ({timelineData.peak_count.toLocaleString("id-ID")} pengunjung)
+                    </div>
+                  ) : null}
+                </div>
+
+                {!timelineData || timelineData.timeline.length === 0 ? (
+                  <div className="flex h-56 items-center justify-center text-sm text-gray-400">
+                    Belum ada data riwayat check-in pengunjung.
+                  </div>
+                ) : (
+                  <ResponsiveContainer width="100%" height={280}>
+                    <LineChart
+                      data={timelineData.timeline}
+                      margin={{ top: 10, right: 20, left: -10, bottom: 0 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                      <XAxis
+                        dataKey="label"
+                        tick={{ fontSize: 11 }}
+                        tickLine={false}
+                      />
+                      <YAxis
+                        allowDecimals={false}
+                        tick={{ fontSize: 11 }}
+                        tickLine={false}
+                        axisLine={false}
+                      />
+                      <Tooltip
+                        formatter={(v, name) => [
+                          `${Number(v ?? 0).toLocaleString("id-ID")} orang`,
+                          name,
+                        ]}
+                      />
+                      <Legend />
+                      <Line
+                        type="monotone"
+                        dataKey="count"
+                        name="Pengunjung Masuk"
+                        stroke={CHART_PRIMARY}
+                        strokeWidth={2.5}
+                        dot={{ r: 3 }}
+                        activeDot={{ r: 5 }}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="booth_visits"
+                        name="Kunjungan Booth"
+                        stroke={CHART_COLORS[1]}
+                        strokeWidth={2}
+                        dot={{ r: 3 }}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="cumulative"
+                        name="Total Akumulasi"
+                        stroke={CHART_SUCCESS}
+                        strokeWidth={2}
+                        strokeDasharray="4 4"
+                        dot={false}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                {/* Bar: attendance by tenant (Top 10) */}
+                <div className="rounded-xl border border-gray-100 bg-white p-5">
+                  <div className="mb-3">
+                    <p className="text-sm font-semibold text-gray-700">Grafik 10 Penyewa Terpopuler (Kunjungan)</p>
+                    <p className="text-xs text-gray-400">Berdasarkan total pengunjung di booth</p>
+                  </div>
+                  {top10BoothList.length === 0 ? (
+                    <div className="flex h-48 items-center justify-center text-sm text-gray-400">
+                      Belum ada data kunjungan booth.
+                    </div>
                 ) : (
                   <ResponsiveContainer width="100%" height={240}>
                     <BarChart data={top10BoothList}>

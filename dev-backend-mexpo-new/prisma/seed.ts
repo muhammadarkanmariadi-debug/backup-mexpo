@@ -30,14 +30,19 @@ const prisma = new PrismaClient({
     : new PrismaPg({ connectionString: databaseUrl }),
 });
 
-// Default password hash for all seed users: "password123"
+// Default password hash for standard seed users: "password123"
 const PASSWORD_HASH =
   '$2b$10$fpSAK3SwVy0iluLTlALbUO374jadtHLP8vXMzJAXOGzWaIKbQ8dMS';
+
+// Password hash for Jakarta exhibition demo users: "mexpo@123"
+const MEXPO_PASSWORD_HASH =
+  '$2b$10$ZomWwshHexqTENxutqcJ5uKj9Kf0H/ZpUwF/f.jV7wLHrj5khjYHG';
 
 // Static IDs
 const EVENT_1_ID = 'e872e411-bd56-4c40-b6f0-d46e2a297e2c'; // Flagship Tech Expo
 const EVENT_2_ID = 'e872e411-bd56-4c40-b6f0-d46e2a297e2d'; // National Seminar & AI Workshop
 const EVENT_3_ID = 'e872e411-bd56-4c40-b6f0-d46e2a297e2e'; // Digital Marketplace & Creative Fest
+const EVENT_JKT_ID = 'e872e411-bd56-4c40-b6f0-d46e2a297e2f'; // Jakarta Showcase & Career Summit
 
 const CAT_FB = 'c3f1e967-0c77-4402-9988-9d2a233b2a2f';
 const CAT_TECH = '9f3f4c6e-821f-4b08-9993-9c5950d98418';
@@ -50,17 +55,28 @@ const TENANT_3_ID = 't8f2b528-9844-428a-bb0a-283dc1ec96a9';
 const TENANT_4_ID = 't8f2b528-9844-428a-bb0a-283dc1ec96aa';
 const TENANT_5_ID = 't8f2b528-9844-428a-bb0a-283dc1ec96ab';
 const TENANT_6_ID = 't8f2b528-9844-428a-bb0a-283dc1ec96ac';
+const TENANT_JKT_ID = 't8f2b528-9844-428a-bb0a-283dc1ec9699';
+const TENANT_JKT_IN_E1 = 't8f2b528-9844-428a-bb0a-283dc1ec9698';
 
 const SPK_1 = 's0000000-0000-0000-0000-000000000001';
 const SPK_2 = 's0000000-0000-0000-0000-000000000002';
 const SPK_3 = 's0000000-0000-0000-0000-000000000003';
 const SPK_4 = 's0000000-0000-0000-0000-000000000004';
+const SPK_JKT_1 = 's0000000-0000-0000-0000-000000000099';
+const SPK_JKT_2 = 's0000000-0000-0000-0000-000000000098';
 
 const WS_1 = 'w0000000-0000-0000-0000-000000000001';
 const WS_2 = 'w0000000-0000-0000-0000-000000000002';
 const WS_3 = 'w0000000-0000-0000-0000-000000000003';
+const WS_JKT_1 = 'w0000000-0000-0000-0000-000000000099';
+const WS_JKT_2 = 'w0000000-0000-0000-0000-000000000098';
+
+const TT_JKT_FREE = 'tt-jkt-01-free';
+const TT_JKT_VIP = 'tt-jkt-02-vip';
 
 const RAW_VISITORS = [
+  // Primary Visitor for Jakarta Demo (password: mexpo@123)
+  { uuid: 'v0000000-0000-0000-0000-000000000099', email: 'visitor_mexpo@smktelkom-mlg.sch.id', full_name: 'Pengunjung Mexpo Jakarta', phone: '081211110099', org: 'SMK Telkom Malang', roleType: RoleType.PARTICIPANT, password: MEXPO_PASSWORD_HASH },
   { uuid: 'v0000000-0000-0000-0000-000000000001', email: 'visitor1@mexpo.id', full_name: 'Andi Pratama', phone: '081211110001', org: 'SMK Telkom Malang', roleType: RoleType.PARTICIPANT },
   { uuid: 'v0000000-0000-0000-0000-000000000002', email: 'visitor2@mexpo.id', full_name: 'Bella Safitri', phone: '081211110002', org: 'Universitas Brawijaya', roleType: RoleType.PARTICIPANT },
   { uuid: 'v0000000-0000-0000-0000-000000000003', email: 'visitor3@mexpo.id', full_name: 'Citra Kirana', phone: '081211110003', org: 'Tech Nusantara Ltd', roleType: RoleType.PARTICIPANT },
@@ -82,12 +98,15 @@ async function safeUpsertUser(u: {
   phone?: string;
   role: 'SUPERADMIN' | 'USER';
   org?: string;
+  password?: string;
 }) {
   const existing = await prisma.users.findFirst({
     where: {
       OR: [{ email: u.email }, { uuid: u.uuid }],
     },
   });
+
+  const pwd = u.password || PASSWORD_HASH;
 
   if (existing) {
     return prisma.users.update({
@@ -99,6 +118,7 @@ async function safeUpsertUser(u: {
         organization: u.org || existing.organization,
         is_active: true,
         role: u.role,
+        ...(u.password ? { password: u.password } : {}),
       },
     });
   }
@@ -109,7 +129,7 @@ async function safeUpsertUser(u: {
       full_name: u.full_name,
       phone: u.phone || '081234567890',
       organization: u.org || '',
-      password: PASSWORD_HASH,
+      password: pwd,
       is_active: true,
       role: u.role,
     },
@@ -266,6 +286,10 @@ const main = async () => {
     { uuid: 'a9b2b528-9844-428a-bb0a-283dc1ec96aa', email: 'tenant4@mexpo.id', full_name: 'Maya Putri (Telkom Merch Store)', role: 'USER' as const, phone: '081299990008' },
     { uuid: 'f912e752-61d0-44ec-b827-0cfc34a946b5', email: 'staff1@mexpo.id', full_name: 'Bagus Pratama (Staff Kasir F&B)', role: 'USER' as const, phone: '081299990009' },
     { uuid: 'f912e752-61d0-44ec-b827-0cfc34a946b6', email: 'staff2@mexpo.id', full_name: 'Dewi Lestari (Staff Booth Tech)', role: 'USER' as const, phone: '081299990010' },
+
+    // Special Users for Jakarta Preparation (password: mexpo@123)
+    { uuid: 'c0000000-0000-0000-0000-000000000099', email: 'commitee_mexpo@smktelkom-mlg.sch.id', full_name: 'Panitia Mexpo Jakarta', role: 'USER' as const, phone: '081299990099', password: MEXPO_PASSWORD_HASH, org: 'SMK Telkom Malang' },
+    { uuid: 'a9b2b528-9844-428a-bb0a-283dc1ec9699', email: 'tenant_mexpo@smktelkom-mlg.sch.id', full_name: 'Tenant Mexpo Jakarta', role: 'USER' as const, phone: '081299990098', password: MEXPO_PASSWORD_HASH, org: 'Moklet Tech Studio' },
   ];
 
   const userMap = new Map<string, string>();
@@ -285,6 +309,10 @@ const main = async () => {
   const staff1Id = userMap.get('staff1@mexpo.id')!;
   const staff2Id = userMap.get('staff2@mexpo.id')!;
 
+  // Jakarta Special IDs
+  const jktComId = userMap.get('commitee_mexpo@smktelkom-mlg.sch.id')!;
+  const jktTenantId = userMap.get('tenant_mexpo@smktelkom-mlg.sch.id')!;
+
   const visitorList: Array<{ uuid: string; email: string; full_name: string; org: string }> = [];
   for (const v of RAW_VISITORS) {
     const res = await safeUpsertUser({
@@ -294,6 +322,7 @@ const main = async () => {
       phone: v.phone,
       org: v.org,
       role: 'USER',
+      password: (v as any).password,
     });
     visitorList.push({ uuid: res.uuid, email: res.email, full_name: res.full_name, org: res.organization || v.org });
 
@@ -311,6 +340,9 @@ const main = async () => {
       },
     });
   }
+
+  const jktVis = visitorList.find((v) => v.email === 'visitor_mexpo@smktelkom-mlg.sch.id')!;
+  const jktVisId = jktVis.uuid;
   console.log(`✓ Seeded ${coreUsers.length} core users and ${visitorList.length} visitors.`);
 
   // ==========================================
@@ -456,23 +488,74 @@ const main = async () => {
     created_by: orgId,
     updated_by: orgId,
   });
-  console.log('✓ Seeded 3 diverse events (EXPO, SEMINAR, MARKETPLACE).');
+
+  // Event 4: Mexpo Jakarta Exhibition & Career Summit 2026 (Dedicated Jakarta Showcase)
+  const evJkt = await safeUpsertEvent({
+    uuid: EVENT_JKT_ID,
+    name: 'Mexpo Jakarta Exhibition & Career Summit 2026',
+    slug: 'mexpo-jakarta-2026',
+    description:
+      'Showcase inovasi teknologi, karya siswa unggulan SMK Telkom Malang, dan pameran talenta digital tingkat nasional di Jakarta.',
+    location: 'Jakarta Convention Center (JCC) Senayan, Jakarta Pusat',
+    start_date: now,
+    end_date: nextYear,
+    registration_start: now,
+    registration_deadline: nextYear,
+    organizer_name: 'SMK Telkom Malang & Mitra Industri Jakarta',
+    quota: 5000,
+    status: 'PUBLISHED',
+    visibility: 'PUBLIC',
+    event_type: 'EXPO',
+    ticket_mode: 'PAID',
+    features: {
+      tenant: true,
+      seminar: true,
+      souvenir: true,
+      product: true,
+      pos: true,
+      paidTicket: true,
+    },
+    souvenir_rules: {
+      usePointSystem: true,
+      boothVisitPoint: { enabled: true, pointsPerVisit: 10 },
+      seminarPoint: { enabled: true, pointsPerSeminar: 25 },
+      transactionPoint: {
+        enabled: true,
+        pointsPerTransaction: 5,
+        amountStep: 50000,
+        pointsPerAmountStep: 10,
+      },
+      tiers: [
+        { id: 'tier-jkt-pin', name: 'Pin Enamel Jakarta Expo', minPoints: 15 },
+        { id: 'tier-jkt-totebag', name: 'Totebag Eksklusif Jakarta', minPoints: 40 },
+        { id: 'tier-jkt-hoodie', name: 'Hoodie Developer Mexpo Jakarta', minPoints: 90 },
+      ],
+    },
+    approved_by: saId,
+    created_by: orgId,
+    updated_by: orgId,
+  });
+  console.log('✓ Seeded 4 diverse events (EXPO, SEMINAR, MARKETPLACE, JAKARTA_SHOWCASE).');
 
   // ==========================================
   // PHASE 4: User Event Roles (Owner, Committee)
   // ==========================================
   console.log('\n📦 Phase 4: Seeding User Event Roles...');
   const organizerRoles = [
-    // Event 1
+    // Event 1 (Flagship)
     { uuid: 'ur-org-e1', event_id: ev1.uuid, user_id: orgId, role: 'OWNER' as const, status: 'APPROVED' as const },
     { uuid: 'ur-com1-e1', event_id: ev1.uuid, user_id: com1Id, role: 'COMMITTEE' as const, status: 'APPROVED' as const },
     { uuid: 'ur-com2-e1', event_id: ev1.uuid, user_id: com2Id, role: 'COMMITTEE' as const, status: 'APPROVED' as const },
+    { uuid: 'ur-jktcom-e1', event_id: ev1.uuid, user_id: jktComId, role: 'COMMITTEE' as const, status: 'APPROVED' as const },
     // Event 2
     { uuid: 'ur-org-e2', event_id: EVENT_2_ID, user_id: orgId, role: 'OWNER' as const, status: 'APPROVED' as const },
     { uuid: 'ur-com1-e2', event_id: EVENT_2_ID, user_id: com1Id, role: 'COMMITTEE' as const, status: 'APPROVED' as const },
     // Event 3
     { uuid: 'ur-org-e3', event_id: EVENT_3_ID, user_id: orgId, role: 'OWNER' as const, status: 'APPROVED' as const },
     { uuid: 'ur-com2-e3', event_id: EVENT_3_ID, user_id: com2Id, role: 'COMMITTEE' as const, status: 'APPROVED' as const },
+    // Event 4 (Jakarta Dedicated Showcase)
+    { uuid: 'ur-org-ejkt', event_id: evJkt.uuid, user_id: orgId, role: 'OWNER' as const, status: 'APPROVED' as const },
+    { uuid: 'ur-jktcom-ejkt', event_id: evJkt.uuid, user_id: jktComId, role: 'COMMITTEE' as const, status: 'APPROVED' as const },
   ];
 
   for (const r of organizerRoles) {
@@ -500,6 +583,8 @@ const main = async () => {
     { uuid: 'ec-2', event_id: ev1.uuid, name: 'Koordinator Pendaftaran Tenant', email: 'tenant-support@mexpo.id', phone_number: '081234567802' },
     { uuid: 'ec-3', event_id: ev1.uuid, name: 'Divisi Sponsorship & Kerjasama', email: 'partnership@mexpo.id', phone_number: '081234567803' },
     { uuid: 'ec-4', event_id: EVENT_2_ID, name: 'Sekretariat Seminar Nasional', email: 'seminar@mexpo.id', phone_number: '081234567804' },
+    { uuid: 'ec-jkt-1', event_id: evJkt.uuid, name: 'Sekretariat Panitia Mexpo Jakarta', email: 'commitee_mexpo@smktelkom-mlg.sch.id', phone_number: '081299990099' },
+    { uuid: 'ec-jkt-2', event_id: evJkt.uuid, name: 'Layanan Booth & Pameran Jakarta', email: 'tenant_mexpo@smktelkom-mlg.sch.id', phone_number: '081299990098' },
   ];
   for (const c of contacts) {
     await prisma.event_contact.upsert({
@@ -550,6 +635,21 @@ const main = async () => {
       name: 'Bambang Pamungkas, MBA',
       bio: 'Head of People & Culture. Telah merekrut lebih dari 2.000 talenta software engineering dan digital product.',
       photo: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=300',
+    },
+    // Jakarta Speakers
+    {
+      uuid: SPK_JKT_1,
+      event_id: evJkt.uuid,
+      name: 'Farhan Maulana, S.Kom',
+      bio: 'Senior Cloud & DevOps Architect at Tech Giant Jakarta. Alumnus berprestasi SMK Telkom Malang.',
+      photo: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=300',
+    },
+    {
+      uuid: SPK_JKT_2,
+      event_id: evJkt.uuid,
+      name: 'Rian Hidayat, M.TI',
+      bio: 'Lead Fullstack Developer & Open Source Contributor di Komunitas Developer Jakarta.',
+      photo: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=300',
     },
   ];
 
@@ -632,6 +732,25 @@ const main = async () => {
       end_time: new Date(d1.getTime() + 540 * 60 * 1000),
       speaker_id: null,
     },
+    // Jakarta Rundowns
+    {
+      uuid: 'rd-jkt-01',
+      event_id: evJkt.uuid,
+      title: 'Opening Ceremony Showcase Karya SMK Telkom Malang di Jakarta',
+      description: 'Sambutan pembukaan acara, perkenalan jajaran panitia, dan pembukaan booth inovasi.',
+      start_time: new Date(d1.getTime()),
+      end_time: new Date(d1.getTime() + 90 * 60 * 1000),
+      speaker_id: null,
+    },
+    {
+      uuid: 'rd-jkt-02',
+      event_id: evJkt.uuid,
+      title: 'Tech Talk: Peluang Industri Digital Jakarta untuk Talenta Muda',
+      description: 'Diskusi panel bersama praktisi industri dan alumni mengenai standar kompetensi engineer di Jakarta.',
+      start_time: new Date(d1.getTime() + 100 * 60 * 1000),
+      end_time: new Date(d1.getTime() + 180 * 60 * 1000),
+      speaker_id: SPK_JKT_1,
+    },
   ];
 
   for (const rd of rundowns) {
@@ -685,6 +804,9 @@ const main = async () => {
     { uuid: 'sp-4', event_id: ev1.uuid, name: 'Dicoding Academy', level: SponsorLevel.GOLD, logo: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&q=80&w=200' },
     { uuid: 'sp-5', event_id: ev1.uuid, name: 'Ruangguru Tech', level: SponsorLevel.SILVER, logo: 'https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&q=80&w=200' },
     { uuid: 'sp-6', event_id: ev1.uuid, name: 'Kopi Kenangan Official', level: SponsorLevel.BRONZE, logo: 'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?auto=format&fit=crop&q=80&w=200' },
+    // Jakarta Sponsors
+    { uuid: 'sp-jkt-1', event_id: evJkt.uuid, name: 'PT Telkom Indonesia Jakarta', level: SponsorLevel.PLATINUM, logo: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&q=80&w=200', url: 'https://telkom.co.id' },
+    { uuid: 'sp-jkt-2', event_id: evJkt.uuid, name: 'Yayasan Pendidikan Telkom', level: SponsorLevel.GOLD, logo: 'https://images.unsplash.com/photo-1557804506-669a67965ba0?auto=format&fit=crop&q=80&w=200', url: 'https://ypt.or.id' },
   ];
 
   for (const sp of sponsors) {
@@ -744,6 +866,31 @@ const main = async () => {
       end_time: new Date(d1.getTime() + 500 * 60 * 1000),
       quota: 50,
       speaker_id: SPK_4,
+    },
+    // Jakarta Workshops
+    {
+      uuid: WS_JKT_1,
+      event_id: evJkt.uuid,
+      title: 'Modern Cloud Architecture & Docker Containerization in Jakarta Enterprise',
+      slug: 'modern-cloud-architecture-jakarta',
+      description: 'Workshop hands-on implementasi backend scalable, microservices, dan monitoring sistem produksi.',
+      location: 'Workshop Room A - JCC Senayan',
+      start_time: new Date(d1.getTime() + 120 * 60 * 1000),
+      end_time: new Date(d1.getTime() + 240 * 60 * 1000),
+      quota: 100,
+      speaker_id: SPK_JKT_1,
+    },
+    {
+      uuid: WS_JKT_2,
+      event_id: evJkt.uuid,
+      title: 'Product Engineering & UI/UX Best Practices for Web 3.0',
+      slug: 'product-engineering-uiux-jakarta',
+      description: 'Bedah studi kasus perancangan aplikasi interaktif dengan Next.js App Router dan Tailwind CSS.',
+      location: 'Workshop Room B - JCC Senayan',
+      start_time: new Date(d1.getTime() + 180 * 60 * 1000),
+      end_time: new Date(d1.getTime() + 300 * 60 * 1000),
+      quota: 120,
+      speaker_id: SPK_JKT_2,
     },
   ];
 
@@ -910,6 +1057,44 @@ const main = async () => {
       owner_id: tenant2Id,
       staff_id: null,
       products: [],
+    },
+    // Jakarta Demo Tenants
+    {
+      uuid: TENANT_JKT_ID,
+      event_id: evJkt.uuid,
+      name: 'Moklet Tech & Solution Jakarta',
+      slug: 'moklet-tech-jakarta',
+      description: 'Penyedia solusi IoT, perangkat lunak cerdas, sistem otomasi, dan merchandise resmi pameran teknologi di Jakarta.',
+      email: 'tenant_mexpo@smktelkom-mlg.sch.id',
+      phone: '081299990098',
+      booth_number: 'JKT-01',
+      category_id: CAT_TECH,
+      status: TenantStatus.APPROVED,
+      owner_id: jktTenantId,
+      staff_id: null,
+      products: [
+        { uuid: 'p-jkt-1', name: 'Moklet IoT Development Kit Jakarta Edition', price: 275000, desc: 'Mikrokontroler ESP32 lengkap dengan sensor lingkungan dan shield praktikum.' },
+        { uuid: 'p-jkt-2', name: 'Smart RFID Card Mexpo 2026', price: 50000, desc: 'Kartu tap NFC/RFID multifungsi untuk presensi, e-money mockup, dan akses gerbang.' },
+        { uuid: 'p-jkt-3', name: 'Kaos Developer Mexpo Jakarta Edition', price: 125000, desc: 'Kaos katun combed 24s dengan grafis eksklusif Jakarta Expo.' },
+      ],
+    },
+    {
+      uuid: TENANT_JKT_IN_E1,
+      event_id: ev1.uuid,
+      name: 'Moklet Innovation Lab Store',
+      slug: 'moklet-innovation-lab-store',
+      description: 'Stand produk inovasi teknologi, robotika, dan prototype cerdas persembahan tim pengembang SMK Telkom Malang.',
+      email: 'tenant_mexpo@smktelkom-mlg.sch.id',
+      phone: '081299990098',
+      booth_number: 'A-02',
+      category_id: CAT_TECH,
+      status: TenantStatus.APPROVED,
+      owner_id: jktTenantId,
+      staff_id: null,
+      products: [
+        { uuid: 'p-jkt-101', name: 'Modul ESP32-CAM Smart Vision', price: 95000, desc: 'Kamera mikro pintar untuk AI object detection.' },
+        { uuid: 'p-jkt-102', name: 'Lanyard & ID Holder Eksklusif Mexpo', price: 35000, desc: 'Tali lanyard woven berlogo resmi Mexpo 2026.' },
+      ],
     },
   ];
 
@@ -1281,6 +1466,228 @@ const main = async () => {
       });
     }
   }
+
+  // ==========================================
+  // JAKARTA SHOWCASE SPECIAL SEEDING
+  // ==========================================
+  console.log('\n🏛️ Seeding Dedicated Jakarta Showcase Event & Relations...');
+
+  // Registration Fields for Jakarta Event
+  await prisma.event_registration_fields.upsert({
+    where: { uuid: 'rf-jkt-1' },
+    create: {
+      uuid: 'rf-jkt-1',
+      event_id: evJkt.uuid,
+      field_key: 'instansi',
+      label: 'Asal Instansi/Sekolah/Perusahaan',
+      type: 'TEXT',
+      required: true,
+      position: 1,
+      created_by: orgId,
+      updated_by: orgId,
+    },
+    update: { label: 'Asal Instansi/Sekolah/Perusahaan', required: true },
+  });
+
+  // Ticket Types for Jakarta Event
+  await prisma.ticket_types.upsert({
+    where: { uuid: TT_JKT_FREE },
+    create: {
+      uuid: TT_JKT_FREE,
+      event_id: evJkt.uuid,
+      name: 'Reguler Exhibition Pass (Gratis)',
+      price: 0,
+      created_by: orgId,
+      updated_by: orgId,
+    },
+    update: { price: 0 },
+  });
+  await prisma.ticket_types.upsert({
+    where: { uuid: TT_JKT_VIP },
+    create: {
+      uuid: TT_JKT_VIP,
+      event_id: evJkt.uuid,
+      name: 'VIP All-Access & Seminar Pass Jakarta',
+      price: 50000,
+      created_by: orgId,
+      updated_by: orgId,
+    },
+    update: { price: 50000 },
+  });
+
+  // User Event Role for Visitor in Jakarta Event
+  await prisma.user_event_roles.upsert({
+    where: { uuid: `uer-vis-${evJkt.uuid}-${jktVisId}` },
+    create: {
+      uuid: `uer-vis-${evJkt.uuid}-${jktVisId}`,
+      event_id: evJkt.uuid,
+      user_id: jktVisId,
+      role: EventRole.VISITOR,
+      status: USER_EVENT_STATUS.APPROVED,
+      created_by: jktVisId,
+      updated_by: jktVisId,
+    },
+    update: { status: USER_EVENT_STATUS.APPROVED },
+  });
+
+  // User Event Role for Tenant in Jakarta Event
+  await prisma.user_event_roles.upsert({
+    where: { uuid: `ur-t-${TENANT_JKT_ID}` },
+    create: {
+      uuid: `ur-t-${TENANT_JKT_ID}`,
+      event_id: evJkt.uuid,
+      user_id: jktTenantId,
+      role: EventRole.TENANT,
+      status: USER_EVENT_STATUS.APPROVED,
+      created_by: orgId,
+      updated_by: orgId,
+    },
+    update: { status: USER_EVENT_STATUS.APPROVED },
+  });
+
+  // Ticket for Jakarta Visitor
+  await prisma.tickets.upsert({
+    where: { uuid: `tkt-jkt-${jktVisId}` },
+    create: {
+      uuid: `tkt-jkt-${jktVisId}`,
+      event_id: evJkt.uuid,
+      user_id: jktVisId,
+      ticket_type_id: TT_JKT_VIP,
+      status: TicketStatus.PAID,
+      payment_method: 'QRIS',
+      created_by: jktVisId,
+      updated_by: jktVisId,
+    },
+    update: { status: TicketStatus.PAID },
+  });
+
+  // QR Code for Jakarta Visitor
+  await prisma.qr_codes.upsert({
+    where: { code_data: `mexpo:${evJkt.uuid}:${jktVisId}` },
+    create: {
+      uuid: `qr-ejkt-${jktVisId}`,
+      code_data: `mexpo:${evJkt.uuid}:${jktVisId}`,
+      event_id: evJkt.uuid,
+      user_id: jktVisId,
+    },
+    update: {},
+  });
+
+  // Registration Answer for Jakarta Visitor
+  await prisma.registration_answers.upsert({
+    where: { uuid: `ans-jkt-${jktVisId}-instansi` },
+    create: {
+      uuid: `ans-jkt-${jktVisId}-instansi`,
+      event_id: evJkt.uuid,
+      user_id: jktVisId,
+      field_key: 'instansi',
+      value: 'SMK Telkom Malang',
+      created_by: jktVisId,
+      updated_by: jktVisId,
+    },
+    update: { value: 'SMK Telkom Malang' },
+  });
+
+  // Venue Attendance for Jakarta Visitor
+  const existingJktAtt = await prisma.log_attendances.findFirst({
+    where: { event_id: evJkt.uuid, user_id: jktVisId },
+  });
+  if (!existingJktAtt) {
+    await prisma.log_attendances.create({
+      data: {
+        uuid: `att-ejkt-${jktVisId}`,
+        event_id: evJkt.uuid,
+        user_id: jktVisId,
+        created_at: new Date(now.getTime() - 45 * 60 * 1000),
+      },
+    });
+  }
+
+  // Workshop Booking for Jakarta Visitor
+  await prisma.workshop_bookings.upsert({
+    where: { uuid: `wbk-${WS_JKT_1}-${jktVisId.slice(-4)}` },
+    create: {
+      uuid: `wbk-${WS_JKT_1}-${jktVisId.slice(-4)}`,
+      workshop_id: WS_JKT_1,
+      user_id: jktVisId,
+      status: BookingStatus.CHECKED_IN,
+      checkin_at: new Date(now.getTime() - 30 * 60 * 1000),
+      created_by: jktVisId,
+      updated_by: jktVisId,
+    },
+    update: { status: BookingStatus.CHECKED_IN },
+  });
+
+  // Booth Visit for Jakarta Visitor at Jakarta Tenant
+  const existingJktBv = await prisma.booth_visits.findFirst({
+    where: { tenant_id: TENANT_JKT_ID, event_id: evJkt.uuid, user_id: jktVisId },
+  });
+  if (!existingJktBv) {
+    await prisma.booth_visits.create({
+      data: {
+        uuid: `bv-jkt-${TENANT_JKT_ID}-${jktVisId.slice(-4)}`,
+        event_id: evJkt.uuid,
+        tenant_id: TENANT_JKT_ID,
+        user_id: jktVisId,
+        created_by: jktTenantId,
+        updated_by: jktTenantId,
+      },
+    });
+  }
+
+  // POS Transaction in Jakarta Event
+  await prisma.tenant_transactions.upsert({
+    where: { uuid: 'tx-jkt-01' },
+    create: {
+      uuid: 'tx-jkt-01',
+      event_id: evJkt.uuid,
+      tenant_id: TENANT_JKT_ID,
+      visitor_id: jktVisId,
+      amount: 50000,
+      transaction_date: now,
+      payment_method: 'QRIS',
+      paid: true,
+      created_by: jktTenantId,
+      updated_by: jktTenantId,
+    },
+    update: { amount: 50000, paid: true },
+  });
+  const existingJktTxDet = await prisma.tenant_transaction_details.findFirst({
+    where: { transaction_id: 'tx-jkt-01' },
+  });
+  if (!existingJktTxDet) {
+    await prisma.tenant_transaction_details.create({
+      data: {
+        transaction_id: 'tx-jkt-01',
+        product_id: 'p-jkt-2',
+        quantity: 1,
+        purchase_price: 50000,
+      },
+    });
+  }
+
+  // Souvenir in Jakarta Event
+  const existingJktSouvenir = await prisma.souvenirs.findFirst({
+    where: { event_id: evJkt.uuid, user_id: jktVisId },
+  });
+  if (!existingJktSouvenir) {
+    await prisma.souvenirs.create({
+      data: {
+        event_id: evJkt.uuid,
+        user_id: jktVisId,
+        souvenir_name: 'Pin Enamel Jakarta Expo',
+        points_earned: 35,
+        points_spent: 15,
+        tier_id: 'tier-jkt-pin',
+        code: 'SV-JKT-0001',
+        collected_at: now,
+        collected_by: jktComId,
+        created_by: jktComId,
+        updated_by: jktComId,
+      },
+    });
+  }
+
   console.log(`✓ Seeded booth visits, transactions, and granted souvenirs.`);
 
   // ==========================================
@@ -1302,6 +1709,30 @@ const main = async () => {
         height: 1080,
         elements: [
           { type: 'text', text: 'SERTIFIKAT PENGHARGAAN', x: 960, y: 240, fontSize: 48, fontWeight: 'bold' },
+          { type: 'text', binding: { type: 'dynamic', key: 'full_name' }, x: 960, y: 520, fontSize: 56, fontWeight: 'bold' },
+          { type: 'text', binding: { type: 'dynamic', key: 'event_name' }, x: 960, y: 640, fontSize: 32 },
+        ],
+      },
+      created_by: orgId,
+      updated_by: orgId,
+    },
+    update: { is_active: true },
+  });
+
+  // Certificate template for Jakarta Event
+  await prisma.certificate_templates.upsert({
+    where: { uuid: 'cert-tmpl-jkt-01' },
+    create: {
+      uuid: 'cert-tmpl-jkt-01',
+      event_id: evJkt.uuid,
+      name: 'Sertifikat Resmi Peserta Mexpo Jakarta 2026',
+      kind: 'PARTICIPANT',
+      is_active: true,
+      template: {
+        width: 1920,
+        height: 1080,
+        elements: [
+          { type: 'text', text: 'SERTIFIKAT PARTISIPASI', x: 960, y: 240, fontSize: 48, fontWeight: 'bold' },
           { type: 'text', binding: { type: 'dynamic', key: 'full_name' }, x: 960, y: 520, fontSize: 56, fontWeight: 'bold' },
           { type: 'text', binding: { type: 'dynamic', key: 'event_name' }, x: 960, y: 640, fontSize: 32 },
         ],

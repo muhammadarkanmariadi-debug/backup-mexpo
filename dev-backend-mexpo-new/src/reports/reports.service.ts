@@ -194,6 +194,143 @@ export class ReportsService {
     }
   }
 
+  async findVisitorTimeline(event_id: string, filter: FilterReportDto) {
+    try {
+      const findEvent = await this.prisma.events.findFirst({
+        where: { uuid: event_id },
+      });
+      if (!findEvent) throw new NotFoundException(`Event doesn't exist`);
+
+      const { start_date, end_date } = filter;
+      if (start_date && end_date && start_date > end_date) {
+        throw new BadRequestException(`Start date must be less than End Date`);
+      }
+
+      const dateWhere = this.buildDateFilter(start_date, end_date);
+
+      const [attendances, boothVisits] = await Promise.all([
+        this.prisma.log_attendances.findMany({
+          where: {
+            event_id,
+            created_at: dateWhere,
+          },
+          select: { created_at: true },
+          orderBy: { created_at: 'asc' },
+        }),
+        this.prisma.booth_visits.findMany({
+          where: {
+            event_id,
+            created_at: dateWhere,
+          },
+          select: { created_at: true },
+          orderBy: { created_at: 'asc' },
+        }),
+      ]);
+
+      // Determine interval mode (hourly if span <= 1 day, daily if > 1 day)
+      let isSameDay = true;
+      if (start_date && end_date) {
+        const diffMs = Math.abs(new Date(end_date).getTime() - new Date(start_date).getTime());
+        isSameDay = diffMs <= 24 * 60 * 60 * 1000;
+      } else if (attendances.length > 1) {
+        const first = attendances[0].created_at;
+        const last = attendances[attendances.length - 1].created_at;
+        isSameDay = first.toDateString() === last.toDateString();
+      }
+
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+      const buckets = new Map<string, { label: string; count: number; booth_visits: number }>();
+
+      if (isSameDay) {
+        // Hourly buckets
+        let minHour = 8;
+        let maxHour = 18;
+        for (const a of attendances) {
+          const h = a.created_at.getHours();
+          if (h < minHour) minHour = Math.max(0, h);
+          if (h > maxHour) maxHour = Math.min(23, h);
+        }
+        for (const bv of boothVisits) {
+          const h = bv.created_at.getHours();
+          if (h < minHour) minHour = Math.max(0, h);
+          if (h > maxHour) maxHour = Math.min(23, h);
+        }
+        for (let h = minHour; h <= maxHour; h++) {
+          const key = `${String(h).padStart(2, '0')}:00`;
+          buckets.set(key, { label: key, count: 0, booth_visits: 0 });
+        }
+
+        for (const a of attendances) {
+          const key = `${String(a.created_at.getHours()).padStart(2, '0')}:00`;
+          const entry = buckets.get(key) || { label: key, count: 0, booth_visits: 0 };
+          entry.count += 1;
+          buckets.set(key, entry);
+        }
+
+        for (const bv of boothVisits) {
+          const key = `${String(bv.created_at.getHours()).padStart(2, '0')}:00`;
+          const entry = buckets.get(key) || { label: key, count: 0, booth_visits: 0 };
+          entry.booth_visits += 1;
+          buckets.set(key, entry);
+        }
+      } else {
+        // Daily buckets
+        for (const a of attendances) {
+          const d = a.created_at;
+          const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+          const label = `${d.getDate()} ${months[d.getMonth()]}`;
+          const entry = buckets.get(key) || { label, count: 0, booth_visits: 0 };
+          entry.count += 1;
+          buckets.set(key, entry);
+        }
+
+        for (const bv of boothVisits) {
+          const d = bv.created_at;
+          const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+          const label = `${d.getDate()} ${months[d.getMonth()]}`;
+          const entry = buckets.get(key) || { label, count: 0, booth_visits: 0 };
+          entry.booth_visits += 1;
+          buckets.set(key, entry);
+        }
+      }
+
+      let cumulative = 0;
+      let peakCount = 0;
+      let peakLabel = '-';
+
+      const timeline = Array.from(buckets.entries()).map(([timeKey, val]) => {
+        cumulative += val.count;
+        if (val.count > peakCount) {
+          peakCount = val.count;
+          peakLabel = val.label;
+        }
+        return {
+          time: timeKey,
+          label: val.label,
+          count: val.count,
+          booth_visits: val.booth_visits,
+          cumulative,
+        };
+      });
+
+      return {
+        success: true,
+        message: 'Visitor timeline has retrieved',
+        data: {
+          mode: isSameDay ? 'hourly' : 'daily',
+          total_attendances: attendances.length,
+          total_booth_visits: boothVisits.length,
+          peak_label: peakLabel,
+          peak_count: peakCount,
+          timeline,
+        },
+      };
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
+      throw new InternalServerErrorException(`Something went wrong: ${error}`);
+    }
+  }
+
   async findTransactionEachBooth(event_id: string, filter: FilterReportDto) {
     try {
       const findEvent = await this.prisma.events.findFirst({
