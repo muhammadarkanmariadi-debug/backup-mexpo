@@ -362,6 +362,8 @@ Relations: `users_bio` (1:1), all audit FKs (`creator_*`/`editor_*` on ~20 table
 | `souvenir_name` | String | `@default("")` | catalog item name at redemption time |
 | `tier_id` | String? | nullable, `@@index([event_id, tier_id])` | catalog item id (`events.souvenir_rules.tiers[].id`); counts redemptions against item `stock` (migration `20261110120000_add_souvenir_tier_id`) |
 | `points_earned` / `points_spent` | Int | `@default(0)` | point balance bookkeeping (point mode) |
+| `code` | String? | `@unique` | redemption voucher (`SV-XXXXXXXXXX`) shown to the visitor as a QR; NULL on rows created before vouchers (migration `20261112120000_add_souvenir_voucher_and_collection`) |
+| `collected_at` / `collected_by` | DateTime? / String? | nullable | set when the counter hands the item over; NULL = redeemed but not collected. Existing rows were backfilled as collected |
 | `created_by` / `updated_by` | String | FK audit | |
 | `created_at` / `updated_at` | DateTime | | |
 

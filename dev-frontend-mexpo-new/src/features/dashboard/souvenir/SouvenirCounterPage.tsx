@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { Gift, Loader2, Package, XCircle } from "lucide-react";
+import { CheckCircle2, Gift, Loader2, Package, QrCode, XCircle } from "lucide-react";
+import { toast } from "sonner";
 
 import PageHeader from "@/shared/components/ui/PageHeader";
 import PageShell from "@/shared/components/ui/PageShell";
@@ -14,10 +15,14 @@ import { Event } from "@/entities/event/event.entity";
 import { ResolvedQr } from "@/services/qr.service";
 import {
   checkSouvenir,
+  collectSouvenir,
   grantSouvenir,
   listSouvenirs,
+  normalizeVoucherCode,
+  resolveSouvenirVoucher,
   SouvenirCheckResult,
   SouvenirRecord,
+  SouvenirVoucher,
 } from "@/services/souvenir.service";
 import SouvenirQuickSettings from "./SouvenirQuickSettings";
 
@@ -42,6 +47,58 @@ export default function SouvenirCounterPage({ event }: { event: Event }) {
   const [resolved, setResolved] = useState<ResolvedQr | null>(null);
   const [checkResult, setCheckResult] = useState<SouvenirCheckResult | null>(null);
   const [result, setResult] = useState<{ ok: boolean; message: string } | null>(null);
+  // A redemption voucher scanned at the counter (visitor's QR after redeeming).
+  const [voucher, setVoucher] = useState<SouvenirVoucher | null>(null);
+
+  const formatDateTime = (iso: string) =>
+    new Date(iso).toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short" });
+
+  // Voucher QR → who redeemed what, and whether it was handed over already.
+  const resolveVoucher = useApiMutation<SouvenirVoucher, string>(
+    (code) => resolveSouvenirVoucher(event.uuid, code),
+    {
+      onSuccess: (data) => {
+        setVoucher(data);
+        // Reuse the identity tile of the scan panel.
+        setResolved({ event_id: event.uuid, user_id: data.user.uuid, user: data.user });
+      },
+      onError: (err) => {
+        setVoucher(null);
+        setResolved(null);
+        setResult({
+          ok: false,
+          message: err instanceof Error ? err.message : "Voucher tidak ditemukan",
+        });
+      },
+    },
+  );
+
+  // Hand the item over: marks the voucher collected (once).
+  const collect = useApiMutation<unknown, string>(
+    (code) => collectSouvenir(event.uuid, code),
+    {
+      onSuccess: (res, code) => {
+        const message =
+          res && typeof res === "object" && "message" in res && res.message
+            ? String((res as { message: unknown }).message)
+            : "Souvenir diserahkan.";
+        toast.success(message);
+        setResult({ ok: true, message });
+        setHistoryKey((k) => k + 1);
+        // Refresh whichever card is open so it shows "Sudah diserahkan".
+        if (voucher) resolveVoucher.mutate(code);
+        else if (resolved) check.mutate({ eventId: event.uuid, userId: resolved.user_id });
+      },
+      onError: (err) => {
+        setResult({
+          ok: false,
+          message: err instanceof Error ? err.message : "Gagal menyerahkan souvenir",
+        });
+        // Probably already handed over elsewhere: show the current state.
+        if (voucher) resolveVoucher.mutate(voucher.code);
+      },
+    },
+  );
 
   // 2) Check the visitor's souvenir eligibility (server-side rules).
   const check = useApiMutation<SouvenirCheckResult, { eventId: string; userId: string }>(
@@ -127,7 +184,12 @@ export default function SouvenirCounterPage({ event }: { event: Event }) {
     setResult(null);
     setResolved(null);
     setCheckResult(null);
-    resolve.mutate(value);
+    setVoucher(null);
+    // A redemption voucher (SV-XXXXXXXXXX) is looked up directly; anything else
+    // is a visitor identity (QR / email) as before.
+    const voucherCode = normalizeVoucherCode(value);
+    if (voucherCode) resolveVoucher.mutate(voucherCode);
+    else resolve.mutate(value);
   };
 
   const onGrant = () => {
@@ -147,15 +209,60 @@ export default function SouvenirCounterPage({ event }: { event: Event }) {
 
       <QrScanPanel
         containerId="souvenir-qr-reader"
-        accent="fuchsia"
+        accent="brand"
         qrValue={qrCode}
         onQrChange={setQrCode}
-        searching={resolve.isPending || check.isPending}
+        searching={resolve.isPending || check.isPending || resolveVoucher.isPending}
         onSearch={handleSearch}
+        inputLabel="QR Pengunjung / QR Penukaran Souvenir"
+        inputPlaceholder="Scan QR penukaran (SV-…), QR pengunjung, atau ketik email pengunjung"
+        searchButtonLabel="Cari"
         resolved={resolved}
         result={result}
         renderUserDetails={() =>
-          checkResult ? (
+          voucher ? (
+            <div className="mt-3 rounded-xl border border-gray-100 bg-white p-4">
+              <div className="flex items-center gap-3">
+                <div className="relative flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-gray-100 text-gray-400">
+                  {voucher.item.image ? (
+                    <Image src={voucher.item.image} alt={voucher.item.name} fill sizes="56px" className="object-cover" />
+                  ) : (
+                    <Package className="h-6 w-6" />
+                  )}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-base font-bold text-gray-900">{voucher.item.name}</p>
+                  <p className="text-xs text-gray-500">
+                    {voucher.item.points} poin · ditukar {formatDateTime(voucher.redeemedAt)}
+                  </p>
+                  <p className="mt-0.5 font-mono text-xs text-gray-400">{voucher.code}</p>
+                </div>
+              </div>
+              {voucher.status === "COLLECTED" ? (
+                <div className="mt-3 flex items-center gap-2 rounded-lg bg-success-50 p-3 text-sm text-success-700">
+                  <CheckCircle2 className="h-4 w-4 shrink-0" /> Sudah diserahkan
+                  {voucher.collectedAt ? ` pada ${formatDateTime(voucher.collectedAt)}` : ""}. QR ini tidak berlaku lagi.
+                </div>
+              ) : (
+                <Button
+                  type="button"
+                  variant="success"
+                  className="mt-3 w-full"
+                  disabled={collect.isPending}
+                  onClick={() => collect.mutate(voucher.code)}
+                  startIcon={
+                    collect.isPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Gift className="h-4 w-4" />
+                    )
+                  }
+                >
+                  Serahkan Souvenir
+                </Button>
+              )}
+            </div>
+          ) : checkResult ? (
             <>
               {checkResult.usePointSystem ? (
                 <div className="mt-3 space-y-2 text-xs text-gray-600">
@@ -237,16 +344,44 @@ export default function SouvenirCounterPage({ event }: { event: Event }) {
               )}
 
               {checkResult.alreadyClaimed ? (
-                <div className="mt-3 flex items-center gap-2 rounded-lg bg-brand-50 p-3 text-sm text-brand-700">
-                  <XCircle className="h-4 w-4 shrink-0" /> Sudah mengambil souvenir
-                  {checkResult.claimedSouvenir?.souvenir_name
-                    ? ` (${checkResult.claimedSouvenir.souvenir_name}`
-                    : ""}
-                  {checkResult.claimedSouvenir
-                    ? `, ${new Date(checkResult.claimedSouvenir.claimed_at).toLocaleString("id-ID")})`
-                    : ""}
-                  . Tidak bisa mengambil lagi.
-                </div>
+                checkResult.claimedSouvenir?.status === "READY" && checkResult.claimedSouvenir.code ? (
+                  // Redeemed in the app, item not handed over yet: staff can hand it over here too.
+                  <div className="mt-3 rounded-lg bg-brand-50 p-3 text-sm text-brand-700">
+                    <p className="flex items-center gap-2 font-semibold">
+                      <QrCode className="h-4 w-4 shrink-0" /> Souvenir sudah ditukar, menunggu diambil
+                    </p>
+                    <p className="mt-1 text-xs">
+                      {checkResult.claimedSouvenir.souvenir_name} · ditukar {formatDateTime(checkResult.claimedSouvenir.claimed_at)}
+                    </p>
+                    <Button
+                      type="button"
+                      variant="success"
+                      className="mt-3 w-full"
+                      disabled={collect.isPending}
+                      onClick={() => collect.mutate(checkResult.claimedSouvenir!.code!)}
+                      startIcon={
+                        collect.isPending ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Gift className="h-4 w-4" />
+                        )
+                      }
+                    >
+                      Serahkan Souvenir
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="mt-3 flex items-center gap-2 rounded-lg bg-brand-50 p-3 text-sm text-brand-700">
+                    <XCircle className="h-4 w-4 shrink-0" /> Souvenir sudah diserahkan
+                    {checkResult.claimedSouvenir?.souvenir_name
+                      ? ` (${checkResult.claimedSouvenir.souvenir_name}`
+                      : ""}
+                    {checkResult.claimedSouvenir
+                      ? `, ${formatDateTime(checkResult.claimedSouvenir.collected_at ?? checkResult.claimedSouvenir.claimed_at)})`
+                      : ""}
+                    . Tidak bisa menukar lagi.
+                  </div>
+                )
               ) : checkResult.eligible ? (
                 <Button
                   type="button"
@@ -293,6 +428,7 @@ export default function SouvenirCounterPage({ event }: { event: Event }) {
                   <th className="py-2 pr-3">Penerima</th>
                   <th className="py-2 pr-3">Jenis Souvenir</th>
                   <th className="py-2 pr-3">Poin Dipakai</th>
+                  <th className="py-2 pr-3">Status</th>
                   <th className="py-2">Waktu</th>
                 </tr>
               </thead>
@@ -304,6 +440,13 @@ export default function SouvenirCounterPage({ event }: { event: Event }) {
                     </td>
                     <td className="py-2 pr-3">{row.souvenir_name || "-"}</td>
                     <td className="py-2 pr-3">{row.points_spent}</td>
+                    <td className="py-2 pr-3">
+                      {row.collected_at ? (
+                        <span className="font-semibold text-success-700">Diserahkan</span>
+                      ) : (
+                        <span className="font-semibold text-brand-700">Menunggu diambil</span>
+                      )}
+                    </td>
                     <td className="py-2">
                       {new Date(row.created_at).toLocaleString("id-ID")}
                     </td>
