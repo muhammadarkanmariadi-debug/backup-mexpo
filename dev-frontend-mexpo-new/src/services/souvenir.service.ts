@@ -3,9 +3,23 @@ import { META_DYNAMIC } from "@/shared/utils/http-meta";
 import { SouvenirCatalogItem, SouvenirRules, SouvenirTier } from "@/entities/event/event.entity";
 import { assertUploadableImage } from "@/shared/utils/upload";
 
+/** READY = redeemed, waiting at the counter · COLLECTED = item handed over. */
+type SouvenirCollectStatus = "READY" | "COLLECTED";
+
+/** Matches a redemption voucher code (`SV-XXXXXXXXXX`), spaces and case ignored. */
+const VOUCHER_CODE_PATTERN = /^SV-[A-Z0-9]{10}$/;
+
+export function normalizeVoucherCode(raw: string): string | null {
+  const code = raw.replace(/\s+/g, "").toUpperCase();
+  return VOUCHER_CODE_PATTERN.test(code) ? code : null;
+}
+
 export interface SouvenirRecord {
   id: number;
   souvenir_name: string;
+  code?: string | null;
+  /** null = redeemed but not handed over yet. */
+  collected_at?: string | null;
   points_earned: number;
   points_spent: number;
   created_at: string;
@@ -64,6 +78,10 @@ export interface SouvenirCheckResult {
   recommendedTier: SouvenirTier | null;
   alreadyClaimed: boolean;
   claimedSouvenir: {
+    id: number;
+    code: string | null;
+    status: SouvenirCollectStatus;
+    collected_at: string | null;
     souvenir_name: string;
     points_earned: number;
     claimed_at: string;
@@ -151,7 +169,17 @@ interface MySouvenirOverview {
   items: MySouvenirItem[];
   /** One souvenir per account per event. */
   canRedeem: boolean;
-  redeemed: { name: string; image: string; pointsSpent: number; at: string } | null;
+  redeemed: {
+    name: string;
+    image: string;
+    pointsSpent: number;
+    at: string;
+    /** Voucher code + QR image (data URL) to show at the counter. Null for old redemptions. */
+    code: string | null;
+    qr: string | null;
+    status: SouvenirCollectStatus;
+    collectedAt: string | null;
+  } | null;
 }
 
 /** `enabled: false` when the event does not use the point system. */
@@ -170,4 +198,30 @@ export async function redeemSouvenir(eventId: string, tierId: string) {
     JSON.stringify({ tier_id: tierId }),
     "token",
   );
+}
+
+// ── Counter: voucher scan + hand-over ──
+
+export interface SouvenirVoucher {
+  id: number;
+  code: string;
+  status: SouvenirCollectStatus;
+  collectedAt: string | null;
+  redeemedAt: string;
+  item: { name: string; image: string; points: number };
+  user: { uuid: string; full_name: string; email: string; photo: string };
+}
+
+/** Look up a redemption by the voucher QR the visitor shows (committee/owner). */
+export async function resolveSouvenirVoucher(eventId: string, code: string) {
+  return (await httpPost(
+    `souvenirs/voucher/${eventId}`,
+    JSON.stringify({ code }),
+    "token",
+  )) as unknown as { data: SouvenirVoucher; status: boolean; message?: string | null };
+}
+
+/** Hand the item over — succeeds once per voucher. */
+export async function collectSouvenir(eventId: string, code: string) {
+  return await httpPost(`souvenirs/collect/${eventId}`, JSON.stringify({ code }), "token");
 }

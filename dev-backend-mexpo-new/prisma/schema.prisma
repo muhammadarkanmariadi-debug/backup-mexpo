@@ -621,6 +621,11 @@ model souvenirs {
   tier_id       String?
   points_earned Int    @default(0)
   points_spent  Int    @default(0)
+  /// Redemption voucher shown to the visitor as a QR (`SV-XXXXXXXXXX`); scanned at the counter.
+  code          String?   @unique
+  /// Set when the counter hands the item over. NULL = redeemed but not collected yet.
+  collected_at  DateTime?
+  collected_by  String?
   created_by String   @default("")
   creator    users    @relation("creator_souvenirs", fields: [created_by], references: [uuid])
   updated_by String   @default("")

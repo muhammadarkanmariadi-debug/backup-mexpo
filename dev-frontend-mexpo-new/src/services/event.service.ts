@@ -135,7 +135,11 @@ export async function getEventByUuidByMe(uuid: string) {
 
 
     return {
-        data: res.data as Event,
+        // On failure httpGet puts the raw error body in `data`. Never hand that
+        // out as an event: pages used to render an empty shell from it (no name,
+        // no role, "registrasi ditutup") and child tabs then called the API with
+        // `event.uuid === undefined`.
+        data: (res.status ? res.data : null) as Event,
         status: res.status,
         code: res.code,
         message: res.message

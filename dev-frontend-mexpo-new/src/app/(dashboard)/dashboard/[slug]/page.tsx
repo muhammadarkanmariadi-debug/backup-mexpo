@@ -8,12 +8,12 @@ import { getEventByUuidByMe } from "@/services/event.service";
 import { getProfile } from "@/services/user.service";
 
 async function getEvent(slug: string): Promise<Event | null> {
-  try {
-    const res = await getEventByUuidByMe(slug);
-    return res.data ?? null;
-  } catch {
-    return null;
-  }
+  const res = await getEventByUuidByMe(slug);
+  if (res.status) return res.data ?? null;
+  // A missing event is a 404; anything else (backend down, DB error) must not
+  // masquerade as "not found" or as an empty event.
+  if (res.code === 404) return null;
+  throw new Error(res.message || "Gagal memuat event");
 }
 
 export default async function EventDashboardPage({ params }: { params: Promise<{ slug: string }> }) {

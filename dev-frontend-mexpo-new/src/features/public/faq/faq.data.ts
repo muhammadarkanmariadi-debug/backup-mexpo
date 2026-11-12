@@ -109,7 +109,7 @@ export const faqData: FAQItem[] = [
     category: 'Kehadiran & Sertifikat',
     question: 'Bagaimana cara mendapatkan souvenir event?',
     answer:
-      'Event yang menyediakan souvenir memakai sistem poin: Anda mendapat poin dari mengunjungi booth tenant, mengikuti seminar, dan/atau bertransaksi (sesuai pengaturan penyelenggara). Lihat item yang bisa ditukar beserta harga poin dan stoknya di bagian Katalog Souvenir pada halaman event. Setelah terdaftar, buka tab Souvenir di dashboard event Anda untuk melihat poin dan riwayatnya, lalu pilih item yang poinnya mencukupi dan tekan Tukar. Setiap akun hanya bisa menukar satu souvenir per event, dan poin hanya berlaku untuk satu item. Tunjukkan QR Code Anda ke meja souvenir untuk mengambilnya.',
+      'Event yang menyediakan souvenir memakai sistem poin: Anda mendapat poin dari mengunjungi booth tenant, mengikuti seminar, dan/atau bertransaksi (sesuai pengaturan penyelenggara). Lihat item yang bisa ditukar beserta harga poin dan stoknya di bagian Katalog Souvenir pada halaman event. Setelah terdaftar, buka tab Souvenir di dashboard event Anda untuk melihat poin dan riwayatnya, lalu pilih item yang poinnya mencukupi dan tekan Tukar. Setiap akun hanya bisa menukar satu souvenir per event, dan poin hanya berlaku untuk satu item. Setelah menukar, Anda mendapat QR penukaran: tunjukkan QR itu ke panitia di tempat penukaran untuk mengambil souvenir (QR hanya berlaku satu kali).',
   },
 
   // ── LOKAKARYA ──
