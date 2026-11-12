@@ -48,7 +48,9 @@ export async function getEvents(query?: PublicEventsQuery) {
         meta?.totalPages ??
         Math.ceil((meta?.counts ?? 0) / (meta?.quantity ?? 12)),
     },
-    data: (res.data as Event[]) ?? [],
+    // A failed request carries the error body in `data`; never treat it as a list
+    // (it made the home page crash with HTTP 500 during a backend outage).
+    data: Array.isArray(res.data) ? (res.data as Event[]) : [],
     status: res.status,
     code: res.code,
     message: res.message,
