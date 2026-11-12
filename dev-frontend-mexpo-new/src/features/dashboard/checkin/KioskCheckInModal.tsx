@@ -10,6 +10,8 @@ import {
   ScanLine,
   User,
   Sparkles,
+  SwitchCamera,
+  X,
 } from "lucide-react";
 import { Html5Qrcode } from "html5-qrcode";
 import { soundEffects } from "@/shared/utils/sound";
@@ -51,11 +53,26 @@ export default function KioskCheckInModal({
 }: Props) {
   const [feedback, setFeedback] = useState<ScanFeedback | null>(null);
   const [scanning, setScanning] = useState(false);
+  const [facingMode, setFacingMode] = useState<"user" | "environment">("user");
   const scannerRef = useRef<Html5Qrcode | null>(null);
 
   const lastScannedRef = useRef<{ code: string; time: number } | null>(null);
   const isProcessingRef = useRef<boolean>(false);
   const feedbackTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Store latest props in a ref so scanner and callbacks are 100% stable
+  // and do NOT re-trigger camera re-mounts on parent re-renders.
+  const propsRef = useRef({ action, event, mode, workshop, onSuccessCheckIn });
+  propsRef.current = { action, event, mode, workshop, onSuccessCheckIn };
+
+  const dismissFeedback = useCallback(() => {
+    if (feedbackTimeoutRef.current) {
+      clearTimeout(feedbackTimeoutRef.current);
+      feedbackTimeoutRef.current = null;
+    }
+    setFeedback(null);
+    isProcessingRef.current = false;
+  }, []);
 
   const stopCamera = useCallback(async () => {
     if (scannerRef.current) {
@@ -77,7 +94,10 @@ export default function KioskCheckInModal({
 
       if (feedbackTimeoutRef.current) {
         clearTimeout(feedbackTimeoutRef.current);
+        feedbackTimeoutRef.current = null;
       }
+
+      const { action: curAction, event: curEvent, mode: curMode, workshop: curWorkshop, onSuccessCheckIn: curOnSuccess } = propsRef.current;
 
       try {
         // 1. Resolve QR
@@ -89,28 +109,28 @@ export default function KioskCheckInModal({
 
         // 2. Direct Check-in / Check-out
         let attRes: { status: boolean; message: string } | null = null;
-        if (action === "out") {
-          if (mode === "workshop") {
-            if (!workshop?.uuid) throw new Error("Workshop belum dipilih.");
-            attRes = (await checkOutWorkshop(workshop.uuid, resolved.user_id)) as unknown as {
+        if (curAction === "out") {
+          if (curMode === "workshop") {
+            if (!curWorkshop?.uuid) throw new Error("Workshop belum dipilih.");
+            attRes = (await checkOutWorkshop(curWorkshop.uuid, resolved.user_id)) as unknown as {
               status: boolean;
               message: string;
             };
           } else {
-            attRes = (await checkOutEvent(event.uuid, resolved.user_id)) as unknown as {
+            attRes = (await checkOutEvent(curEvent.uuid, resolved.user_id)) as unknown as {
               status: boolean;
               message: string;
             };
           }
         } else {
-          if (mode === "workshop") {
-            if (!workshop?.uuid) throw new Error("Workshop belum dipilih.");
-            attRes = (await checkInWorkshop(workshop.uuid, resolved.user_id)) as unknown as {
+          if (curMode === "workshop") {
+            if (!curWorkshop?.uuid) throw new Error("Workshop belum dipilih.");
+            attRes = (await checkInWorkshop(curWorkshop.uuid, resolved.user_id)) as unknown as {
               status: boolean;
               message: string;
             };
           } else {
-            attRes = (await checkInEvent(event.uuid, resolved.user_id)) as unknown as {
+            attRes = (await checkInEvent(curEvent.uuid, resolved.user_id)) as unknown as {
               status: boolean;
               message: string;
             };
@@ -134,14 +154,14 @@ export default function KioskCheckInModal({
           soundEffects.playSuccess();
           setFeedback({
             type: "success",
-            title: action === "out" ? "Sampai Jumpa!" : "Selamat Datang!",
+            title: curAction === "out" ? "Sampai Jumpa!" : "Selamat Datang!",
             message:
-              action === "out"
+              curAction === "out"
                 ? "Check-out berhasil dicatat."
                 : "Check-in berhasil. Selamat menikmati acara!",
             user: resolved.user,
           });
-          onSuccessCheckIn?.(resolved, msg || "Check-in berhasil");
+          curOnSuccess?.(resolved, msg || "Check-in berhasil");
         }
       } catch (err) {
         soundEffects.playError();
@@ -151,69 +171,91 @@ export default function KioskCheckInModal({
           message: err instanceof Error ? err.message : "Terjadi kesalahan sistem.",
         });
       } finally {
-        // Dismiss feedback popup after 2.8 seconds and unlock processing
+        // Automatically dismiss feedback popup after 2.8 seconds and unlock processing
         feedbackTimeoutRef.current = setTimeout(() => {
-          setFeedback(null);
-          isProcessingRef.current = false;
-        }, 2800);
+          dismissFeedback();
+        }, 1800);
       }
     },
-    [action, event.uuid, mode, workshop, onSuccessCheckIn],
+    [dismissFeedback],
   );
 
-  const startCamera = useCallback(async () => {
-    await new Promise((r) => setTimeout(r, 200));
-    try {
-      const scanner = new Html5Qrcode("kiosk-qr-reader");
-      scannerRef.current = scanner;
-      setScanning(true);
-
-      await scanner.start(
-        { facingMode: "user" }, // Front-facing camera for self check-in tablet
-        { fps: 12, qrbox: { width: 260, height: 260 } },
-        (decodedText) => {
-          const now = Date.now();
-          const last = lastScannedRef.current;
-          // Ignore same QR code if scanned within 4 seconds cooldown
-          if (last && last.code === decodedText && now - last.time < 4000) {
-            return;
-          }
-          lastScannedRef.current = { code: decodedText, time: now };
-          void handleProcessQr(decodedText);
-        },
-        () => {},
-      );
-    } catch {
-      // Fallback to environment facing if user camera fails
+  const startCamera = useCallback(
+    async (targetFacing: "user" | "environment" = facingMode) => {
+      await new Promise((r) => setTimeout(r, 200));
       try {
         if (scannerRef.current) {
-          await scannerRef.current.start(
-            { facingMode: "environment" },
-            { fps: 12, qrbox: { width: 260, height: 260 } },
-            (decodedText) => {
-              const now = Date.now();
-              const last = lastScannedRef.current;
-              if (last && last.code === decodedText && now - last.time < 4000) {
-                return;
-              }
-              lastScannedRef.current = { code: decodedText, time: now };
-              void handleProcessQr(decodedText);
-            },
-            () => {},
-          );
+          try {
+            await scannerRef.current.stop();
+          } catch {
+            // ignore
+          }
+          scannerRef.current.clear();
+          scannerRef.current = null;
         }
-      } catch (e) {
-        console.error("Kiosk camera start failed:", e);
-        setScanning(false);
+
+        const scanner = new Html5Qrcode("kiosk-qr-reader");
+        scannerRef.current = scanner;
+        setScanning(true);
+
+        await scanner.start(
+          { facingMode: targetFacing },
+          { fps: 12, qrbox: { width: 260, height: 260 } },
+          (decodedText) => {
+            const now = Date.now();
+            const last = lastScannedRef.current;
+            // Ignore same QR code if scanned within 3.5 seconds cooldown
+            if (last && last.code === decodedText && now - last.time < 3500) {
+              return;
+            }
+            lastScannedRef.current = { code: decodedText, time: now };
+            void handleProcessQr(decodedText);
+          },
+          () => { },
+        );
+      } catch {
+        // Fallback to opposite facing mode if primary failed
+        const altFacing = targetFacing === "user" ? "environment" : "user";
+        try {
+          if (scannerRef.current) {
+            await scannerRef.current.start(
+              { facingMode: altFacing },
+              { fps: 12, qrbox: { width: 260, height: 260 } },
+              (decodedText) => {
+                const now = Date.now();
+                const last = lastScannedRef.current;
+                if (last && last.code === decodedText && now - last.time < 3500) {
+                  return;
+                }
+                lastScannedRef.current = { code: decodedText, time: now };
+                void handleProcessQr(decodedText);
+              },
+              () => { },
+            );
+            setFacingMode(altFacing);
+          }
+        } catch (e) {
+          console.error("Kiosk camera start failed:", e);
+          setScanning(false);
+        }
       }
-    }
-  }, [handleProcessQr]);
+    },
+    [facingMode, handleProcessQr],
+  );
+
+  const toggleCameraFacing = useCallback(async () => {
+    const nextFacing = facingMode === "user" ? "environment" : "user";
+    setFacingMode(nextFacing);
+    await stopCamera();
+    await startCamera(nextFacing);
+  }, [facingMode, startCamera, stopCamera]);
 
   useEffect(() => {
     if (isOpen) {
       void startCamera();
     } else {
       void stopCamera();
+      dismissFeedback();
     }
     return () => {
       void stopCamera();
@@ -221,7 +263,7 @@ export default function KioskCheckInModal({
         clearTimeout(feedbackTimeoutRef.current);
       }
     };
-  }, [isOpen, startCamera, stopCamera]);
+  }, [isOpen]); // Only run when modal opens/closes!
 
   if (!isOpen) return null;
 
@@ -244,17 +286,31 @@ export default function KioskCheckInModal({
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={() => {
-            void stopCamera();
-            onClose();
-          }}
-          className="flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-900/80 px-4 py-2 text-sm font-medium text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
-        >
-          <Minimize2 className="h-4 w-4" />
-          <span>Keluar Kiosk</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => void toggleCameraFacing()}
+            className="flex items-center gap-1.5 rounded-xl border border-slate-700 bg-slate-900/80 px-3 py-2 text-sm font-medium text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
+            title={`Ganti ke kamera ${facingMode === "user" ? "belakang" : "depan"}`}
+          >
+            <SwitchCamera className="h-4 w-4" />
+            <span className="hidden sm:inline">
+              {facingMode === "user" ? "Kamera Belakang" : "Kamera Depan"}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              void stopCamera();
+              onClose();
+            }}
+            className="flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-900/80 px-4 py-2 text-sm font-medium text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
+          >
+            <Minimize2 className="h-4 w-4" />
+            <span>Keluar Kiosk</span>
+          </button>
+        </div>
       </div>
 
       {/* Main Viewfinder Center */}
@@ -288,16 +344,29 @@ export default function KioskCheckInModal({
 
         {/* Floating Greeting & Feedback Card */}
         {feedback && (
-          <div className="absolute inset-0 z-20 flex items-center justify-center p-4">
+          <div
+            onClick={dismissFeedback}
+            className="absolute inset-0 z-20 flex cursor-pointer items-center justify-center p-4 backdrop-blur-xs"
+            title="Klik untuk menutup"
+          >
             <div
-              className={`w-full max-w-md rounded-2xl p-6 text-center shadow-2xl backdrop-blur-md transition-all animate-in zoom-in-95 duration-200 ${
-                feedback.type === "success"
-                  ? "border border-emerald-500/40 bg-emerald-950/90 text-emerald-50"
+              onClick={(e) => e.stopPropagation()}
+              className={`relative w-full max-w-md rounded-2xl p-6 text-center shadow-2xl backdrop-blur-md transition-all animate-in zoom-in-95 duration-200 ${feedback.type === "success"
+                  ? "border border-emerald-500/40 bg-emerald-950/95 text-emerald-50"
                   : feedback.type === "warning"
-                    ? "border border-amber-500/40 bg-amber-950/90 text-amber-50"
-                    : "border border-rose-500/40 bg-rose-950/90 text-rose-50"
-              }`}
+                    ? "border border-amber-500/40 bg-amber-950/95 text-amber-50"
+                    : "border border-rose-500/40 bg-rose-950/95 text-rose-50"
+                }`}
             >
+              <button
+                type="button"
+                onClick={dismissFeedback}
+                className="absolute right-3.5 top-3.5 rounded-lg p-1.5 text-white/60 transition-colors hover:bg-white/10 hover:text-white"
+                title="Tutup"
+              >
+                <X className="h-4 w-4" />
+              </button>
+
               <div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-white/10">
                 {feedback.type === "success" ? (
                   <CheckCircle2 className="h-10 w-10 text-emerald-400" />
@@ -339,6 +408,14 @@ export default function KioskCheckInModal({
               )}
 
               <p className="text-sm opacity-90">{feedback.message}</p>
+
+              {/* Auto-dismiss footer */}
+              <div className="mt-4 flex items-center justify-between text-[11px] opacity-60">
+                <span>Auto-reset dalam 2.8 detik</span>
+                <span onClick={dismissFeedback} className="hover:underline cursor-pointer">
+                  Ketuk untuk lanjut
+                </span>
+              </div>
             </div>
           </div>
         )}

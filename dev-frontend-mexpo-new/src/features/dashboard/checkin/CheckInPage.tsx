@@ -193,6 +193,29 @@ export default function CheckInPage({ event, workshops }: Props) {
     [action, event.uuid, mode, qrCode, selectedWorkshop?.title, workshopId],
   );
 
+  const handleKioskSuccess = useCallback(
+    (res: ResolvedQr) => {
+      const nowStr = new Date().toLocaleTimeString("id-ID", {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+      setRecentLogs((prev) => [
+        {
+          id: `${res.user_id}-${Date.now()}`,
+          name: res.user.full_name,
+          email: res.user.email,
+          photo: res.user.photo,
+          time: nowStr,
+          action,
+          mode,
+          workshopTitle: mode === "workshop" ? selectedWorkshop?.title : undefined,
+        },
+        ...prev.slice(0, 4),
+      ]);
+    },
+    [action, mode, selectedWorkshop?.title],
+  );
+
   return (
     <PageShell className="py-8">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -348,25 +371,7 @@ export default function CheckInPage({ event, workshops }: Props) {
         action={action}
         mode={mode}
         workshop={selectedWorkshop}
-        onSuccessCheckIn={(res) => {
-          const nowStr = new Date().toLocaleTimeString("id-ID", {
-            hour: "2-digit",
-            minute: "2-digit",
-          });
-          setRecentLogs((prev) => [
-            {
-              id: `${res.user_id}-${Date.now()}`,
-              name: res.user.full_name,
-              email: res.user.email,
-              photo: res.user.photo,
-              time: nowStr,
-              action,
-              mode,
-              workshopTitle: mode === "workshop" ? selectedWorkshop?.title : undefined,
-            },
-            ...prev.slice(0, 4),
-          ]);
-        }}
+        onSuccessCheckIn={handleKioskSuccess}
       />
     </PageShell>
   );
