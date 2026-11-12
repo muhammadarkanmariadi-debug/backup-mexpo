@@ -20,6 +20,7 @@ import { imageFileFilter } from '../helper/upload.format';
 import { SouvenirsService } from './souvenirs.service';
 import { CreateSouvenirDto } from './dto/create-souvenir.dto';
 import { RedeemSouvenirDto } from './dto/redeem-souvenir.dto';
+import { VoucherCodeDto } from './dto/voucher-code.dto';
 import { AuthGuard } from '@nestjs/passport';
 import FormatValidation from '../helper/validation.format';
 import * as authRequest from '../auth/auth.types';
@@ -54,6 +55,38 @@ export class SouvenirsController {
     @Request() request: authRequest.AuthRequest,
   ) {
     return this.souvenirsService.findMine(event_id, request.user.uuid);
+  }
+
+  /** Counter: look up a redemption by its voucher QR. */
+  @Post(`voucher/:event_id`)
+  @UsePipes(new ValidationPipe({ exceptionFactory: FormatValidation }))
+  resolveVoucher(
+    @Param(`event_id`) event_id: string,
+    @Body() dto: VoucherCodeDto,
+    @Request() request: authRequest.AuthRequest,
+  ) {
+    return this.souvenirsService.resolveVoucher(
+      event_id,
+      dto,
+      request.user.uuid,
+      request.user.role as UserRole,
+    );
+  }
+
+  /** Counter: hand the item over (once). */
+  @Post(`collect/:event_id`)
+  @UsePipes(new ValidationPipe({ exceptionFactory: FormatValidation }))
+  collect(
+    @Param(`event_id`) event_id: string,
+    @Body() dto: VoucherCodeDto,
+    @Request() request: authRequest.AuthRequest,
+  ) {
+    return this.souvenirsService.collect(
+      event_id,
+      dto,
+      request.user.uuid,
+      request.user.role as UserRole,
+    );
   }
 
   /** A visitor redeems their own points for one catalog item. */
