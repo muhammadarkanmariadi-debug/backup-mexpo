@@ -86,6 +86,17 @@ function detailRow(label: string, valueHtml: string): string {
 }
 
 /**
+ * RFC 2392 content ids are msg-ids (`local@domain`). Some clients, Gmail among
+ * them, fail to match a bare id such as `ticket-qr`: the image then shows up as
+ * a broken picture in the body plus a downloadable attachment. Both the
+ * `cid:` reference and the attachment header go through this helper so they
+ * always agree.
+ */
+export function toContentId(id: string): string {
+  return id.includes('@') ? id : `${id}@mexpo.local`;
+}
+
+/**
  * Inline attachments referenced by the ticket email via `cid:`.
  * Both are marked `inline` so mail clients embed them in the body instead of
  * listing them as downloadable attachments.
@@ -99,14 +110,14 @@ export function buildTicketEmailAttachments(
     {
       filename: 'ticket-qr.png',
       content: qrBuffer,
-      cid: qrCid,
+      cid: toContentId(qrCid),
       contentType: 'image/png',
       contentDisposition: 'inline',
     },
     {
       filename: 'mexpo-logo.png',
       content: getMexpoLogoBuffer(),
-      cid: logoCid,
+      cid: toContentId(logoCid),
       contentType: 'image/png',
       contentDisposition: 'inline',
     },
@@ -229,7 +240,7 @@ export function buildRegistrationTicketEmailHtml(
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
                 <tr>
                   <td align="left" style="vertical-align:middle;">
-                    <img src="cid:${e(logoCid)}" alt="Mexpo" width="132" height="44" border="0" style="display:block;width:132px;height:auto;border:0;outline:none;" />
+                    <img src="cid:${e(toContentId(logoCid))}" alt="Mexpo" width="132" height="44" border="0" style="display:block;width:132px;height:auto;border:0;outline:none;" />
                   </td>
                   <td align="right" style="vertical-align:middle;">
                     <span style="display:inline-block;background-color:${C.brand50};color:${C.brand600};font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:6px 12px;border-radius:999px;">E-Tiket Resmi</span>
@@ -281,7 +292,7 @@ export function buildRegistrationTicketEmailHtml(
                     <table role="presentation" cellpadding="0" cellspacing="0" align="center" style="background-color:#ffffff;border:2px solid ${C.brand100};border-radius:16px;">
                       <tr>
                         <td style="padding:12px;">
-                          <img src="cid:${e(qrCid)}" alt="QR Code Tiket" width="200" height="200" border="0" style="display:block;width:200px;height:200px;border:0;outline:none;background-color:#ffffff;" />
+                          <img src="cid:${e(toContentId(qrCid))}" alt="QR Code Tiket" width="200" height="200" border="0" style="display:block;width:200px;height:200px;border:0;outline:none;background-color:#ffffff;" />
                         </td>
                       </tr>
                     </table>

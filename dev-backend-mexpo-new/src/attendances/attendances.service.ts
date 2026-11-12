@@ -17,6 +17,7 @@ import { QueryAttendanceDto } from './dto/query-attendance.dto';
 import { buildOrderBy } from '../helper/sort';
 import { Prisma } from '@prisma/client';
 import { UpdateAttendanceDto, UpdateWorkshopAttendanceDto } from './dto/update-attendance.dto';
+import { ATTENDED_STATUSES, hasAttendanceSlot } from './workshop-slots';
 
 const ATTENDANCE_SORTABLE: Record<
   string,
@@ -127,6 +128,18 @@ export class AttendancesService {
     }
   }
 
+  /**
+   * Workshop check-in at the door (committee/owner/superadmin scan the visitor).
+   *
+   * - Registered visitor: checked in.
+   * - Not registered (or booking cancelled) and an attendance slot is free:
+   *   booked automatically and checked in — this is how a no-show's empty slot
+   *   gets used by someone else.
+   * - No free slot (checked-in people reached the quota): 409.
+   *
+   * The slot check and the write run in one Serializable transaction, so two
+   * scanners filling the last slot at once cannot exceed the quota.
+   */
   async createWorkshopAttendance(
     workshop_id: string,
     createWorkshopAttendance: CreateWorkshopAttendance,
@@ -136,7 +149,6 @@ export class AttendancesService {
     try {
       const findWorkshop = await this.prisma.workshops.findFirst({
         where: { uuid: workshop_id },
-        include: { workshopBookings: true },
       });
       if (!findWorkshop) throw new NotFoundException(`Workshop doesn't exists`);
 
@@ -147,50 +159,94 @@ export class AttendancesService {
       );
 
       const { user_id } = createWorkshopAttendance;
-      const findBookingWorkshop = await this.prisma.workshop_bookings.findFirst(
-        {
-          where: { workshop_id, user_id },
-        },
-      );
-      if (!findBookingWorkshop) {
-        if (
-          findWorkshop.quota > 0 &&
-          findWorkshop.quota <= findWorkshop.workshopBookings.length
-        ) {
-          throw new ConflictException(
-            `Limit of attendee for this workshop has reached`,
-          );
-        }
-        const newBookingWorkshop = await this.prisma.workshop_bookings.create({
-          data: {
-            user_id,
-            created_by: userId,
-            updated_by: userId,
-            workshop_id,
-            status: `CHECKED_IN`,
-          },
-        });
-
-        return {
-          success: true,
-          message: `Your registration for this workshop has saved successfully`,
-          data: newBookingWorkshop,
-        };
-      }
-      const updateStatusBooking = await this.prisma.workshop_bookings.update({
-        where: { uuid: findBookingWorkshop.uuid },
-        data: {
-          status: `CHECKED_IN`,
-          checkin_at: new Date(),
-          updated_by: userId,
-        },
+      // The attendee must belong to the event: a scan never books a stranger.
+      const findMember = await this.prisma.user_event_roles.findFirst({
+        where: { user_id, event_id: findWorkshop.event_id, status: `APPROVED` },
       });
-      return {
-        success: true,
-        message: `Log attendance for this workshop has saved`,
-        data: updateStatusBooking,
-      };
+      if (!findMember) {
+        throw new ForbiddenException(
+          `Peserta belum terdaftar di event ini atau pendaftarannya belum disetujui`,
+        );
+      }
+
+      return await this.prisma.$transaction(
+        async (tx) => {
+          const booking = await tx.workshop_bookings.findFirst({
+            where: { workshop_id, user_id },
+          });
+
+          if (booking?.status === `CHECKED_IN`) {
+            return {
+              success: true,
+              message: `Peserta sudah check-in di workshop ini`,
+              data: { ...booking, auto_booked: false },
+            };
+          }
+
+          const attended = await tx.workshop_bookings.count({
+            where: { workshop_id, status: { in: ATTENDED_STATUSES } },
+          });
+          // Someone who attended before (checked out, now coming back) already
+          // holds a slot and must not be counted twice.
+          const holdsSlot = booking?.checkin_at != null;
+          if (!holdsSlot && !hasAttendanceSlot(findWorkshop.quota, attended)) {
+            throw new ConflictException(
+              `Slot kehadiran workshop penuh (${attended}/${findWorkshop.quota})`,
+            );
+          }
+
+          const autoBooked = !booking || booking.status === `CANCELLED`;
+          const now = new Date();
+          const record = booking
+            ? await tx.workshop_bookings.update({
+                where: { uuid: booking.uuid },
+                data: {
+                  status: `CHECKED_IN`,
+                  checkin_at: booking.checkin_at ?? now,
+                  checkout_at: null,
+                  updated_by: userId,
+                },
+              })
+            : await tx.workshop_bookings.create({
+                data: {
+                  user_id,
+                  workshop_id,
+                  status: `CHECKED_IN`,
+                  checkin_at: now,
+                  created_by: userId,
+                  updated_by: userId,
+                },
+              });
+
+          const attendedNow = holdsSlot ? attended : attended + 1;
+          const slotInfo =
+            findWorkshop.quota > 0
+              ? ` (slot kehadiran ${attendedNow}/${findWorkshop.quota})`
+              : ``;
+          return {
+            success: true,
+            message: autoBooked
+              ? `Peserta belum terdaftar: otomatis didaftarkan dan check-in${slotInfo}`
+              : `Log attendance for this workshop has saved`,
+            data: {
+              ...record,
+              auto_booked: autoBooked,
+              slots: { attended: attendedNow, quota: findWorkshop.quota },
+            },
+          };
+        },
+        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+      );
     } catch (error) {
+      // Two scanners raced for the last slot and this one lost.
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === `P2034`
+      ) {
+        throw new ConflictException(
+          `Permintaan bersamaan terdeteksi, silakan scan ulang`,
+        );
+      }
       if (error instanceof HttpException) throw error;
       throw new InternalServerErrorException(`Something were wrong: ${error}`);
     }

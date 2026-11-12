@@ -3,9 +3,10 @@
 
 
 import { useState } from "react";
+import Image from "next/image";
 import { Workshop } from "@/entities/event/workshop.entity";
 import { useAuthStore } from "@/stores/auth.store";
-import { Clock, MapPin, Loader2, CheckCircle2 } from "lucide-react";
+import { Clock, MapPin, Loader2, CheckCircle2, Mic, UserCheck } from "lucide-react";
 import { formatTime } from "@/shared/utils/format";
 
 
@@ -28,11 +29,23 @@ export const WorkshopCard = ({
 
   const [isExpanded, setIsExpanded] = useState(false);
   const { user } = useAuthStore();
-  const registered = workshop.workshopBookings?.length || 0;
-  const checkedIn =
-    workshop.workshopBookings?.filter((b) => b.checkin_at !== null).length || 0;
-  // quota 0 = unlimited; only "full" when a positive quota is reached (FIX-09).
-  const isFull = workshop.quota > 0 && registered >= workshop.quota;
+  const bookings = workshop.workshopBookings ?? [];
+  // A cancelled booking is not a registration.
+  const registered = bookings.filter((b) => b.status !== "CANCELLED").length;
+  const checkedIn = bookings.filter(
+    (b) => b.status !== "CANCELLED" && b.checkin_at != null,
+  ).length;
+  // Online registration closes at quota. The backend counts every booking row
+  // (cancelled included) for that, so the button mirrors it (FIX-09).
+  const isFull = workshop.quota > 0 && bookings.length >= workshop.quota;
+  // Attendance slots = quota minus people who actually checked in. A no-show
+  // leaves a slot free that a visitor without a booking can take by checking in.
+  const slotsLeft = workshop.quota > 0 ? Math.max(0, workshop.quota - checkedIn) : null;
+
+  // Speakers assigned to this workshop (only approved ones are public).
+  const speakers = (workshop.workshopSpeakers ?? [])
+    .map((ws) => ws.event_speaker)
+    .filter((sp) => sp && (sp.status ?? "APPROVED") === "APPROVED");
 
   const isUserRegistered = workshop.workshopBookings?.some(
     (booking: { user_id?: string }) => booking.user_id === user?.uuid
@@ -41,7 +54,10 @@ export const WorkshopCard = ({
 
   const registeredPercentage =
     workshop.quota > 0 ? (registered / workshop.quota) * 100 : 0;
-  const checkInPercentage = registered > 0 ? (checkedIn / registered) * 100 : 0;
+  // Attendance is measured against the quota (the seats in the room), not
+  // against registrations: walk-ins can fill seats that no-shows left free.
+  const checkInPercentage =
+    workshop.quota > 0 ? (checkedIn / workshop.quota) * 100 : 0;
 
 
 
@@ -81,6 +97,42 @@ export const WorkshopCard = ({
           </span>
         </div>
 
+        {/* Speakers assigned to this workshop */}
+        {speakers.length > 0 && (
+          <div className="mb-4 sm:mb-6 md:mb-8 flex flex-col items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-gray-500">
+              <Mic className="w-3.5 h-3.5" />
+              Pembicara
+            </span>
+            <ul className="flex flex-wrap justify-center gap-2 sm:gap-3">
+              {speakers.map((sp) => (
+                <li
+                  key={sp.uuid}
+                  title={sp.bio || sp.name}
+                  className="inline-flex items-center gap-2 bg-white shadow-xs py-1 pr-3 sm:pr-4 pl-1 border border-brand-100 rounded-full"
+                >
+                  <span className="relative flex justify-center items-center bg-brand-100 rounded-full w-8 sm:w-9 h-8 sm:h-9 overflow-hidden font-bold text-brand-600 text-xs shrink-0">
+                    {sp.photo ? (
+                      <Image
+                        src={sp.photo}
+                        alt={sp.name}
+                        fill
+                        sizes="36px"
+                        className="object-cover"
+                      />
+                    ) : (
+                      sp.name.trim().charAt(0).toUpperCase()
+                    )}
+                  </span>
+                  <span className="font-semibold text-gray-800 text-xs sm:text-sm">
+                    {sp.name}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
         {/* Progress Bars */}
         <div className="bg-white shadow-sm mb-4 sm:mb-6 p-3 sm:p-4 md:p-6 border border-brand-100 rounded-lg sm:rounded-xl">
           <div className="gap-3 sm:gap-4 md:gap-8 grid grid-cols-1 sm:grid-cols-3">
@@ -89,7 +141,8 @@ export const WorkshopCard = ({
               <div className="flex items-center mb-2 text-sm">
                 <span className="font-semibold text-gray-700">Kehadiran</span>
                 <span className="ml-auto text-gray-500 text-xs">
-                  {checkedIn} / {registered}
+                  {checkedIn}
+                  {workshop.quota > 0 ? ` / ${workshop.quota}` : ""}
                 </span>
               </div>
               <div className="bg-blue-100 rounded-full h-2 overflow-hidden">
@@ -105,7 +158,7 @@ export const WorkshopCard = ({
               <div className="flex items-center mb-2 text-sm">
                 <span className="font-semibold text-gray-700">Terdaftar</span>
                 <span className="ml-auto text-gray-500 text-xs">
-                  {registered} / {workshop.quota}
+                  {registered}
                 </span>
               </div>
               <div className="bg-blue-100 rounded-full h-2 overflow-hidden">
@@ -127,12 +180,22 @@ export const WorkshopCard = ({
               <div className="bg-blue-100 rounded-full h-2">
                 <div
                   className="bg-brand-500 h-full transition-all duration-500"
-                  style={{ width: `${Math.min(registeredPercentage, 100)}%` }}
+                  style={{ width: `${Math.min(checkInPercentage, 100)}%` }}
                 />
               </div>
             </div>
           </div>
         </div>
+
+        {/* Attendance slots: open to people without a booking while any is free */}
+        {slotsLeft !== null && (
+          <p className="mb-4 sm:mb-6 inline-flex items-center justify-center gap-1.5 text-gray-600 text-xs sm:text-sm">
+            <UserCheck className="w-4 h-4 text-brand-500 shrink-0" />
+            {slotsLeft > 0
+              ? `Slot kehadiran tersisa ${slotsLeft} dari ${workshop.quota}. Belum daftar? Tetap bisa check-in di lokasi selama slot masih ada.`
+              : "Slot kehadiran sudah penuh."}
+          </p>
+        )}
 
         {/* Action Button — only rendered in the visitor dashboard
             (public event page hides it via showRegisterButton=false). */}
