@@ -533,7 +533,29 @@ export class SouvenirsService {
     }
   }
 
-  async findOne(id: number) {
+  /** Superadmin or an approved OWNER/COMMITTEE of the event. */
+  private async isEventManager(
+    event_id: string,
+    userId: string,
+    role?: UserRole,
+  ): Promise<boolean> {
+    if (role === `SUPERADMIN`) return true;
+    const manager = await this.prisma.user_event_roles.findFirst({
+      where: {
+        event_id,
+        user_id: userId,
+        status: `APPROVED`,
+        role: { in: [`COMMITTEE`, `OWNER`] },
+      },
+    });
+    return !!manager;
+  }
+
+  /**
+   * One redemption. Visible to its owner and to the event's managers only: it
+   * carries the redeemer's profile, so it must not be readable by any visitor.
+   */
+  async findOne(id: number, userId: string, role?: UserRole) {
     try {
       const findSouvenirs = await this.prisma.souvenirs.findFirst({
         where: { id },
@@ -546,6 +568,14 @@ export class SouvenirsService {
 
       if (!findSouvenirs)
         throw new NotFoundException(`Souvenir doesn't exists`);
+      if (
+        findSouvenirs.user_id !== userId &&
+        !(await this.isEventManager(findSouvenirs.event_id, userId, role))
+      ) {
+        throw new ForbiddenException(
+          `You are not allowed to view this souvenir`,
+        );
+      }
       return {
         success: true,
         message: `Souvenir has been retrieved`,
@@ -557,7 +587,12 @@ export class SouvenirsService {
     }
   }
 
-  async remove(id: number) {
+  /**
+   * Cancels a redemption (frees the visitor's one-per-event slot and the item's
+   * stock). Event managers and superadmins only — never the redeemer, or the
+   * one-souvenir-per-account rule could be undone by deleting one's own row.
+   */
+  async remove(id: number, userId: string, role?: UserRole) {
     try {
       const findSouvenirs = await this.prisma.souvenirs.findFirst({
         where: { id },
@@ -570,6 +605,11 @@ export class SouvenirsService {
 
       if (!findSouvenirs)
         throw new NotFoundException(`Souvenir doesn't exists`);
+      if (!(await this.isEventManager(findSouvenirs.event_id, userId, role))) {
+        throw new ForbiddenException(
+          `You are not allowed to remove this souvenir`,
+        );
+      }
       const dropSouvenir = await this.prisma.souvenirs.delete({
         where: { id },
       });
