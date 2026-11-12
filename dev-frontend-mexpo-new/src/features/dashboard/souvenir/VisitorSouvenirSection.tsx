@@ -11,6 +11,7 @@ import {
   Loader2,
   Lock,
   Package,
+  QrCode,
   Sparkles,
   Store,
   BookOpen,
@@ -58,7 +59,16 @@ export default function VisitorSouvenirSection({ event, onNavigate }: Props) {
   const { data, isLoading, isError, error, refetch } = useApiQuery<MySouvenir>(
     keys.souvenir.my(event.uuid),
     () => getMySouvenir(event.uuid),
-    { retry: 0, enabled: Boolean(event.uuid) },
+    {
+      retry: 0,
+      enabled: Boolean(event.uuid),
+      // While the voucher is waiting at the counter, check now and then so the
+      // card flips to "Sudah diambil" without a reload once staff scan it.
+      refetchInterval: (query) => {
+        const d = query.state.data;
+        return d?.enabled && d.redeemed?.status === "READY" ? 10_000 : false;
+      },
+    },
   );
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -143,22 +153,61 @@ export default function VisitorSouvenirSection({ event, onNavigate }: Props) {
         </div>
       </section>
 
-      {/* ── Already redeemed ── */}
+      {/* ── Redeemed: voucher QR for the counter ── */}
       {redeemed && (
-        <section className="flex items-center gap-4 rounded-2xl border border-success-200 bg-success-50 p-4">
-          <div className="relative flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white text-success-500">
-            {redeemed.image ? (
-              <Image src={redeemed.image} alt={redeemed.name} fill sizes="64px" className="object-cover" />
-            ) : (
-              <CheckCircle2 className="h-7 w-7" />
-            )}
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-xs font-semibold uppercase tracking-wide text-success-700">Souvenir sudah ditukar</p>
-            <p className="truncate text-base font-bold text-gray-900">{redeemed.name}</p>
-            <p className="text-xs text-gray-600">
-              {redeemed.pointsSpent} poin · {formatDateTime(redeemed.at)}. Tunjukkan QR-mu di meja souvenir untuk mengambilnya.
-            </p>
+        <section className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+          <div className="flex flex-col items-center gap-5 sm:flex-row sm:items-start">
+            <div className="shrink-0 rounded-2xl border border-gray-200 bg-white p-3">
+              {redeemed.qr ? (
+                // QR is a data URL, so next/image optimization does not apply.
+                <Image
+                  src={redeemed.qr}
+                  alt={`QR penukaran ${redeemed.name}`}
+                  width={176}
+                  height={176}
+                  unoptimized
+                  className={`h-44 w-44 ${redeemed.status === "COLLECTED" ? "opacity-30" : ""}`}
+                />
+              ) : (
+                <div className="flex h-44 w-44 items-center justify-center text-success-500">
+                  <CheckCircle2 className="h-12 w-12" />
+                </div>
+              )}
+            </div>
+            <div className="min-w-0 flex-1 text-center sm:text-left">
+              <span
+                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${
+                  redeemed.status === "COLLECTED"
+                    ? "bg-success-50 text-success-700"
+                    : "bg-brand-50 text-brand-700"
+                }`}
+              >
+                {redeemed.status === "COLLECTED" ? (
+                  <>
+                    <CheckCircle2 className="h-3.5 w-3.5" /> Sudah diambil
+                    {redeemed.collectedAt ? ` · ${formatDateTime(redeemed.collectedAt)}` : ""}
+                  </>
+                ) : (
+                  <>
+                    <QrCode className="h-3.5 w-3.5" /> Menunggu diambil
+                  </>
+                )}
+              </span>
+              <p className="mt-2 text-lg font-extrabold text-gray-900">{redeemed.name}</p>
+              <p className="text-xs text-gray-500">
+                {redeemed.pointsSpent} poin · ditukar {formatDateTime(redeemed.at)}
+              </p>
+              <p className="mt-3 text-sm leading-relaxed text-gray-600">
+                {redeemed.status === "COLLECTED"
+                  ? "Souvenir sudah diserahkan oleh panitia. Terima kasih!"
+                  : "Tunjukkan QR ini ke panitia di tempat penukaran untuk mengambil souvenirmu. QR hanya bisa dipakai satu kali."}
+              </p>
+              {redeemed.code && (
+                <p className="mt-3 inline-block rounded-lg bg-gray-50 px-3 py-1.5 font-mono text-sm font-bold tracking-wider text-gray-800">
+                  {redeemed.code}
+                </p>
+              )}
+            </div>
           </div>
         </section>
       )}
@@ -202,7 +251,9 @@ export default function VisitorSouvenirSection({ event, onNavigate }: Props) {
       <section>
         <h3 className="text-base font-bold text-gray-900">Tukarkan dengan poin</h3>
         <p className="mb-3 mt-0.5 text-xs text-gray-500">
-          Setiap akun hanya bisa menukar satu souvenir per event, dan poin hanya berlaku untuk satu item.
+          {canRedeem
+            ? "Setiap akun hanya bisa menukar satu souvenir per event, dan poin hanya berlaku untuk satu item."
+            : "Kamu sudah menukar poin di event ini, jadi semua item lain tidak bisa ditukar lagi."}
         </p>
         {items.length === 0 ? (
           <p className="rounded-xl border border-gray-100 bg-white p-6 text-center text-sm text-gray-500">
@@ -355,7 +406,10 @@ function SouvenirCard({
       onClick={onSelect}
       className={`group relative flex flex-col overflow-hidden rounded-2xl border bg-white text-left shadow-sm transition ${
         selected ? "border-secondary ring-2 ring-secondary" : "border-gray-100"
-      } ${selectable ? "cursor-pointer hover:shadow-md" : "cursor-not-allowed"}`}
+      } ${selectable ? "cursor-pointer hover:shadow-md" : "cursor-not-allowed"} ${
+        // Once redeemed, every other item is closed for this account.
+        !canRedeem && !redeemedHere ? "opacity-50" : ""
+      }`}
     >
       <div className={`relative aspect-square bg-gray-50 ${unavailable || locked ? "opacity-60" : ""}`}>
         {item.image ? (
