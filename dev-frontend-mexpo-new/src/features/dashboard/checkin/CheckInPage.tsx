@@ -135,11 +135,6 @@ export default function CheckInPage({ event, workshops }: Props) {
         }
 
         const msg = attRes?.message || "";
-        // A visitor who never registered for the workshop is booked on the spot
-        // when a slot is free; the backend says so in `data.auto_booked`.
-        const autoBooked = Boolean(
-          (attRes as { data?: { auto_booked?: boolean } } | null)?.data?.auto_booked,
-        );
         const isAlready =
           msg.toLowerCase().includes("already saved") ||
           msg.toLowerCase().includes("sudah");
@@ -155,9 +150,7 @@ export default function CheckInPage({ event, workshops }: Props) {
           const successMsg =
             action === "out"
               ? `Check-out berhasil: ${resolvedData.user.full_name}`
-              : autoBooked
-                ? `Check-in berhasil: ${resolvedData.user.full_name}. ${msg}`
-                : `Check-in berhasil: ${resolvedData.user.full_name}`;
+              : `Check-in berhasil: ${resolvedData.user.full_name}`;
           setResult({ ok: true, message: successMsg });
 
           // Add to recent activity log
@@ -354,11 +347,10 @@ export default function CheckInPage({ event, workshops }: Props) {
 
                 <div className="flex items-center gap-2">
                   <span
-                    className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
-                      item.action === "out"
+                    className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${item.action === "out"
                         ? "bg-blue-50 text-blue-700"
                         : "bg-emerald-50 text-emerald-700"
-                    }`}
+                      }`}
                   >
                     <Clock className="h-3 w-3" />
                     {item.time}

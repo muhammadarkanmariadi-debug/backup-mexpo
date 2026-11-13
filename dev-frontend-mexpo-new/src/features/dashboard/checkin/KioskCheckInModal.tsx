@@ -141,9 +141,6 @@ export default function KioskCheckInModal({
         }
 
         const msg = attRes?.message || "";
-        const autoBooked = Boolean(
-          (attRes as { data?: { auto_booked?: boolean } } | null)?.data?.auto_booked,
-        );
         const isAlready =
           msg.toLowerCase().includes("already saved") ||
           msg.toLowerCase().includes("sudah");
@@ -164,9 +161,7 @@ export default function KioskCheckInModal({
             message:
               curAction === "out"
                 ? "Check-out berhasil dicatat."
-                : autoBooked
-                  ? "Check-in berhasil. Anda otomatis didaftarkan ke lokakarya ini. Selamat menikmati acara!"
-                  : "Check-in berhasil. Selamat menikmati acara!",
+                : "Check-in berhasil. Selamat menikmati acara!",
             user: resolved.user,
           });
           curOnSuccess?.(resolved, msg || "Check-in berhasil");
@@ -179,10 +174,10 @@ export default function KioskCheckInModal({
           message: err instanceof Error ? err.message : "Terjadi kesalahan sistem.",
         });
       } finally {
-        // Automatically dismiss feedback popup after 2.8 seconds and unlock processing
+        // Automatically dismiss feedback popup after 2.5 seconds and unlock processing
         feedbackTimeoutRef.current = setTimeout(() => {
           dismissFeedback();
-        }, 1800);
+        }, 2500);
       }
     },
     [dismissFeedback],
@@ -430,7 +425,7 @@ export default function KioskCheckInModal({
 
               {/* Auto-dismiss footer */}
               <div className="mt-4 flex items-center justify-between text-[11px] opacity-60">
-                <span>Auto-reset dalam 2.8 detik</span>
+                <span>Auto-reset dalam 2.5 detik</span>
                 <span onClick={dismissFeedback} className="hover:underline cursor-pointer">
                   Ketuk untuk lanjut
                 </span>
