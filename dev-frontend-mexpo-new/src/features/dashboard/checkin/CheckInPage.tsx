@@ -228,8 +228,8 @@ export default function CheckInPage({ event, workshops }: Props) {
           variant="outline"
           size="sm"
           onClick={() => setIsKioskOpen(true)}
-          startIcon={<Maximize2 className="h-4 w-4 text-emerald-600" />}
-          className="self-start sm:self-auto border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+          startIcon={<Maximize2 className="h-4 w-4 text-brand-500" />}
+          className="self-start sm:self-auto border-brand-200 text-brand-700 hover:bg-brand-50 hover:border-brand-300"
         >
           Mode Kiosk (Self Check-in)
         </Button>

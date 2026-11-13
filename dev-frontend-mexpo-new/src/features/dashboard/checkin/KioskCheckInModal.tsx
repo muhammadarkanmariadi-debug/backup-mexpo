@@ -282,32 +282,39 @@ export default function KioskCheckInModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col justify-between bg-slate-950 p-6 text-white sm:p-10">
+    <div className="fixed inset-0 z-[1200] flex flex-col justify-between bg-gray-950 bg-[radial-gradient(ellipse_80%_60%_at_50%_-10%,rgba(60,133,243,0.18),rgba(12,17,29,1))] p-4 sm:p-8 text-white select-none">
       {/* Top Header */}
-      <div className="flex items-center justify-between border-b border-slate-800 pb-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="flex h-2.5 w-2.5 rounded-full bg-emerald-400 animate-pulse" />
-            <h1 className="text-xl font-bold tracking-tight text-white sm:text-2xl">
-              {event.name}
-            </h1>
+      <div className="flex items-center justify-between border-b border-gray-800/80 pb-4 shrink-0">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-500/15 border border-brand-500/30 text-brand-400 shadow-xs">
+            <ScanLine className="h-5 w-5" />
           </div>
-          <p className="mt-1 text-sm text-slate-400">
-            {mode === "workshop" && workshop
-              ? `Lokakarya: ${workshop.title} • `
-              : "Gerbang Utama • "}
-            {action === "out" ? "Self Check-out" : "Self Check-in Mandiri"}
-          </p>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="flex h-2 w-2 rounded-full bg-brand-500 animate-pulse" />
+              <h1 className="text-base sm:text-xl font-bold font-outfit tracking-tight text-white line-clamp-1">
+                {event.name}
+              </h1>
+            </div>
+            <p className="mt-0.5 text-xs text-gray-400 font-jakarta">
+              {mode === "workshop" && workshop
+                ? `Lokakarya: ${workshop.title} • `
+                : "Gerbang Utama • "}
+              <span className="text-brand-400 font-medium">
+                {action === "out" ? "Self Check-out" : "Self Check-in Mandiri"}
+              </span>
+            </p>
+          </div>
         </div>
 
         <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={() => void toggleCameraFacing()}
-            className="flex items-center gap-1.5 rounded-xl border border-slate-700 bg-slate-900/80 px-3 py-2 text-sm font-medium text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
+            className="flex items-center gap-1.5 rounded-xl border border-gray-800 bg-gray-900/90 px-3 py-2 text-xs sm:text-sm font-medium text-gray-300 transition-all hover:bg-gray-800 hover:border-gray-700 hover:text-white shadow-xs"
             title={`Ganti ke kamera ${facingMode === "user" ? "belakang" : "depan"}`}
           >
-            <SwitchCamera className="h-4 w-4" />
+            <SwitchCamera className="h-4 w-4 text-brand-400" />
             <span className="hidden sm:inline">
               {facingMode === "user" ? "Kamera Belakang" : "Kamera Depan"}
             </span>
@@ -319,7 +326,7 @@ export default function KioskCheckInModal({
               void stopCamera();
               onClose();
             }}
-            className="flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-900/80 px-4 py-2 text-sm font-medium text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
+            className="flex items-center gap-1.5 rounded-xl border border-gray-800 bg-gray-900/90 px-3.5 py-2 text-xs sm:text-sm font-medium text-gray-300 transition-all hover:bg-gray-800 hover:border-gray-700 hover:text-white shadow-xs"
           >
             <Minimize2 className="h-4 w-4" />
             <span>Keluar Kiosk</span>
@@ -328,30 +335,37 @@ export default function KioskCheckInModal({
       </div>
 
       {/* Main Viewfinder Center */}
-      <div className="relative my-auto flex flex-col items-center justify-center">
-        <div className="relative w-full max-w-sm">
-          {/* Animated Target Frame Corners */}
-          <div className="pointer-events-none absolute -inset-2 z-10 rounded-2xl border-2 border-emerald-500/30" />
-          <div className="overflow-hidden rounded-2xl border-2 border-slate-700 bg-slate-900 shadow-2xl">
+      <div className="relative my-auto flex flex-col items-center justify-center py-2">
+        <div className="relative w-full max-w-[270px] sm:max-w-sm">
+          {/* Animated Target Frame Corners - Mexpo Brand Accents */}
+          <div className="pointer-events-none absolute -inset-2.5 z-10 rounded-2xl border-2 border-brand-500/40 shadow-[0_0_25px_rgba(60,133,243,0.2)]" />
+          
+          {/* Corner brackets */}
+          <div className="pointer-events-none absolute -top-3 -left-3 z-15 h-5 w-5 border-t-2 border-l-2 border-brand-400 rounded-tl-lg" />
+          <div className="pointer-events-none absolute -top-3 -right-3 z-15 h-5 w-5 border-t-2 border-r-2 border-brand-400 rounded-tr-lg" />
+          <div className="pointer-events-none absolute -bottom-3 -left-3 z-15 h-5 w-5 border-b-2 border-l-2 border-brand-400 rounded-bl-lg" />
+          <div className="pointer-events-none absolute -bottom-3 -right-3 z-15 h-5 w-5 border-b-2 border-r-2 border-brand-400 rounded-br-lg" />
+
+          <div className="overflow-hidden rounded-2xl border border-gray-800 bg-gray-900/90 shadow-2xl">
             <div id="kiosk-qr-reader" className="w-full aspect-square" />
           </div>
 
-          {/* Scanner Overlay Line */}
+          {/* Scanner Overlay Laser Line */}
           {scanning && !feedback && (
-            <div className="pointer-events-none absolute inset-x-4 top-1/2 -translate-y-1/2 flex items-center justify-center">
-              <span className="h-0.5 w-full bg-gradient-to-r from-transparent via-emerald-400 to-transparent animate-pulse" />
+            <div className="pointer-events-none absolute inset-x-3 top-1/2 -translate-y-1/2 flex items-center justify-center">
+              <span className="h-0.5 w-full bg-gradient-to-r from-transparent via-brand-400 to-transparent shadow-[0_0_12px_rgba(60,133,243,0.8)] animate-pulse" />
             </div>
           )}
         </div>
 
         {/* Dynamic Instruction */}
         {!feedback && (
-          <div className="mt-6 text-center">
-            <p className="text-lg font-semibold text-slate-200">
+          <div className="mt-5 text-center px-4">
+            <p className="text-base sm:text-lg font-bold font-outfit text-gray-100">
               Arahkan QR Code Tiket Anda ke Kamera
             </p>
-            <p className="mt-1 text-sm text-slate-400">
-              Posisikan QR di tengah kotak pemindai untuk check-in instan otomatis
+            <p className="mt-1 text-xs sm:text-sm text-gray-400 font-jakarta max-w-xs sm:max-w-md mx-auto">
+              Posisikan QR di tengah kotak pemindai untuk presensi mandiri instan
             </p>
           </div>
         )}
@@ -361,72 +375,86 @@ export default function KioskCheckInModal({
           <div
             onClick={dismissFeedback}
             className="absolute inset-0 z-20 flex cursor-pointer items-center justify-center p-4 backdrop-blur-xs"
-            title="Klik untuk menutup"
+            title="Ketuk untuk menutup"
           >
             <div
               onClick={(e) => e.stopPropagation()}
               className={`relative w-full max-w-md rounded-2xl p-6 text-center shadow-2xl backdrop-blur-md transition-all animate-in zoom-in-95 duration-200 ${feedback.type === "success"
-                ? "border border-emerald-500/40 bg-emerald-950/95 text-emerald-50"
+                ? "border border-success-500/40 bg-gradient-to-b from-success-950/95 via-gray-950/95 to-gray-950/95 text-white shadow-[0_0_35px_rgba(18,183,106,0.25)]"
                 : feedback.type === "warning"
-                  ? "border border-amber-500/40 bg-amber-950/95 text-amber-50"
-                  : "border border-rose-500/40 bg-rose-950/95 text-rose-50"
+                  ? "border border-warning-500/40 bg-gradient-to-b from-warning-950/95 via-gray-950/95 to-gray-950/95 text-white shadow-[0_0_35px_rgba(247,144,9,0.25)]"
+                  : "border border-error-500/40 bg-gradient-to-b from-error-950/95 via-gray-950/95 to-gray-950/95 text-white shadow-[0_0_35px_rgba(240,68,56,0.25)]"
                 }`}
             >
               <button
                 type="button"
                 onClick={dismissFeedback}
-                className="absolute right-3.5 top-3.5 rounded-lg p-1.5 text-white/60 transition-colors hover:bg-white/10 hover:text-white"
+                className="absolute right-3.5 top-3.5 rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-white/10 hover:text-white"
                 title="Tutup"
               >
                 <X className="h-4 w-4" />
               </button>
 
-              <div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-white/10">
+              <div
+                className={`mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-full border ${
+                  feedback.type === "success"
+                    ? "bg-success-500/15 border-success-500/30 text-success-400"
+                    : feedback.type === "warning"
+                      ? "bg-warning-500/15 border-warning-500/30 text-warning-400"
+                      : "bg-error-500/15 border-error-500/30 text-error-400"
+                }`}
+              >
                 {feedback.type === "success" ? (
-                  <CheckCircle2 className="h-10 w-10 text-emerald-400" />
+                  <CheckCircle2 className="h-9 w-9" />
                 ) : feedback.type === "warning" ? (
-                  <AlertCircle className="h-10 w-10 text-amber-400" />
+                  <AlertCircle className="h-9 w-9" />
                 ) : (
-                  <XCircle className="h-10 w-10 text-rose-400" />
+                  <XCircle className="h-9 w-9" />
                 )}
               </div>
 
-              <h2 className="text-2xl font-bold tracking-tight">
+              <h2 className="text-xl sm:text-2xl font-bold font-outfit tracking-tight">
                 {feedback.title}
               </h2>
 
               {feedback.user && (
-                <div className="my-3 flex items-center justify-center gap-3 rounded-xl bg-white/10 p-3 text-left">
+                <div className="my-3.5 flex items-center justify-center gap-3 rounded-xl border border-white/10 bg-white/5 p-3 text-left backdrop-blur-xs">
                   {feedback.user.photo ? (
                     <Image
                       src={feedback.user.photo}
                       alt={feedback.user.full_name}
                       width={44}
                       height={44}
-                      className="h-11 w-11 rounded-full object-cover"
+                      className="h-11 w-11 rounded-full object-cover ring-2 ring-brand-500/40"
                     />
                   ) : (
-                    <div className="flex h-11 w-11 items-center justify-center rounded-full bg-white/20">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-full bg-brand-500/20 text-brand-300 ring-2 ring-brand-500/30">
                       <User className="h-5 w-5" />
                     </div>
                   )}
                   <div className="min-w-0 flex-1">
-                    <p className="truncate font-semibold text-white">
+                    <p className="truncate font-semibold font-outfit text-white text-sm sm:text-base">
                       {feedback.user.full_name}
                     </p>
-                    <p className="truncate text-xs opacity-80">
+                    <p className="truncate text-xs text-gray-300 font-jakarta">
                       {feedback.user.email}
                     </p>
                   </div>
                 </div>
               )}
 
-              <p className="text-sm opacity-90">{feedback.message}</p>
+              <p className="text-sm text-gray-200 font-jakarta opacity-90">{feedback.message}</p>
 
               {/* Auto-dismiss footer */}
-              <div className="mt-4 flex items-center justify-between text-[11px] opacity-60">
-                <span>Auto-reset dalam 2.5 detik</span>
-                <span onClick={dismissFeedback} className="hover:underline cursor-pointer">
+              <div className="mt-4 flex items-center justify-between text-[11px] text-gray-400 font-jakarta border-t border-white/10 pt-3">
+                <span className="flex items-center gap-1.5">
+                  <span className="h-1.5 w-1.5 rounded-full bg-brand-400 animate-pulse" />
+                  Auto-reset dalam 2.5 detik
+                </span>
+                <span
+                  onClick={dismissFeedback}
+                  className="text-gray-300 hover:text-white underline cursor-pointer transition-colors"
+                >
                   Ketuk untuk lanjut
                 </span>
               </div>
@@ -436,12 +464,15 @@ export default function KioskCheckInModal({
       </div>
 
       {/* Footer Info */}
-      <div className="flex items-center justify-between border-t border-slate-800 pt-4 text-xs text-slate-500">
-        <span className="flex items-center gap-1.5">
-          <Sparkles className="h-3.5 w-3.5 text-emerald-400" />
+      <div className="flex items-center justify-between border-t border-gray-800/80 pt-3 text-xs text-gray-400 font-jakarta shrink-0">
+        <span className="flex items-center gap-2">
+          <Sparkles className="h-3.5 w-3.5 text-brand-400" />
           <span>Zero-Touch Self Check-in Kiosk System</span>
         </span>
-        <span>Mexpo Event OS</span>
+        <span className="flex items-center gap-1.5 font-medium">
+          <span className="text-brand-400 font-bold font-outfit">Mexpo</span>
+          <span className="text-gray-400">Event OS</span>
+        </span>
       </div>
     </div>
   );
