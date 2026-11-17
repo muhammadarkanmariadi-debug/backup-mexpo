@@ -1,4 +1,4 @@
-  #!/usr/bin/env node
+#!/usr/bin/env node
 /**
  * Satu perintah untuk menjalankan Mexpo (Backend + Frontend).
  *
@@ -12,15 +12,24 @@
  * Tidak ada dependency tambahan; hanya Node.js bawaan.
  */
 import { spawn, spawnSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
-import net from "node:net";
+import { existsSync } from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
-
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const BE = path.join(ROOT, "dev-backend-mexpo-new");
-const FE = path.join(ROOT, "dev-frontend-mexpo-new");
-const IS_WIN = process.platform === "win32";
+import {
+  ROOT,
+  BE,
+  FE,
+  IS_WIN,
+  info,
+  ok,
+  fail,
+  run,
+  readEnv,
+  canConnect,
+  waitFor,
+  dbTarget,
+  ensureDeps,
+  checkAppPorts,
+} from "./lib/runner-utils.mjs";
 
 const args = process.argv.slice(2);
 const flag = (name) => args.includes(`--${name}`);
@@ -41,75 +50,6 @@ if (flag("help") || flag("h")) {
 
 const runBE = only !== "fe";
 const runFE = only !== "be";
-
-// ── helpers ────────────────────────────────────────────────────────────
-const c = (code, s) => `\x1b[${code}m${s}\x1b[0m`;
-const info = (m) => console.log(`${c(36, "▸")} ${m}`);
-const ok = (m) => console.log(`${c(32, "✔")} ${m}`);
-const warn = (m) => console.log(`${c(33, "!")} ${m}`);
-function fail(m) {
-  console.error(`${c(31, "✖")} ${m}`);
-  process.exit(1);
-}
-
-/** Jalankan perintah sinkron dengan output langsung; gagal -> keluar. */
-function run(cmd, cmdArgs, opts = {}) {
-  const r = spawnSync(cmd, cmdArgs, { stdio: "inherit", shell: IS_WIN, ...opts });
-  if (r.status !== 0) fail(`Perintah gagal: ${cmd} ${cmdArgs.join(" ")}`);
-}
-
-/** Parser .env sederhana (KEY=VALUE, komentar #, kutip opsional). */
-function readEnv(file) {
-  const out = {};
-  if (!existsSync(file)) return out;
-  for (const line of readFileSync(file, "utf8").split(/\r?\n/)) {
-    const m = line.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)\s*$/);
-    if (!m) continue;
-    let v = m[2];
-    if (!/^["']/.test(v)) v = v.replace(/\s+#.*$/, "");
-    out[m[1]] = v.replace(/^(["'])(.*)\1$/, "$2");
-  }
-  return out;
-}
-
-/** true bila ada yang listen/menerima koneksi di host:port. */
-function canConnect(host, port, timeout = 1500) {
-  return new Promise((resolve) => {
-    const s = net.connect({ host, port });
-    const done = (v) => {
-      s.destroy();
-      resolve(v);
-    };
-    s.setTimeout(timeout, () => done(false));
-    s.once("connect", () => done(true));
-    s.once("error", () => done(false));
-  });
-}
-
-async function waitFor(host, port, seconds) {
-  for (let i = 0; i < seconds; i++) {
-    if (await canConnect(host, port)) return true;
-    await new Promise((r) => setTimeout(r, 1000));
-  }
-  return false;
-}
-
-/** Ambil target koneksi DB dari DATABASE_URL atau DB_HOST/DB_PORT. */
-function dbTarget(env) {
-  const provider = (env.DB_PROVIDER || "").toLowerCase() === "mysql" ? "mysql" : "postgresql";
-  const defaultPort = provider === "mysql" ? 3306 : 5432;
-  if (env.DATABASE_URL) {
-    try {
-      const u = new URL(env.DATABASE_URL);
-      return { provider, host: u.hostname, port: Number(u.port) || defaultPort, via: "DATABASE_URL" };
-    } catch {
-      fail("DATABASE_URL di dev-backend-mexpo-new/.env tidak valid.");
-    }
-  }
-  if (!env.DB_HOST) fail("DB_HOST / DATABASE_URL belum diisi di dev-backend-mexpo-new/.env.");
-  return { provider, host: env.DB_HOST, port: Number(env.DB_PORT) || defaultPort, via: "DB_HOST/DB_PORT" };
-}
-
 const isLocal = (h) => ["localhost", "127.0.0.1", "::1", "0.0.0.0"].includes(h);
 
 if (only && !["be", "fe"].includes(only)) fail(`Nilai --only tidak dikenal: "${only}" (pakai be atau fe).`);
@@ -125,28 +65,12 @@ const beEnv = runBE ? readEnv(path.join(BE, ".env")) : {};
 ok(".env tersedia");
 
 // ── 2. dependency (hanya yang belum ter-install) ───────────────────────
-const needRoot = runBE && runFE;
-const installs = [
-  needRoot && ["root (concurrently)", ROOT],
-  runBE && ["backend", BE],
-  runFE && ["frontend", FE],
-].filter(Boolean);
-for (const [name, dir] of installs) {
-  if (existsSync(path.join(dir, "node_modules"))) continue;
-  info(`Install dependency ${name}...`);
-  run("npm", [existsSync(path.join(dir, "package-lock.json")) ? "ci" : "install", "--no-audit", "--no-fund"], { cwd: dir });
-}
-ok("Dependency lengkap");
+ensureDeps(runBE, runFE);
 
 // ── 3. port aplikasi masih kosong? ─────────────────────────────────────
 const bePort = Number(beEnv.PORT) || 3500;
 const fePort = 3000;
-if (runBE && (await canConnect("127.0.0.1", bePort, 500))) {
-  fail(`Port ${bePort} (backend) sudah dipakai proses lain. Hentikan dulu atau ubah PORT di backend .env.`);
-}
-if (runFE && (await canConnect("127.0.0.1", fePort, 500))) {
-  fail(`Port ${fePort} (frontend) sudah dipakai proses lain. Hentikan dulu proses tersebut.`);
-}
+await checkAppPorts(runBE, runFE, bePort, fePort);
 
 // ── 4. database ────────────────────────────────────────────────────────
 if (runBE) {

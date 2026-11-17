@@ -32,7 +32,7 @@ export default function CreateEventPage() {
       </div>
 
       {/* Main Stepper Form */}
-      <EventForm />
+      <EvevntForm />
     </PageShell>
   );
 }

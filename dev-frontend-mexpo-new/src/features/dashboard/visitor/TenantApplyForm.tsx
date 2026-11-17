@@ -58,11 +58,11 @@ export default function TenantApplyForm({ event }: { event: Event }) {
       if (!res.status) throw new Error(res.message || "Terjadi kesalahan yang tidak diketahui");
       
       toast.success("Pengajuan penyewa berhasil dikirim.");
-      router.push(`/dashboard/${event.slug ?? event.uuid}`);
-      router.refresh();
+      setTimeout(() => {
+        window.location.href = `/dashboard/${event.slug ?? event.uuid}`;
+      }, 500);
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Gagal mengajukan tenant.");
-    } finally {
       setBusy(false);
     }
   };

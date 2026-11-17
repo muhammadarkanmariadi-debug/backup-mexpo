@@ -8,6 +8,10 @@
     "dev": "concurrently -n \"BACKEND,FRONTEND\" -c \"cyan,magenta\" --kill-others-on-fail \"npm --prefix dev-backend-mexpo-new run start:dev\" \"npm --prefix dev-frontend-mexpo-new run dev\"",
     "dev:backend": "npm --prefix dev-backend-mexpo-new run start:dev",
     "dev:frontend": "npm --prefix dev-frontend-mexpo-new run dev",
+    "prod:all": "node scripts/prod-all.mjs",
+    "prod": "concurrently -n \"BACKEND,FRONTEND\" -c \"cyan,magenta\" --kill-others-on-fail \"npm --prefix dev-backend-mexpo-new run start:prod\" \"npm --prefix dev-frontend-mexpo-new run start\"",
+    "prod:backend": "npm --prefix dev-backend-mexpo-new run start:prod",
+    "prod:frontend": "npm --prefix dev-frontend-mexpo-new run start",
     "build": "npm --prefix dev-backend-mexpo-new run build && npm --prefix dev-frontend-mexpo-new run build",
     "build:backend": "npm --prefix dev-backend-mexpo-new run build",
     "build:frontend": "npm --prefix dev-frontend-mexpo-new run build",
@@ -23,4 +27,3 @@
     "concurrently": "^9.1.2"
   }
 }
-

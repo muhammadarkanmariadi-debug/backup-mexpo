@@ -352,23 +352,23 @@ export default function EventForm({ event }: Props) {
         ticket_mode: form.features.paidTicket ? ("PAID" as const) : ("FREE" as const),
         features: form.features,
         souvenir_rules: {
-              usePointSystem: true,
-              boothVisitPoint: {
-                enabled: souvenirRules.boothEnabled,
-                pointsPerVisit: Number(souvenirRules.pointsPerVisit) || 0,
-              },
-              seminarPoint: {
-                enabled: souvenirRules.seminarEnabled,
-                pointsPerSeminar: Number(souvenirRules.pointsPerSeminar) || 0,
-              },
-              transactionPoint: {
-                enabled: souvenirRules.txEnabled,
-                pointsPerTransaction: Number(souvenirRules.pointsPerTransaction) || 0,
-                amountStep: Number(souvenirRules.amountStep) || 0,
-                pointsPerAmountStep: Number(souvenirRules.pointsPerAmountStep) || 0,
-              },
-              tiers: event?.souvenir_rules?.tiers ?? [],
-            },
+          usePointSystem: true,
+          boothVisitPoint: {
+            enabled: souvenirRules.boothEnabled,
+            pointsPerVisit: Number(souvenirRules.pointsPerVisit) || 0,
+          },
+          seminarPoint: {
+            enabled: souvenirRules.seminarEnabled,
+            pointsPerSeminar: Number(souvenirRules.pointsPerSeminar) || 0,
+          },
+          transactionPoint: {
+            enabled: souvenirRules.txEnabled,
+            pointsPerTransaction: Number(souvenirRules.pointsPerTransaction) || 0,
+            amountStep: Number(souvenirRules.amountStep) || 0,
+            pointsPerAmountStep: Number(souvenirRules.pointsPerAmountStep) || 0,
+          },
+          tiers: event?.souvenir_rules?.tiers ?? [],
+        },
       };
 
       const res = isEdit
@@ -376,12 +376,16 @@ export default function EventForm({ event }: Props) {
         : await createEvent(payload, photo);
       if (!res.status) throw new Error(res.message || "Gagal menyimpan event");
 
+
       toast.success(isEdit ? "Event berhasil diperbarui." : "Event berhasil dibuat.");
-      router.push("/dashboard");
-      router.refresh();
+      // In Next.js 16 / React 19 App Router, router.push followed synchronously by router.refresh
+      // cancels the pending route transition in production builds. Using window.location.href ensures
+      // a guaranteed navigation to /dashboard with freshly rendered server components and data.
+      setTimeout(() => {
+        window.location.href = "/dashboard";
+      }, 500);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Terjadi kesalahan server");
-    } finally {
       setSubmitting(false);
     }
   };
@@ -389,7 +393,7 @@ export default function EventForm({ event }: Props) {
   return (
     <div className="bg-white rounded-3xl border border-blue-50 shadow-xl shadow-slate-100/70 p-6 sm:p-10 lg:p-12">
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
-        
+
         {/* ── Left Column: Illustration & Vertical Stepper ── */}
         <div className="lg:col-span-4 flex flex-col items-center lg:items-start lg:border-r lg:border-slate-100 lg:pr-8 py-2">
           {/* Calendar Illustration matching design */}
@@ -403,21 +407,19 @@ export default function EventForm({ event }: Props) {
               className="flex items-start gap-3.5 cursor-pointer group"
             >
               <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 transition-all ${
-                  currentStep === 1
-                    ? "bg-secondary text-white shadow-md shadow-secondary/30 ring-4 ring-blue-50"
-                    : currentStep > 1
+                className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 transition-all ${currentStep === 1
+                  ? "bg-secondary text-white shadow-md shadow-secondary/30 ring-4 ring-blue-50"
+                  : currentStep > 1
                     ? "bg-emerald-500 text-white"
                     : "bg-white border border-gray-300 text-gray-500"
-                }`}
+                  }`}
               >
                 {currentStep > 1 ? <Check className="w-4 h-4 stroke-3" /> : "1"}
               </div>
               <div className="min-w-0">
                 <p
-                  className={`text-sm font-bold transition-colors ${
-                    currentStep === 1 ? "text-gray-900" : "text-gray-600 group-hover:text-gray-900"
-                  }`}
+                  className={`text-sm font-bold transition-colors ${currentStep === 1 ? "text-gray-900" : "text-gray-600 group-hover:text-gray-900"
+                    }`}
                 >
                   Informasi Dasar
                 </p>
@@ -435,21 +437,19 @@ export default function EventForm({ event }: Props) {
               className="flex items-start gap-3.5 cursor-pointer group"
             >
               <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 transition-all ${
-                  currentStep === 2
-                    ? "bg-secondary text-white shadow-md shadow-secondary/30 ring-4 ring-blue-50"
-                    : currentStep > 2
+                className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 transition-all ${currentStep === 2
+                  ? "bg-secondary text-white shadow-md shadow-secondary/30 ring-4 ring-blue-50"
+                  : currentStep > 2
                     ? "bg-emerald-500 text-white"
                     : "bg-white border border-gray-300 text-gray-400"
-                }`}
+                  }`}
               >
                 {currentStep > 2 ? <Check className="w-4 h-4 stroke-3" /> : "2"}
               </div>
               <div className="min-w-0">
                 <p
-                  className={`text-sm font-bold transition-colors ${
-                    currentStep === 2 ? "text-gray-900" : "text-gray-600 group-hover:text-gray-900"
-                  }`}
+                  className={`text-sm font-bold transition-colors ${currentStep === 2 ? "text-gray-900" : "text-gray-600 group-hover:text-gray-900"
+                    }`}
                 >
                   Detail Event
                 </p>
@@ -467,19 +467,17 @@ export default function EventForm({ event }: Props) {
               className="flex items-start gap-3.5 cursor-pointer group"
             >
               <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 transition-all ${
-                  currentStep === 3
-                    ? "bg-secondary text-white shadow-md shadow-secondary/30 ring-4 ring-blue-50"
-                    : "bg-white border border-gray-300 text-gray-400"
-                }`}
+                className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 transition-all ${currentStep === 3
+                  ? "bg-secondary text-white shadow-md shadow-secondary/30 ring-4 ring-blue-50"
+                  : "bg-white border border-gray-300 text-gray-400"
+                  }`}
               >
                 3
               </div>
               <div className="min-w-0">
                 <p
-                  className={`text-sm font-bold transition-colors ${
-                    currentStep === 3 ? "text-gray-900" : "text-gray-600 group-hover:text-gray-900"
-                  }`}
+                  className={`text-sm font-bold transition-colors ${currentStep === 3 ? "text-gray-900" : "text-gray-600 group-hover:text-gray-900"
+                    }`}
                 >
                   Publikasi
                 </p>
@@ -852,11 +850,10 @@ export default function EventForm({ event }: Props) {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div
                       onClick={() => setField("visibility", "PUBLIC")}
-                      className={`p-4 rounded-2xl border-2 transition-all cursor-pointer flex items-start gap-3 ${
-                        form.visibility === "PUBLIC"
-                          ? "border-secondary bg-blue-50/50"
-                          : "border-gray-200 bg-white hover:border-gray-300"
-                      }`}
+                      className={`p-4 rounded-2xl border-2 transition-all cursor-pointer flex items-start gap-3 ${form.visibility === "PUBLIC"
+                        ? "border-secondary bg-blue-50/50"
+                        : "border-gray-200 bg-white hover:border-gray-300"
+                        }`}
                     >
                       <Globe className={`w-5 h-5 mt-0.5 ${form.visibility === "PUBLIC" ? "text-secondary" : "text-gray-400"}`} />
                       <div>
@@ -869,11 +866,10 @@ export default function EventForm({ event }: Props) {
 
                     <div
                       onClick={() => setField("visibility", "PRIVATE")}
-                      className={`p-4 rounded-2xl border-2 transition-all cursor-pointer flex items-start gap-3 ${
-                        form.visibility === "PRIVATE"
-                          ? "border-secondary bg-blue-50/50"
-                          : "border-gray-200 bg-white hover:border-gray-300"
-                      }`}
+                      className={`p-4 rounded-2xl border-2 transition-all cursor-pointer flex items-start gap-3 ${form.visibility === "PRIVATE"
+                        ? "border-secondary bg-blue-50/50"
+                        : "border-gray-200 bg-white hover:border-gray-300"
+                        }`}
                     >
                       <Lock className={`w-5 h-5 mt-0.5 ${form.visibility === "PRIVATE" ? "text-secondary" : "text-gray-400"}`} />
                       <div>
@@ -895,11 +891,10 @@ export default function EventForm({ event }: Props) {
                     {FEATURE_KEYS.map(({ key, label, desc }) => (
                       <label
                         key={key}
-                        className={`flex items-start gap-3 p-3.5 rounded-2xl border transition-all cursor-pointer ${
-                          form.features[key]
-                            ? "border-secondary/40 bg-blue-50/30"
-                            : "border-gray-200 bg-white hover:bg-gray-50"
-                        }`}
+                        className={`flex items-start gap-3 p-3.5 rounded-2xl border transition-all cursor-pointer ${form.features[key]
+                          ? "border-secondary/40 bg-blue-50/30"
+                          : "border-gray-200 bg-white hover:bg-gray-50"
+                          }`}
                       >
                         <input
                           type="checkbox"
@@ -925,116 +920,116 @@ export default function EventForm({ event }: Props) {
                     <p className="text-[11px] text-gray-500">
                       Pengunjung mengumpulkan poin dari aktivitas, lalu menukarnya dengan item di katalog souvenir.
                     </p>
-                      <div className="space-y-4">
-                        {/* Sumber poin */}
-                        <div className="space-y-3">
-                          <p className="text-xs font-bold text-gray-700">Sumber Perolehan Poin</p>
+                    <div className="space-y-4">
+                      {/* Sumber poin */}
+                      <div className="space-y-3">
+                        <p className="text-xs font-bold text-gray-700">Sumber Perolehan Poin</p>
 
-                          <div className="rounded-xl border border-gray-200 bg-white p-3 space-y-2">
-                            <label className="flex items-center gap-2 text-xs font-semibold cursor-pointer">
-                              <input
-                                type="checkbox"
-                                checked={souvenirRules.boothEnabled}
-                                onChange={(e) =>
-                                  setSouvenirRules({ ...souvenirRules, boothEnabled: e.target.checked })
-                                }
-                              />
-                              Kunjungan Booth
-                            </label>
-                            {souvenirRules.boothEnabled && (
+                        <div className="rounded-xl border border-gray-200 bg-white p-3 space-y-2">
+                          <label className="flex items-center gap-2 text-xs font-semibold cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={souvenirRules.boothEnabled}
+                              onChange={(e) =>
+                                setSouvenirRules({ ...souvenirRules, boothEnabled: e.target.checked })
+                              }
+                            />
+                            Kunjungan Booth
+                          </label>
+                          {souvenirRules.boothEnabled && (
+                            <FormattedNumberInput
+                              label="Poin per Booth yang Dikunjungi"
+                              value={Number(souvenirRules.pointsPerVisit) || 0}
+                              onChange={(val) =>
+                                setSouvenirRules({ ...souvenirRules, pointsPerVisit: Number(val) })
+                              }
+                              suffix="Poin"
+                              placeholder="10"
+                            />
+                          )}
+                        </div>
+
+                        <div className="rounded-xl border border-gray-200 bg-white p-3 space-y-2">
+                          <label className="flex items-center gap-2 text-xs font-semibold cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={souvenirRules.seminarEnabled}
+                              onChange={(e) =>
+                                setSouvenirRules({ ...souvenirRules, seminarEnabled: e.target.checked })
+                              }
+                            />
+                            Mengikuti Seminar / Workshop
+                          </label>
+                          {souvenirRules.seminarEnabled && (
+                            <FormattedNumberInput
+                              label="Poin per Seminar/Workshop yang Diikuti"
+                              value={Number(souvenirRules.pointsPerSeminar) || 0}
+                              onChange={(val) =>
+                                setSouvenirRules({ ...souvenirRules, pointsPerSeminar: Number(val) })
+                              }
+                              suffix="Poin"
+                              placeholder="25"
+                            />
+                          )}
+                        </div>
+
+                        <div className="rounded-xl border border-gray-200 bg-white p-3 space-y-2">
+                          <label className="flex items-center gap-2 text-xs font-semibold cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={souvenirRules.txEnabled}
+                              onChange={(e) =>
+                                setSouvenirRules({ ...souvenirRules, txEnabled: e.target.checked })
+                              }
+                            />
+                            Transaksi Pembelian
+                          </label>
+                          {souvenirRules.txEnabled && (
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                               <FormattedNumberInput
-                                label="Poin per Booth yang Dikunjungi"
-                                value={Number(souvenirRules.pointsPerVisit) || 0}
+                                label="Poin per Transaksi"
+                                value={Number(souvenirRules.pointsPerTransaction) || 0}
                                 onChange={(val) =>
-                                  setSouvenirRules({ ...souvenirRules, pointsPerVisit: Number(val) })
+                                  setSouvenirRules({ ...souvenirRules, pointsPerTransaction: Number(val) })
+                                }
+                                suffix="Poin"
+                                placeholder="0"
+                              />
+                              <CurrencyInput
+                                label="Kelipatan Nominal"
+                                value={Number(souvenirRules.amountStep) || 0}
+                                onChange={(val) =>
+                                  setSouvenirRules({ ...souvenirRules, amountStep: Number(val) })
+                                }
+                                placeholder="50000"
+                                hint="0 = nonaktif"
+                              />
+                              <FormattedNumberInput
+                                label="Poin per Kelipatan"
+                                value={Number(souvenirRules.pointsPerAmountStep) || 0}
+                                onChange={(val) =>
+                                  setSouvenirRules({ ...souvenirRules, pointsPerAmountStep: Number(val) })
                                 }
                                 suffix="Poin"
                                 placeholder="10"
                               />
-                            )}
-                          </div>
-
-                          <div className="rounded-xl border border-gray-200 bg-white p-3 space-y-2">
-                            <label className="flex items-center gap-2 text-xs font-semibold cursor-pointer">
-                              <input
-                                type="checkbox"
-                                checked={souvenirRules.seminarEnabled}
-                                onChange={(e) =>
-                                  setSouvenirRules({ ...souvenirRules, seminarEnabled: e.target.checked })
-                                }
-                              />
-                              Mengikuti Seminar / Workshop
-                            </label>
-                            {souvenirRules.seminarEnabled && (
-                              <FormattedNumberInput
-                                label="Poin per Seminar/Workshop yang Diikuti"
-                                value={Number(souvenirRules.pointsPerSeminar) || 0}
-                                onChange={(val) =>
-                                  setSouvenirRules({ ...souvenirRules, pointsPerSeminar: Number(val) })
-                                }
-                                suffix="Poin"
-                                placeholder="25"
-                              />
-                            )}
-                          </div>
-
-                          <div className="rounded-xl border border-gray-200 bg-white p-3 space-y-2">
-                            <label className="flex items-center gap-2 text-xs font-semibold cursor-pointer">
-                              <input
-                                type="checkbox"
-                                checked={souvenirRules.txEnabled}
-                                onChange={(e) =>
-                                  setSouvenirRules({ ...souvenirRules, txEnabled: e.target.checked })
-                                }
-                              />
-                              Transaksi Pembelian
-                            </label>
-                            {souvenirRules.txEnabled && (
-                              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                                <FormattedNumberInput
-                                  label="Poin per Transaksi"
-                                  value={Number(souvenirRules.pointsPerTransaction) || 0}
-                                  onChange={(val) =>
-                                    setSouvenirRules({ ...souvenirRules, pointsPerTransaction: Number(val) })
-                                  }
-                                  suffix="Poin"
-                                  placeholder="0"
-                                />
-                                <CurrencyInput
-                                  label="Kelipatan Nominal"
-                                  value={Number(souvenirRules.amountStep) || 0}
-                                  onChange={(val) =>
-                                    setSouvenirRules({ ...souvenirRules, amountStep: Number(val) })
-                                  }
-                                  placeholder="50000"
-                                  hint="0 = nonaktif"
-                                />
-                                <FormattedNumberInput
-                                  label="Poin per Kelipatan"
-                                  value={Number(souvenirRules.pointsPerAmountStep) || 0}
-                                  onChange={(val) =>
-                                    setSouvenirRules({ ...souvenirRules, pointsPerAmountStep: Number(val) })
-                                  }
-                                  suffix="Poin"
-                                  placeholder="10"
-                                />
-                              </div>
-                            )}
-                          </div>
-                        </div>
-
-                        <div className="flex items-start gap-3 p-3.5 rounded-xl border border-blue-200 bg-white">
-                          <div className="w-8 h-8 rounded-lg bg-blue-50 text-secondary flex items-center justify-center shrink-0 mt-0.5">
-                            <Gift className="w-4 h-4" />
-                          </div>
-                          <div className="min-w-0">
-                            <p className="text-xs font-bold text-gray-800">Katalog Suvenir</p>
-                            <p className="text-[11px] text-gray-500 mt-0.5 leading-relaxed">
-                              Daftar item suvenir, foto, stok, dan detail barang dikelola langsung pada tab <strong>Syarat Souvenir</strong> di dashboard event.
-                            </p>
-                          </div>
+                            </div>
+                          )}
                         </div>
                       </div>
+
+                      <div className="flex items-start gap-3 p-3.5 rounded-xl border border-blue-200 bg-white">
+                        <div className="w-8 h-8 rounded-lg bg-blue-50 text-secondary flex items-center justify-center shrink-0 mt-0.5">
+                          <Gift className="w-4 h-4" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold text-gray-800">Katalog Suvenir</p>
+                          <p className="text-[11px] text-gray-500 mt-0.5 leading-relaxed">
+                            Daftar item suvenir, foto, stok, dan detail barang dikelola langsung pada tab <strong>Syarat Souvenir</strong> di dashboard event.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 )}
 
